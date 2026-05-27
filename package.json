@@ -1,6 +1,6 @@
 {
 	"name": "zlbf-pipewrench",
-	"version": "1.7.0",
+	"version": "1.7.1",
 	"scripts": {
 		"prebuild": "npm run clean",
 		"build": "tstl -p ./tsconfig.build.json",
