@@ -30,7 +30,6 @@ export class ZLBFUI {
 		Events.onPostRender.addListener(() => this.onUpdateUI());
 	}
 
-	private onCreatePlayer(player: IsoPlayer) {
 	/**
 	 * Handler for the `onCreatePlayer` event. Initializes UI tabs for female players.
 	 * @param player The created IsoPlayer instance
