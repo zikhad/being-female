@@ -52,6 +52,10 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		super("ZLBFLactation");
 	}
 
+	/**
+	 * Initialize lactation component for the given player and register timed events.
+	 * @param player The created IsoPlayer instance
+	 */
 	onCreatePlayer(player: IsoPlayer): void {
 		super.onCreatePlayer(player);
 		this.moodle = new Moodle({

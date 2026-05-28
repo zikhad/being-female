@@ -195,16 +195,29 @@ export abstract class Player<T> {
 		return this.player ? CharacterTraitApi.hasTrait(this.player, trait) : false;
 	}
 
+	/**
+	 * Add a trait to the current player if available.
+	 * @param trait Trait enum value to add
+	 */
 	protected addTrait(trait: ZLBFTraitsEnum): void {
 		if (!this.player) return;
 		CharacterTraitApi.addTrait(this.player, trait);
 	}
 
+	/**
+	 * Remove a trait from the current player if available.
+	 * @param trait Trait enum value to remove
+	 */
 	protected removeTrait(trait: ZLBFTraitsEnum): void {
 		if (!this.player) return;
 		CharacterTraitApi.removeTrait(this.player, trait);
 	}
 
+	/**
+	 * Static helper to check whether a provided `IsoPlayer` has a trait.
+	 * @param player Player to inspect (may be undefined)
+	 * @param trait Trait enum to check
+	 */
 	public static hasTrait(player: IsoPlayer | undefined, trait: ZLBFTraitsEnum): boolean {
 		if (!player) return false;
 		return CharacterTraitApi.hasTrait(player, trait);

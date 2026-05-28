@@ -113,6 +113,11 @@ export class Moodle {
 		return { bad4, bad3, bad2, bad1, good1, good2, good3, good4 };
 	}
 
+	/**
+	 * Normalize an input level to a 0-1 range. Accepts either 0-1 or 0-100 inputs.
+	 * @param level Input level value
+	 * @returns Normalized level between 0 and 1
+	 */
 	private normalizeLevel(level: number): number {
 		if (level > 1) {
 			return level / 100;

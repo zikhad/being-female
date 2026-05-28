@@ -269,6 +269,10 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		}
 	}
 
+	/**
+	 * Compute additional fertility bonus contributed by player traits.
+	 * @returns Bonus multiplier to add to base fertility (0-1)
+	 */
 	private computeFertilityBonus() {
 		if (this.hasTrait(ZLBFTraitsEnum.FERTILE)) return 0.25;
 		if (this.hasTrait(ZLBFTraitsEnum.HYPERFERTILE)) return 0.5;

@@ -102,6 +102,11 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private onLabor(_delta: number) {
 		this.applyBodyEffect(BodyPartType.Groin, { pain: 1, maxPain: 30 });
 	}
+	/**
+	 * Called every in-game minute to advance pregnancy progress.
+	 * - Updates pregnancy progress/time
+	 * - Triggers labor and birth action when reaching full duration
+	 */
 	onEveryMinute(): void {
 		if (!this.pregnancy) return;
 		const { duration } = this.options;
@@ -122,6 +127,11 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 	}
 
+	/**
+	 * Called every in-game hour to apply ongoing pregnancy effects.
+	 * - Updates moodle
+	 * - Adjusts thirst and calories consumption based on progress
+	 */
 	onEveryHour(): void {
 		if (!this.pregnancy) return;
 		
@@ -141,14 +151,21 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		nutrition.setCalories(Math.max(-2200, nutrition.getCalories() - calories));
 	}
 
+	/**
+	 * Called every in-game day to apply less-frequent pregnancy effects.
+	 * For example, apply food sickness early in pregnancy.
+	 */
 	onEveryDay() {
 		if (!this.pregnancy) return;
-		/** Apply sickness in the beginning of Pregnancy */
 		const { progress } = this.pregnancy;
 		if (progress < 0.05 || progress > 0.33) return;
 		this.player!.getBodyDamage().setFoodSicknessLevel(50 + ZombRand(0, 50));
 	}
 
+	/**
+	 * Spawn the baby item, restore player movement and apply post-birth effects.
+	 * Also stops the pregnancy state.
+	 */
 	public birth() {
 		if (!this.player) return;
 		this.player.getInventory().AddItem(ITEMS.BABY);

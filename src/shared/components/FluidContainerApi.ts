@@ -24,9 +24,16 @@ export class FluidContainerApi {
 	}
 
 	public get amount() {
+		/**
+		 * Current amount of fluid in the wrapped container (in milliliters).
+		 * Returns 0 when no container is present.
+		 */
 		return this.container?.getAmount() ?? 0
 	}
 
+	/**
+	 * The primary fluid type stored in the container, or null when empty or unavailable.
+	 */
 	public get primaryFluid(): Fluid | null {
 		return this.container?.getPrimaryFluid().toString() ?? null;
 	}
