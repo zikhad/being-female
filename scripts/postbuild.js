@@ -1,140 +1,22 @@
 const path = require("path");
 const fs = require("fs-extra");
-const { copyFolder, getInfo, sanitizeFolderName } = require("./utils");
-const { generateTranslations } = require("./utils/translations");
+const { copyFolder, moveFolder, getInfo } = require("./utils");
 
 /**
  * returns the src Path for this operation
  * @param {string} dirPath
  * @returns {string}
  */
-const srcPath = dirPath => path.join(process.cwd(), ...dirPath.split("/"));
+const srcPath = dirPath => path.join(process.cwd(), dirPath);
 
 /**
  * returns the dist path (inside media) for this operation
  * @param {string} dirPath
- * @param {boolean} media should include the media folder in destPath ?
  * @returns {string}
  */
-const distPath = (dirPath, media = true) => {
-	const { id } = getInfo();
-	return path.join(process.cwd(), "dist", id, media ? "media" : "", ...dirPath.split("/"));
-};
-
-/**
- * Parses a .info file (key=value per line)
- * @param {string} content
- * @returns {Record<string, string>}
- */
-const parseInfoFile = content => {
-	return content
-		.split(/\r?\n/)
-		.filter(Boolean)
-		.reduce((acc, line) => {
-			const [key, ...rest] = line.split("=");
-			acc[key.trim()] = rest.join("=").trim();
-			return acc;
-		}, {});
-};
-
-/**
- * Converts info object back to .info format
- * @param {Record<string, string>} info
- * @returns {string}
- */
-const stringifyInfoFile = info =>
-	Object.entries(info)
-		.filter(([, value]) => value !== undefined && value !== null)
-		.map(([key, value]) => `${key}=${value}`)
-		.join("\n");
-
-/**
- * Build 42 requires use a backslash prefix for each dependency.
- * @param {string | undefined} requireValue
- * @returns {string | undefined}
- */
-const formatBuild42Require = requireValue => {
-	if (!requireValue) {
-		return undefined;
-	}
-
-	const dependencies = requireValue
-		.split(",")
-		.map(dep => dep.trim().replace(/^\\+/, ""))
-		.filter(Boolean);
-
-	if (dependencies.length === 0) {
-		return undefined;
-	}
-
-	return `\\${dependencies.join(",\\")}`;
-};
-
-/**
- * Renames dist/id to dist/name.
- * @returns {Promise<string>} Final dist folder path
- */
-const renameDistFolderToModName = async () => {
-	const { id, name } = getInfo();
-	const distRoot = path.join(process.cwd(), "dist");
-	const sourcePath = path.join(distRoot, id);
-	const targetPath = path.join(distRoot, sanitizeFolderName(name));
-
-	if (sourcePath === targetPath) {
-		return targetPath;
-	}
-
-	if (!(await fs.pathExists(sourcePath))) {
-		throw new Error(`Cannot rename dist folder, source does not exist: ${sourcePath}`);
-	}
-
-	if (await fs.pathExists(targetPath)) {
-		await fs.remove(targetPath);
-	}
-
-	await fs.move(sourcePath, targetPath);
-	return targetPath;
-};
-
-const generateBuild42Folder = async () => {
-	const { id } = getInfo();
-	const basePath = path.join(process.cwd(), "dist", id);
-	const build42Path = path.join(basePath, "42");
-
-	await fs.ensureDir(build42Path);
-
-	const baseEntries = await fs.readdir(basePath);
-	for (const entry of baseEntries) {
-		if (entry === "42") {
-			continue;
-		}
-
-		const src = path.join(basePath, entry);
-		const dest = path.join(build42Path, entry);
-		if (entry === "media") {
-			await fs.copy(src, dest, {
-				overwrite: true,
-				filter: filePath =>
-					!filePath.includes("lua/shared/Translate") &&
-					!filePath.includes("lua\\shared\\Translate")
-			});
-			continue;
-		}
-
-		await fs.copy(src, dest, { overwrite: true });
-	}
-	const build42InfoPath = path.join(build42Path, "mod.info");
-	if (await fs.pathExists(build42InfoPath)) {
-		const raw = await fs.readFile(build42InfoPath, "utf8");
-		const parsed = parseInfoFile(raw);
-		const transformed = {
-			...parsed,
-			require: formatBuild42Require(parsed.require),
-			version: "42"
-		};
-
-		await fs.writeFile(build42InfoPath, stringifyInfoFile(transformed));
-	}
+const distPath = (dirPath = "") => {
+	const { name } = getInfo();
+	return path.join(process.cwd(), "dist", name, dirPath);
 };
 
 /**
@@ -212,42 +94,53 @@ const patchPipeWrenchLua = async basePath => {
 	}
 };
 
+/**
+ * Copy EN translations from src/translations-json/LOCALE to the Build 42 output folder, ensuring the directory structure is correct.
+ * @param {string} outputPath the path to the output directory for translations (e.g., 42/media/lua/shared/Translate/LOCALE)
+ * @param {string} locale the locale to copy (default: "EN")
+ */
+const translations = async (outputPath, locale = "EN") => {
+	const sourceDir = srcPath(`src/translations-json/${locale}`);
+	if (!(await fs.pathExists(sourceDir))) {
+		console.info(`No src/translations-json/${locale} found; skipping translations.`);
+		return;
+	}
+	await fs.ensureDir(path.join(outputPath, locale));
+	const translationFiles = await fs.readdir(sourceDir);
+	for (const file of translationFiles) {
+		const json = await fs.readJSON(path.join(sourceDir, file));
+		const sortedTranslations = new Map(Object.entries(json).sort());
+		await fs.writeJson(path.join(outputPath, locale, file), Object.fromEntries(sortedTranslations), { spaces: 4 });
+	}
+	console.info(`${locale} Translations copied successfully.`);
+}
+
 const run = async () => {
 	try {
 		const { id } = getInfo();
-		const basePath = path.join(process.cwd(), "dist", id);
-		const build42Path = path.join(basePath, "42");
+		
+		// Move the built mod from dist/id to dist/Name
+		await moveFolder(path.join(process.cwd(), "dist", id), distPath());
+		
+		// Copy root assets to both dist/Name and dist/Name/42
+		await copyFolder(srcPath("src/root"), distPath());
+		await copyFolder(srcPath("src/root"), distPath("42"));
 
-		await copyFolder(srcPath("src/media"), distPath(""));
-		console.info("media folder copied successfully.");
+		// Copy mod.info to dist/Name/mod.info to dist/Name/42/mod.info
+		await fs.copy(distPath("mod.info", false), distPath("42/mod.info"));
+		
+		// Move generated media from dist/Name/media to dist/Name/42/media
+		await moveFolder(distPath("media"), distPath("42/media"));
 
-		await patchPipeWrenchLua(basePath);
-		console.info("PipeWrench Lua files patched.");
+		// Copy media assets to dist/Name/42/media
+		await copyFolder(srcPath("src/media"), distPath("42/media"));
 
-		await copyFolder(srcPath("src/root"), distPath("", false));
-		console.info("Root folder copied successfully.");
+		// Copy EN translations to dist/Name/42/media/lua/shared/Translate/EN - these are the only translations shipped with the base mod
+		await translations(distPath("42/media/lua/shared/Translate"));
 
-		await generateBuild42Folder();
-		console.info("Build 42 folder structure ready.");
-
-		const translationResult = await generateTranslations({
-			sourceRoot: srcPath("src/translations-json"),
-			build42TranslateRoot: path.join(build42Path, "media", "lua", "shared", "Translate")
-		});
-
-		if (!translationResult.generated) {
-			throw new Error(
-				"No translation json files found in src/translations-json. Build 42 requires json translations."
-			);
-		}
-
-		console.info(`Translations generated for Build 42 (.json): ${translationResult.fileCount} files.`);
-
-		await fs.remove(distPath(""));
-		console.info("Root media folder removed (Build 42 only artifact).");
-
-		const finalDistPath = await renameDistFolderToModName();
-		console.info(`Dist folder renamed to mod name: ${finalDistPath}`);
+		// Patch PipeWrench-generated Lua files to avoid spurious WARNs in PZ's console
+		await patchPipeWrenchLua(distPath("42"));
+		console.log("PipeWrench Lua files patched.");
 		
 	} catch (err) {
 		console.error("Error copying files:", err);
