@@ -28,7 +28,12 @@ const run = async () => {
 		const { id } = getInfo();
 
 		// Move the built mod from dist/id to dist/Name
-		await moveFolder(path.join(process.cwd(), "dist", id), distPath());
+		const generatedDistPath = path.join(process.cwd(), "dist", id);
+		if (generatedDistPath !== distPath()) {
+			await moveFolder(generatedDistPath, distPath());
+		} else {
+			console.warn(`Generated dist path ${generatedDistPath} is the same as target dist path ${distPath()}. Skipping move to avoid overwriting source.`);
+		}
 
 		// Copy root assets to both dist/Name and dist/Name/42
 		await copyFolder(srcPath("src/root"), distPath());

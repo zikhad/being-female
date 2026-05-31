@@ -179,8 +179,7 @@ const writeTranslatedModInfo = async (outputPath, locale, language) => {
 		id: `${id}-${locale.toLowerCase()}`,
 		name: `${name} - ${locale}`,
         description,
-		require: require,
-		version: "42"
+		require: require
 	});
 
 	await fs.writeFile(path.join(outputPath, "mod.info"), infoContent);
