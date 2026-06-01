@@ -9,21 +9,27 @@ permissions:
     contents: write
 
 jobs:
-    release:
+    prepare_release:
         if: github.actor != 'github-actions[bot]'
         runs-on: ubuntu-latest
+        outputs:
+            latest_tag: ${{ steps.get_latest_tag.outputs.LATEST_TAG }}
+            previous_tag: ${{ steps.get_previous_tag.outputs.PREVIOUS_TAG }}
+            main_zip_name: ${{ steps.get_zip_name.outputs.ZIPNAME }}
+            translation_languages: ${{ steps.resolve_translation_languages.outputs.translation_languages }}
+            has_translations: ${{ steps.resolve_translation_languages.outputs.has_translations }}
 
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v3
+              uses: actions/checkout@v4
               with:
-                  fetch-depth: 0 # Fetch all history for all tags and branches
+                  fetch-depth: 0
 
             - name: Set up Node.js
-              uses: actions/setup-node@v3
+              uses: actions/setup-node@v4
               with:
                   node-version: "22"
-                  cache: "npm"
+                  cache: npm
                   cache-dependency-path: package-lock.json
 
             - name: Configure Git user
@@ -43,9 +49,10 @@ jobs:
             - name: Push changes
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/})
-                  git push --follow-tags origin HEAD
+              run: git push --follow-tags origin HEAD
+
+            - name: Create main zip
+              run: npm run zip
 
             - name: Get latest tag
               id: get_latest_tag
@@ -55,31 +62,230 @@ jobs:
               id: get_previous_tag
               run: echo "PREVIOUS_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1))" >> $GITHUB_OUTPUT
 
-            - name: Get Zip name
+            - name: Get main zip name
               id: get_zip_name
               run: |
                   ZIPNAME=$(node scripts/zipname.js)
                   echo "ZIPNAME=$ZIPNAME" >> $GITHUB_OUTPUT
 
+            - name: Resolve translation languages
+              id: resolve_translation_languages
+              env:
+                  TRANSLATION_LANGS_JSON: ${{ vars.TRANSLATION_LANGS_JSON }}
+              run: |
+                  node <<'NODE'
+                  const fs = require("node:fs");
+
+                  const raw = (process.env.TRANSLATION_LANGS_JSON || "").trim();
+                  let languages = [];
+
+                  if (raw) {
+                    try {
+                      const parsed = JSON.parse(raw);
+                      if (!Array.isArray(parsed)) {
+                        throw new Error("TRANSLATION_LANGS_JSON must be a JSON array.");
+                      }
+
+                      languages = parsed
+                        .map(value => String(value).trim().toLowerCase())
+                        .filter(Boolean);
+                    } catch (error) {
+                      console.error("Invalid TRANSLATION_LANGS_JSON:", error.message);
+                      process.exit(1);
+                    }
+                  }
+
+                  const uniqueLanguages = [...new Set(languages)];
+                  const hasTranslations = uniqueLanguages.length > 0;
+                  const output = process.env.GITHUB_OUTPUT;
+
+                  fs.appendFileSync(output, `translation_languages=${JSON.stringify(uniqueLanguages)}\n`);
+                  fs.appendFileSync(output, `has_translations=${hasTranslations}\n`);
+
+                  console.log(`Resolved translation languages: ${JSON.stringify(uniqueLanguages)}`);
+                  NODE
+
+            - name: Upload main zip artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: main-zip
+                  path: ./${{ steps.get_zip_name.outputs.ZIPNAME }}
+
+    build_translation_zips:
+        needs: prepare_release
+        if: needs.prepare_release.outputs.has_translations == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                language: ${{ fromJSON(needs.prepare_release.outputs.translation_languages) }}
+
+        steps:
+            - name: Checkout release tag
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.prepare_release.outputs.latest_tag }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: npm
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build translation zip (best effort)
+              id: build_translation_zip
+              shell: bash
+              run: |
+                  LANGUAGE="${{ matrix.language }}"
+
+                  if ! npm run translate -- "$LANGUAGE"; then
+                      echo "::warning::Translation generation failed for ${LANGUAGE}. Skipping this language."
+                      echo "should_upload=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  if ! npm run zip:translation -- "$LANGUAGE"; then
+                      echo "::warning::Translation zip creation failed for ${LANGUAGE}. Skipping this language."
+                      echo "should_upload=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  ZIPNAME=$(node scripts/zipname-translation.js "$LANGUAGE")
+                  if [ ! -f "./$ZIPNAME" ]; then
+                      echo "::warning::Translation zip artifact was not found for ${LANGUAGE}: ./$ZIPNAME"
+                      echo "should_upload=false" >> "$GITHUB_OUTPUT"
+                      exit 0
+                  fi
+
+                  echo "zipname=$ZIPNAME" >> "$GITHUB_OUTPUT"
+                  echo "should_upload=true" >> "$GITHUB_OUTPUT"
+
+            - name: Upload translation zip artifact
+              if: steps.build_translation_zip.outputs.should_upload == 'true'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: translation-zip-${{ matrix.language }}
+                  path: ./${{ steps.build_translation_zip.outputs.zipname }}
+
+    create_release:
+        needs:
+            - prepare_release
+            - build_translation_zips
+        if: |
+            always() &&
+            needs.prepare_release.result == 'success' &&
+            (needs.build_translation_zips.result == 'success' || needs.build_translation_zips.result == 'skipped')
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Download main zip artifact
+              uses: actions/download-artifact@v4
+              with:
+                  name: main-zip
+                  path: release-assets
+
+            - name: Download translation zip artifacts
+              if: needs.prepare_release.outputs.has_translations == 'true'
+              uses: actions/download-artifact@v4
+              with:
+                  pattern: translation-zip-*
+                  path: release-assets
+                  merge-multiple: true
+
+            - name: Translation artifact summary
+              env:
+                  HAS_TRANSLATIONS: ${{ needs.prepare_release.outputs.has_translations }}
+                  EXPECTED_LANGS: ${{ needs.prepare_release.outputs.translation_languages }}
+                  MAIN_ZIP: ${{ needs.prepare_release.outputs.main_zip_name }}
+              run: |
+                  node <<'NODE'
+                  const fs = require("node:fs");
+
+                  const hasTranslations = process.env.HAS_TRANSLATIONS === "true";
+                  const expected = JSON.parse(process.env.EXPECTED_LANGS || "[]");
+                  const mainZip = process.env.MAIN_ZIP || "";
+                  const assetsDir = "release-assets";
+                  const files = fs.existsSync(assetsDir)
+                    ? fs.readdirSync(assetsDir).filter(name => name.toLowerCase().endsWith(".zip"))
+                    : [];
+
+                  const getLocale = language =>
+                    String(language).toLowerCase() === "pt"
+                      ? "ptbr"
+                      : String(language).toLowerCase();
+
+                  const uploaded = [];
+                  const skipped = [];
+
+                  for (const language of expected) {
+                    const locale = getLocale(language);
+                    const found = files.some(name => name !== mainZip && name.includes(`-${locale}-`));
+                    if (found) {
+                      uploaded.push(String(language));
+                    } else {
+                      skipped.push(String(language));
+                    }
+                  }
+
+                  console.log("Translation artifact summary:");
+                  if (!hasTranslations || expected.length === 0) {
+                    console.log("- translations configured: no");
+                    console.log("- uploaded: []");
+                    console.log("- skipped: []");
+                  } else {
+                    console.log(`- expected: ${JSON.stringify(expected)}`);
+                    console.log(`- uploaded: ${JSON.stringify(uploaded)}`);
+                    console.log(`- skipped: ${JSON.stringify(skipped)}`);
+                  }
+
+                  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+                  if (summaryPath) {
+                    const lines = [
+                      "## Translation Artifacts",
+                      "",
+                      `Expected languages: ${JSON.stringify(expected)}`,
+                      `Uploaded languages: ${JSON.stringify(uploaded)}`,
+                      `Skipped languages: ${JSON.stringify(skipped)}`,
+                      ""
+                    ];
+                    fs.appendFileSync(summaryPath, lines.join("\n"));
+                  }
+                  NODE
+
             - name: Generate changelog link
               id: generate_changelog
-              uses: actions/github-script@v6
+              uses: actions/github-script@v7
               with:
                   script: |
-                      const latestTag = '${{ steps.get_latest_tag.outputs.LATEST_TAG }}';
-                      const previousTag = '${{ steps.get_previous_tag.outputs.PREVIOUS_TAG }}';
+                      const latestTag = '${{ needs.prepare_release.outputs.latest_tag }}';
+                      const previousTag = '${{ needs.prepare_release.outputs.previous_tag }}';
                       const repo = context.repo.repo;
                       const owner = context.repo.owner;
                       const changelogUrl = `https://github.com/${owner}/${repo}/compare/${previousTag}...${latestTag}`;
                       return `Full Changelog: ${changelogUrl}`;
 
+            - name: Verify release assets
+              run: |
+                  echo "Release assets ready for upload:"
+                  ls -lah release-assets
+                  ZIP_COUNT=$(find release-assets -maxdepth 1 -type f -name '*.zip' | wc -l)
+                  if [ "$ZIP_COUNT" -eq 0 ]; then
+                      echo "No zip assets found in release-assets"
+                      exit 1
+                  fi
+                  find release-assets -maxdepth 1 -type f -name '*.zip' -print
+
             - name: Create GitHub Release
               id: create_release
               uses: softprops/action-gh-release@v1
               with:
-                  tag_name: ${{ steps.get_latest_tag.outputs.LATEST_TAG }}
-                  name: Release ${{ steps.get_latest_tag.outputs.LATEST_TAG }}
+                  tag_name: ${{ needs.prepare_release.outputs.latest_tag }}
+                  name: Release ${{ needs.prepare_release.outputs.latest_tag }}
                   body: ${{ steps.generate_changelog.outputs.result }}
-                  files: ./${{ steps.get_zip_name.outputs.ZIPNAME }}
+                  files: release-assets/*.zip
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
