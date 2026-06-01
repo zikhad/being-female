@@ -166,20 +166,18 @@ const copyRootAssets = async outputPath => {
  * @param {string} language the original language code (e.g., "pt") for translation purposes
  */
 const writeTranslatedModInfo = async (outputPath, locale, language) => {
-	
-    const { id, name, modInfo } = getInfo();    
-    const description = translate(`Translation package for ${name} in ${locale}.`, { to: language });
-    const require = [
-        ...(modInfo.require ?? []),
-        id
-    ];
+	const { id, name, modInfo } = getInfo();
+	const descriptionResult = await translate(`Translation package for ${name} in ${locale}.`, {
+		to: language
+	});
+	const require = [...(modInfo.require ?? []), id];
 
 	const infoContent = stringifyInfoFile({
 		...modInfo,
 		id: `${id}-${locale.toLowerCase()}`,
 		name: `${name} - ${locale}`,
-        description,
-		require: require
+		description: descriptionResult.text,
+		require
 	});
 
 	await fs.writeFile(path.join(outputPath, "mod.info"), infoContent);
