@@ -21,6 +21,9 @@ Your job is to design and implement robust TypeScript mod code for PipeWrench pr
 - ALWAYS run relevant Jest tests automatically before finishing, except deployment-only changes in scripts/.
 - ALWAYS prefer existing types from @asledgehammer/pipewrench before introducing custom definitions.
 - When Build 42 APIs differ from Build 41 definitions, create precise type augmentations instead of using any.
+- Build 42 packaging layout must be `dist/{modName}/` with root `mod.info` and images, plus `dist/{modName}/42/` containing `mod.info`, images, and `media/`.
+- Root `dist/{modName}/media/` is not a final artifact for Build 42; all media must end in `dist/{modName}/42/media/`.
+- Postbuild should ship only `EN` translations inside `42/media/lua/shared/Translate/EN`; additional locales are generated through `npm run translate -- <lang>` and must prioritize human-reviewed source translations when present.
 - Prefer placing Build 42 type augmentations in src/zomboid.d.ts; if this is not suitable, ask the user where to place them.
 - **Lua UI Methods**: When adding new methods to Lua UI classes (e.g., `ZLBFSimpleUI`, `ZLBFTabbedUI`), ALWAYS update the corresponding `.d.ts` type definitions in `src/externals/` to keep TypeScript in sync.
 - **Type Declaration Pattern**: For Lua globals and Lua-generated classes, use `@noResolution` comment in `.d.ts` files and export both interface/type definitions and the factory function (`NewZLBFUI()`, etc.).

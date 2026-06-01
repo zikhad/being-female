@@ -30,6 +30,10 @@ export class ZLBFUI {
 		Events.onPostRender.addListener(() => this.onUpdateUI());
 	}
 
+	/**
+	 * Handler for the `onCreatePlayer` event. Initializes UI tabs for female players.
+	 * @param player The created IsoPlayer instance
+	 */
 	private onCreatePlayer(player: IsoPlayer) {
 		this.player = player;
 		if (!this.UI) return;
@@ -49,6 +53,9 @@ export class ZLBFUI {
 		}
 	}
 
+	/**
+	 * Initializes and configures the main ZLBF UI when the UI subsystem is created.
+	 */
 	private onCreateUI() {
 		pipewrenchRequire("ZLBF/ZLBFTabbedUI");
 		this.UI = NewZLBFTabbedUI();
@@ -58,6 +65,9 @@ export class ZLBFUI {
 		this.UI.close();
 	}
 
+	/**
+	 * Per-frame UI update hook. Refreshes registered tabs when UI is visible.
+	 */
 	private onUpdateUI() {
 		if (!this.UI?.isUIVisible) return;
 		const context = this.getTabContext();
@@ -66,6 +76,10 @@ export class ZLBFUI {
 		}
 	}
 
+	/**
+	 * Builds the tab context object passed to each UI tab's build/update callbacks.
+	 * @returns The `ZLBFUITabContext` containing player and component references.
+	 */
 	private getTabContext(): ZLBFUITabContext {
 		return {
 			player: this.player,
@@ -75,11 +89,17 @@ export class ZLBFUI {
 		};
 	}
 
+	/**
+	 * Toggle the visibility of the ZLBF UI panel.
+	 */
 	public toggle() {
 		if (!this.UI) return;
 		this.UI.toggle();
 	}
 
+	/**
+	 * Returns whether the ZLBF UI is currently visible.
+	 */
 	public isVisible(): boolean {
 		if (!this.UI) {
 			return false;

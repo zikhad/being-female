@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.7.1](https://github.com/zikhad/zwbf-pipewrench/compare/v1.7.0...v1.7.1) (2026-05-27)
+
+
+### Bug Fixes
+
+* **items:** reduced distribution chances ([556ba47](https://github.com/zikhad/zwbf-pipewrench/commit/556ba477491ad8a59f9f3efd9a46741bffc02f6d))
+* **pregnancy:** removing weight debuff ([ab38334](https://github.com/zikhad/zwbf-pipewrench/commit/ab38334c8954b174a5a37b82a889ad7e7c7141d3))
+
 ## [1.7.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.6.1...v1.7.0) (2026-05-19)
 
 
