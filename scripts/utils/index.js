@@ -1,9 +1,16 @@
-const { copyFolder } = require("./copyFolder");
+const { copyFolder, moveFolder, srcPath, distPath } = require("./folders");
 const { getInfo } = require("./info");
-const { sanitizeFolderName } = require("./sanitizeFolderName");
+const { createProgressBar, startProgressBar, stopProgressBar } = require("./progressBar");
+const { patchPipeWrenchLua } = require("./patches");
 
 module.exports = {
 	copyFolder,
+	moveFolder,
+	srcPath,
+	distPath,
+	createProgressBar,
 	getInfo,
-	sanitizeFolderName
+	startProgressBar,
+	stopProgressBar,
+	patchPipeWrenchLua
 };

@@ -17,6 +17,7 @@
 		"zipname": "node scripts/zipname.js",
 		"test": "jest",
 		"coverage": "npm run test -- --coverage",
+		"translate": "node scripts/translate.js",
 		"extract-images": "node scripts/extract-images.js"
 	},
 	"watch": {
@@ -73,6 +74,7 @@
 		"rimraf": "^6.0.1",
 		"sharp": "^0.34.5",
 		"standard-version": "^9.5.0",
+		"translatte": "^3.0.1",
 		"ts-jest": "^29.3.4",
 		"ts-jest-resolver": "^2.0.1",
 		"ts-node": "^10.9.1",

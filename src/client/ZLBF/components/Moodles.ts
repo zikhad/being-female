@@ -113,6 +113,11 @@ export class Moodle {
 		return { bad4, bad3, bad2, bad1, good1, good2, good3, good4 };
 	}
 
+	/**
+	 * Normalize an input level to a 0-1 range. Accepts either 0-1 or 0-100 inputs.
+	 * @param level Input level value
+	 * @returns Normalized level between 0 and 1
+	 */
 	private normalizeLevel(level: number): number {
 		if (level > 1) {
 			return level / 100;
@@ -131,25 +136,25 @@ export class Moodle {
 	 * @param onlyMoodleFramework - If true, skips fallback and only attempts MF update
 	 */
 	public moodle(level: number, onlyMoodleFramework = false): void {
-		level = this.normalizeLevel(level);
-		const mfLevel = this.type === "Bad" ? 1 - level : level;
+		const normalized = this.normalizeLevel(level);
+		const mfLevel = this.type === "Bad" ? 1 - normalized : normalized;
 
 		if (!this.isMF) {
 			// If MF is not active, fallback to HaloText (one-off notification)
 			if (!onlyMoodleFramework) {
-				this.fallbackMoodle(level);
+				this.fallbackMoodle(normalized);
 			}
 			return;
 		}
 
 		// If MF is active, update moodle state (can be called frequently for real-time updates)
 		const moodle = MF.getMoodle(this.name);
-		if (!moodle) {
-			if (!onlyMoodleFramework) {
-				this.fallbackMoodle(level);
+			if (!moodle) {
+				if (!onlyMoodleFramework) {
+					this.fallbackMoodle(normalized);
+				}
+				return;
 			}
-			return;
-		}
 		const { bad4, bad3, bad2, bad1, good1, good2, good3, good4 } = this.buildTresholds();
 		moodle.setThresholds(bad4, bad3, bad2, bad1, good1, good2, good3, good4);
 		if (this.texture) {
