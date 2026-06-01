@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.10.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.9.0...v1.10.0) (2026-06-01)
+
+
+### Features
+
+* **deployment:** adding thanks to readme and fallback to description translation ([8595a78](https://github.com/zikhad/zwbf-pipewrench/commit/8595a7865192e2cdf7665614076665b1dc44561b))
+* **translations:** adding Portuguese translations ([8fe7872](https://github.com/zikhad/zwbf-pipewrench/commit/8fe7872d7eab08a60926f4f6b7bbd1f561620b9e))
+
 ## [1.9.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.8.0...v1.9.0) (2026-06-01)
 
 
