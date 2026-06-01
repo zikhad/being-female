@@ -316,6 +316,7 @@ Contributions are welcome! Please:
 - **Zikhad**: Lead developer and maintainer
 - **BlaBla**: Custom Animations
 - **[PipeWrench](https://github.com/asledgehammer/PipeWrench)**: Framework for Typescript zomboid mod creation
+- [@LXZ616](https://github.com/LXZ616) For Chinese translations
 
 ---
 
