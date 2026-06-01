@@ -1,21 +1,7 @@
 #!/usr/bin/env node
 
 const { Command } = require("commander");
-const { getInfo } = require("./utils");
-
-/**
- * Converts a language code to Project Zomboid locale format.
- * @param {string} language
- * @returns {string}
- */
-const getLocale = language => {
-	switch (language.toLowerCase()) {
-		case "pt":
-			return "PTBR";
-		default:
-			return language.toUpperCase();
-	}
-};
+const { getInfo, getLocale } = require("./utils");
 
 const program = new Command();
 program.argument("<language>", "Language code to zip (e.g. pt, es, de)").parse();

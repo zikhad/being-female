@@ -6,21 +6,7 @@ const fs = require("fs-extra");
 const archiver = require("archiver");
 const { Command } = require("commander");
 
-const { copyFolder, getInfo } = require("./utils");
-
-/**
- * Converts a language code to Project Zomboid locale format.
- * @param {string} language
- * @returns {string}
- */
-const getLocale = language => {
-	switch (language.toLowerCase()) {
-		case "pt":
-			return "PTBR";
-		default:
-			return language.toUpperCase();
-	}
-};
+const { copyFolder, getInfo, getLocale } = require("./utils");
 
 /**
  * Parses and validates language argument.
