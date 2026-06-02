@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.2...v1.11.0) (2026-06-02)
+
+
+### Features
+
+* **agent:** updating agent behavior ([253e2dd](https://github.com/zikhad/zwbf-pipewrench/commit/253e2dd3d36df857e076ab6a141fc830beb863b5))
+
 ### [1.10.2](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.1...v1.10.2) (2026-06-01)
 
 
