@@ -6,6 +6,7 @@ const { Command } = require("commander");
 const translate = require("translatte");
 
 const { copyFolder, getInfo, getLocale, startProgressBar, stopProgressBar } = require("./utils");
+const { overlayFlagOnImage } = require("./utils/flagOverlay");
 
 /**
  * Converts info object back to .info content.
@@ -146,6 +147,31 @@ const copyRootAssets = async outputPath => {
 };
 
 /**
+ * Overlays a locale flag on poster.png (root and 42/) and optionally generates
+ * a flagged preview.png when steam/preview.png exists.
+ * @param {string} outputPath
+ * @param {string} locale
+ */
+const overlayFlagsOnImages = async (outputPath, locale) => {
+	const posterPaths = [
+		path.join(outputPath, "poster.png"),
+		path.join(outputPath, "42", "poster.png"),
+	];
+
+	for (const posterPath of posterPaths) {
+		if (await fs.pathExists(posterPath)) {
+			await overlayFlagOnImage(posterPath, posterPath, locale);
+		}
+	}
+
+	const steamPreviewSrc = path.join(process.cwd(), "steam", "preview.png");
+	if (await fs.pathExists(steamPreviewSrc)) {
+		const previewDest = path.join(outputPath, "preview.png");
+		await overlayFlagOnImage(steamPreviewSrc, previewDest, locale);
+	}
+};
+
+/**
  * Translates the package description and falls back to English if translation fails.
  * @param {string} name the base mod/package name
  * @param {string} locale the target locale identifier (e.g. "PTBR")
@@ -210,6 +236,7 @@ const run = async () => {
 
 	await generateLocaleTranslations(language, locale, outputPath);
 	await copyRootAssets(outputPath);
+	await overlayFlagsOnImages(outputPath, locale);
 	await writeTranslatedModInfo(outputPath, locale , language);
 
 	console.info(`Translations package generated: ${outputPath}`);
