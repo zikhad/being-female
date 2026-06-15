@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.11.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.2...v1.11.0) (2026-06-02)
+
+
+### Features
+
+* **agent:** updating agent behavior ([253e2dd](https://github.com/zikhad/zwbf-pipewrench/commit/253e2dd3d36df857e076ab6a141fc830beb863b5))
+
+### [1.10.2](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.1...v1.10.2) (2026-06-01)
+
+
+### Bug Fixes
+
+* **translation:** fixing workflow summary on translations ([5289c90](https://github.com/zikhad/zwbf-pipewrench/commit/5289c900c9366278740ef1fa73dadd6806628f0d))
+
+### [1.10.1](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.0...v1.10.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **translation:** fixing getLocale issue ([184bf8b](https://github.com/zikhad/zwbf-pipewrench/commit/184bf8b042cd586c627be6c0f9e72db294f6f123))
+
+## [1.10.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.9.0...v1.10.0) (2026-06-01)
+
+
+### Features
+
+* **deployment:** adding thanks to readme and fallback to description translation ([8595a78](https://github.com/zikhad/zwbf-pipewrench/commit/8595a7865192e2cdf7665614076665b1dc44561b))
+* **translations:** adding Portuguese translations ([8fe7872](https://github.com/zikhad/zwbf-pipewrench/commit/8fe7872d7eab08a60926f4f6b7bbd1f561620b9e))
+
 ## [1.9.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.8.0...v1.9.0) (2026-06-01)
 
 

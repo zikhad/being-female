@@ -5,23 +5,7 @@ const fs = require("fs-extra");
 const { Command } = require("commander");
 const translate = require("translatte");
 
-const { copyFolder, getInfo, startProgressBar, stopProgressBar } = require("./utils");
-
-/**
- * Converts a language code to Project Zomboid locale format.
- * @param {string} language
- * @returns {string}
- */
-const getLocale = language => {
-	switch (language.toLowerCase()) {
-		case "pt":
-			return "PTBR";
-		case "zh":
-			return "CN";
-		default:
-			return language.toUpperCase();
-	}
-};
+const { copyFolder, getInfo, getLocale, startProgressBar, stopProgressBar } = require("./utils");
 
 /**
  * Converts info object back to .info content.

@@ -182,6 +182,11 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.prepare_release.outputs.latest_tag }}
+
             - name: Download main zip artifact
               uses: actions/download-artifact@v4
               with:
@@ -204,6 +209,7 @@ jobs:
               run: |
                   node <<'NODE'
                   const fs = require("node:fs");
+                  const { getLocale } = require("./scripts/utils/locale");
 
                   const hasTranslations = process.env.HAS_TRANSLATIONS === "true";
                   const expected = JSON.parse(process.env.EXPECTED_LANGS || "[]");
@@ -213,16 +219,11 @@ jobs:
                     ? fs.readdirSync(assetsDir).filter(name => name.toLowerCase().endsWith(".zip"))
                     : [];
 
-                  const getLocale = language =>
-                    String(language).toLowerCase() === "pt"
-                      ? "ptbr"
-                      : String(language).toLowerCase();
-
                   const uploaded = [];
                   const skipped = [];
 
                   for (const language of expected) {
-                    const locale = getLocale(language);
+                    const locale = getLocale(language).toLowerCase();
                     const found = files.some(name => name !== mainZip && name.includes(`-${locale}-`));
                     if (found) {
                       uploaded.push(String(language));
@@ -247,9 +248,9 @@ jobs:
                     const lines = [
                       "## Translation Artifacts",
                       "",
-                      `Expected languages: ${JSON.stringify(expected)}`,
-                      `Uploaded languages: ${JSON.stringify(uploaded)}`,
-                      `Skipped languages: ${JSON.stringify(skipped)}`,
+                      `- Expected languages: ${JSON.stringify(expected)}`,
+                      `- Uploaded languages: ${JSON.stringify(uploaded)}`,
+                      `- Skipped languages: ${JSON.stringify(skipped)}`,
                       ""
                     ];
                     fs.appendFileSync(summaryPath, lines.join("\n"));
