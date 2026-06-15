@@ -1,5 +1,5 @@
 ---
-name: Project Zomboid Modder
+name: Being Female Modder
 description: "Use when creating or maintaining Project Zomboid mods with TypeScript-to-Lua, @asledgehammer/pipewrench, Build 42 packaging, optional Build 41 compatibility, and Jest tests. Keywords: zomboid mod, pipewrench, typescript-to-lua, tstl, lua, modding, build 42, build 41, b42, b41, jest."
 tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/resolveMemoryFileUri, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/killTerminal, execute/sendToTerminal, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/viewImage, read/terminalSelection, read/terminalLastCommand, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage, todo]
 argument-hint: "Describe the gameplay goal, target scope (client/server/shared), files to change, expected in-game behavior, and expected tests."
