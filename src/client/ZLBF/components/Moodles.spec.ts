@@ -4,7 +4,10 @@ describe("Moodle fallback and onlyMoodleFramework logic", () => {
 	let player: IsoPlayer;
 	beforeEach(() => {
 		jest.clearAllMocks();
-		player = mock<IsoPlayer>();
+		(globalThis as any).MF = undefined;
+		player = mock<IsoPlayer>({
+			getUsername: jest.fn(() => "tester")
+		});
 	});
 
 	it("should NOT fallback if MF is inactive and onlyMoodleFramework is true", () => {
@@ -94,12 +97,76 @@ describe("Moodle fallback and onlyMoodleFramework logic", () => {
 		// @ts-ignore
 		delete (globalThis as any).MF;
 	});
+
+	it("should not crash when MF mod is active but MF global is missing", () => {
+		jest.spyOn(SpyPipewrench, "getActivatedMods").mockImplementation(() =>
+			mock<ArrayList>({
+				contains: jest.fn().mockReturnValue(true)
+			})
+		);
+		Object.defineProperty(SpyPipewrench, "require", {
+			value: jest.fn(),
+			writable: true
+		});
+		Object.defineProperty(SpyPipewrench, "getTexture", {
+			value: jest.fn().mockReturnValue({}),
+			writable: true
+		});
+
+		// Simulate optional dependency not loaded at runtime.
+		(globalThis as any).MF = undefined;
+
+		const fallbackSpy = jest.spyOn(Moodle.prototype as any, "fallbackMoodle");
+		const moodle = new Moodle({
+			name: "TestMoodle",
+			player,
+			texture: "test_texture.png",
+			type: "Good",
+			tresholds: [0, 0.25, 0.5, 0.75]
+		});
+
+		expect(() => moodle.moodle(0.5)).not.toThrow();
+		expect(fallbackSpy).toHaveBeenCalledWith(0.5);
+	});
+
+	it("should not crash when MF global is present but missing required functions", () => {
+		jest.spyOn(SpyPipewrench, "getActivatedMods").mockImplementation(() =>
+			mock<ArrayList>({
+				contains: jest.fn().mockReturnValue(true)
+			})
+		);
+		Object.defineProperty(SpyPipewrench, "require", {
+			value: jest.fn(),
+			writable: true
+		});
+
+		(globalThis as any).MF = {
+			createMoodle: null,
+			ISMoodle: null,
+			getMoodle: null
+		};
+
+		const fallbackSpy = jest.spyOn(Moodle.prototype as any, "fallbackMoodle");
+		const moodle = new Moodle({
+			name: "TestMoodle",
+			player,
+			texture: "test_texture.png",
+			type: "Good",
+			tresholds: [0, 0.25, 0.5, 0.75]
+		});
+
+		expect(() => moodle.moodle(0.5)).not.toThrow();
+		expect(fallbackSpy).toHaveBeenCalledWith(0.5);
+
+		// @ts-ignore
+		delete (globalThis as any).MF;
+	});
 });
 describe("MoodleFramework active: moodle can be called more often", () => {
 	let player: any;
 	let mfMoodle: any;
 	beforeEach(() => {
-		player = { id: 1 };
+		player = { id: 1, getUsername: jest.fn(() => "tester") };
 		jest.spyOn(SpyPipewrench, "getActivatedMods").mockImplementation(() =>
 			mock<ArrayList>({
 				contains: jest.fn().mockImplementation((mod: string) => mod === "MoodleFramework")
@@ -171,7 +238,9 @@ import { IsoPlayer, ArrayList } from "@asledgehammer/pipewrench";
 
 // jest.mock("MF_ISMoodle");
 describe("Moodles", () => {
-	const player = mock<IsoPlayer>();
+	const player = mock<IsoPlayer>({
+		getUsername: jest.fn(() => "tester")
+	});
 	beforeEach(() => {
 		jest.clearAllMocks();
 	});
@@ -247,11 +316,8 @@ describe("Moodles", () => {
 				});
 				moodle.moodle(0.5);
 				expect(getMoodle).toHaveBeenCalledWith("TestMoodle");
-				expect(getMoodle.mock.results.at(-1)?.value.setPicture).toHaveBeenCalledWith(
-					expect.anything(),
-					expect.anything(),
-					texture
-				);
+				expect(getMoodle.mock.results.at(-1)?.value.setThresholds).toHaveBeenCalled();
+				expect(getMoodle.mock.results.at(-1)?.value.setValue).toHaveBeenCalled();
 			}
 		);
 		it("should normalize percentage inputs before passing the value to MF", () => {
@@ -314,6 +380,7 @@ describe("Moodles", () => {
 	});
 	describe("MoodleFramework is inactive", () => {
 		beforeEach(() => {
+			(globalThis as any).MF = undefined;
 			jest.spyOn(SpyPipewrench, "getActivatedMods").mockImplementation(() =>
 				mock<ArrayList>({
 					contains: jest.fn().mockImplementation(() => false)
