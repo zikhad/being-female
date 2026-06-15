@@ -161,6 +161,44 @@ describe("Moodle fallback and onlyMoodleFramework logic", () => {
 		// @ts-ignore
 		delete (globalThis as any).MF;
 	});
+
+	it("should warn and fall back when MF mod is active but require('MF_ISMoodle') throws", () => {
+		jest.spyOn(SpyPipewrench, "getActivatedMods").mockImplementation(() =>
+			mock<ArrayList>({
+				contains: jest.fn().mockReturnValue(true)
+			})
+		);
+		Object.defineProperty(SpyPipewrench, "require", {
+			value: jest.fn().mockImplementation(() => {
+				throw new Error("module not found");
+			}),
+			writable: true
+		});
+		(globalThis as any).MF = {
+			createMoodle: jest.fn(),
+			ISMoodle: { new: jest.fn() },
+			getMoodle: jest.fn(() => undefined)
+		};
+
+		const fallbackSpy = jest.spyOn(Moodle.prototype as any, "fallbackMoodle");
+		const moodle = new Moodle({
+			name: "TestMoodle",
+			player,
+			texture: "test_texture.png",
+			type: "Good",
+			tresholds: [0, 0.25, 0.5, 0.75]
+		});
+
+		expect((globalThis as any).MF.createMoodle).not.toHaveBeenCalled();
+		moodle.moodle(0.5);
+		expect(fallbackSpy).toHaveBeenCalledWith(0.5);
+		expect(globalThis.print).toHaveBeenCalledWith(
+			expect.stringContaining("failed to load MF_ISMoodle")
+		);
+
+		// @ts-ignore
+		delete (globalThis as any).MF;
+	});
 });
 describe("MoodleFramework active: moodle can be called more often", () => {
 	let player: any;
