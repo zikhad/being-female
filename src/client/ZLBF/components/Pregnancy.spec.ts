@@ -8,6 +8,7 @@ import { Pregnancy } from "@client/components/Pregnancy";
 import { Player } from "@client/components/Player";
 import { PregnancyData } from "@types";
 import * as SpyPipewrench from "@asledgehammer/pipewrench";
+import { PregnancyOptions } from "@client/SandboxOptions";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -114,7 +115,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 5,
@@ -136,7 +137,7 @@ describe("Pregnancy", () => {
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
 					// Set duration to be large, so current + 1 < duration is true
-					(pregnancy as any).options = { duration: 1000 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(1000);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 5,
@@ -158,7 +159,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 10, // At end of pregnancy
@@ -181,7 +182,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					const moodleMock = jest.fn();
 					(pregnancy as any).moodle = { moodle: moodleMock };
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
@@ -203,7 +204,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 5,
@@ -227,7 +228,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 9,
@@ -252,7 +253,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 3,
@@ -277,7 +278,7 @@ describe("Pregnancy", () => {
 					});
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
-					(pregnancy as any).options = { duration: 10 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							// current is undefined - should use default = 0
@@ -301,7 +302,7 @@ describe("Pregnancy", () => {
 					const pregnancy = new Pregnancy();
 					(pregnancy as any).player = mockPlayer;
 					// Set duration to 5, current to 5: current + 1 = 6 > 5
-					(pregnancy as any).options = { duration: 5 };
+					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(5);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 5,

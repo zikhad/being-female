@@ -11,18 +11,22 @@ import { PregnancyState } from "@client/components/PregnancyState";
 import { PregnancyOptions } from "@client/SandboxOptions";
 
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
-	private readonly options = {
-		duration: PregnancyOptions.duration
-	};
-
 	private moodle?: Moodle;
+
+	/**
+	 * Get current pregnancy duration from sandbox options.
+	 * This reads the value dynamically to respect runtime sandbox changes.
+	 */
+	private get duration(): number {
+		return PregnancyOptions.duration;
+	}
 
 	public Debug = {
 		advance: (minutes: number) => {
 			if (!this.pregnancy) return;
 
 		const { current } = this.pregnancy;
-			const { duration } = this.options;
+			const duration = this.duration;
 			const updated = Math.min(duration, current + minutes);			
 			PregnancyState.set(this.player, {
 				current: updated,
@@ -33,7 +37,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		advanceToLabor: () => {
 			if (!this.pregnancy) return;
 			const { current = 0 } = this.pregnancy;
-			const { duration } = this.options;
+			const duration = this.duration;
 			this.Debug.advance(duration - current - 1);
 		}
 	};
@@ -109,7 +113,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 */
 	onEveryMinute(): void {
 		if (!this.pregnancy) return;
-		const { duration } = this.options;
+		const duration = this.duration;
 		const { current } = this.pregnancy;
 		const previousInLabor = this.pregnancy.isInLabor ?? false;
 		const updated = current + 1 > duration ? duration : current + 1;
