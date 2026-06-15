@@ -67,6 +67,7 @@ export class Moodle {
 				return;
 			}
 			
+			this.texture = getTexture(texture);
 			this.moodleFramework.createMoodle(this.name);			
 			// Directly instantiate for the current player.
 			// MF.createMoodle hooks OnCreatePlayer for future creates, but when this constructor
