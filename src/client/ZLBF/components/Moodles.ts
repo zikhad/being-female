@@ -107,31 +107,32 @@ export class Moodle {
 	 */
 	private buildTresholds() {
 		const [level1, level2, level3, level4] = this.tresholds;
-		let bad4: number | undefined;
-		let bad3: number | undefined;
-		let bad2: number | undefined;
-		let bad1: number | undefined;
-		let good1: number | undefined;
-		let good2: number | undefined;
-		let good3: number | undefined;
-		let good4: number | undefined;
 
 		if (this.type === "Good") {
-			good1 = level1;
-			good2 = level2;
-			good3 = level3;
-			good4 = level4;
-		} else {
-			// MF bad moodles become worse as value goes down (`value <= badX`).
-			// Our bad moodles (e.g. Engorgement) become worse as value goes up,
-			// so thresholds are mirrored to the inverse value space.
-			bad4 = 1 - level4;
-			bad3 = 1 - level3;
-			bad2 = 1 - level2;
-			bad1 = 1 - level1;
+			return {
+				bad4: undefined,
+				bad3: undefined,
+				bad2: undefined,
+				bad1: undefined,
+				good1: level1,
+				good2: level2,
+				good3: level3,
+				good4: level4
+			};
 		}
 
-		return { bad4, bad3, bad2, bad1, good1, good2, good3, good4 };
+		// MF bad moodles become worse as value goes down (`value <= badX`).
+		// Our bad moodles become worse as value goes up, so mirror to inverse value space.
+		return {
+			bad4: 1 - level4,
+			bad3: 1 - level3,
+			bad2: 1 - level2,
+			bad1: 1 - level1,
+			good1: undefined,
+			good2: undefined,
+			good3: undefined,
+			good4: undefined
+		};
 	}
 
 	/**
