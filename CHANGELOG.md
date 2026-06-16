@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.12.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.11.0...v1.12.0) (2026-06-15)
+
+
+### Features
+
+* **translations:** adding a flag overlay ([25e13b6](https://github.com/zikhad/zwbf-pipewrench/commit/25e13b69d459d8e06b93d56e7974ae99b9d7741e))
+
+
+### Bug Fixes
+
+* **moodles:** adding runtime guards for Moodle framework ([cead7f5](https://github.com/zikhad/zwbf-pipewrench/commit/cead7f5ec65a381c65cec6fdc89ebfc4536fd83c))
+* **moodles:** fixing broken texture call ([84f9eaa](https://github.com/zikhad/zwbf-pipewrench/commit/84f9eaa5e09919787aaeb169ade0443b5cc78dc6))
+* **pregnancy:** fixing pregnancy duration time ([fa7290d](https://github.com/zikhad/zwbf-pipewrench/commit/fa7290d16cf45add586a1bd54b014748d7f05416))
+
 ## [1.11.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.10.2...v1.11.0) (2026-06-02)
 
 
