@@ -23,6 +23,7 @@ describe("ZLBFUI", () => {
 				setWidthPixel: jest.fn(),
 				setTitle: jest.fn(),
 				setVisible: jest.fn(),
+				removeFromUIManager: jest.fn(),
 				registerTab: jest.fn(),
 				setActiveTab: jest.fn(),
 				addText: jest.fn(),
@@ -97,6 +98,7 @@ describe("ZLBFUI", () => {
 		it.each([
 			{ event: "onCreateUI", handler: "onCreateUI" },
 			{ event: "onCreatePlayer", handler: "onCreatePlayer" },
+			{ event: "onPlayerDeath", handler: "onPlayerDeath" },
 			{ event: "onPostRender", handler: "onUpdateUI" }
 		])( "should register and call $event callback", ({ event, handler }) => {
 			(Events as any)[event] = { addListener };
@@ -157,6 +159,19 @@ describe("ZLBFUI", () => {
 			expect(tabbedUI.registerTab).toHaveBeenCalledTimes(2);
 		});
 
+		it("should not rebuild tabs when a new female character is created in the same session", () => {
+			const firstPlayer = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
+			const secondPlayer = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
+			(ui as any).onCreateUI();
+
+			(ui as any).onCreatePlayer(firstPlayer);
+			(ui as any).onCreatePlayer(secondPlayer);
+
+			const tabbedUI = newTabbedUI.mock.results[0].value;
+			expect(tabbedUI.registerTab).toHaveBeenCalledTimes(2);
+			expect(tabbedUI.saveLayout).toHaveBeenCalledTimes(1);
+		});
+
 		it("should return early if UI is not initialized", () => {
 			const player = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
 			const ui = new ZLBFUI({
@@ -167,6 +182,23 @@ describe("ZLBFUI", () => {
 
 			expect(() => (ui as any).onCreatePlayer(player)).not.toThrow();
 			// UI should not be set, so nothing should happen
+		});
+
+		it("should return early when onCreateUI does not produce a UI instance", () => {
+			const player = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
+			const ui = new ZLBFUI({
+				lactation: mock(),
+				pregnancy: mock(),
+				womb: mock()
+			});
+
+			(ui as any).UI = undefined;
+			(ui as any).onCreateUI = jest.fn();
+
+			expect(() => (ui as any).onCreatePlayer(player)).not.toThrow();
+			expect((ui as any).onCreateUI).toHaveBeenCalledTimes(1);
+			expect((ui as any).UI).toBeUndefined();
+			expect((ui as any).hasBuiltLayout).toBe(false);
 		});
 
 		it("should call setBorderToAllElements and saveLayout for female players", () => {
@@ -256,7 +288,85 @@ describe("ZLBFUI", () => {
 		});
 	});
 
+	describe("Death Handling", () => {
+
+		it("should teardown and remove UI when tracked player dies", () => {
+			const ui = new ZLBFUI({
+				lactation: mock(),
+				pregnancy: mock(),
+				womb: mock()
+			});
+
+			(ui as any).onCreateUI();
+			const tabbedUI = newTabbedUI.mock.results[0].value;
+			const closeCallsBeforeTeardown = tabbedUI.close.mock.calls.length;
+			const trackedPlayer = mockedPlayer();
+			(ui as any).player = trackedPlayer;
+
+			(ui as any).onPlayerDeath(trackedPlayer);
+
+			expect(tabbedUI.close).toHaveBeenCalledTimes(closeCallsBeforeTeardown + 1);
+			expect(tabbedUI.removeFromUIManager).toHaveBeenCalledTimes(1);
+			expect((ui as any).UI).toBeUndefined();
+		});
+
+		it("should ignore death events for other players", () => {
+			const ui = new ZLBFUI({
+				lactation: mock(),
+				pregnancy: mock(),
+				womb: mock()
+			});
+
+			(ui as any).onCreateUI();
+			const tabbedUI = newTabbedUI.mock.results[0].value;
+			const trackedPlayer = mockedPlayer();
+			const otherPlayer = mockedPlayer();
+			(ui as any).player = trackedPlayer;
+
+			(ui as any).onPlayerDeath(otherPlayer);
+
+			expect(tabbedUI.removeFromUIManager).not.toHaveBeenCalled();
+			expect((ui as any).UI).toBeDefined();
+		});
+
+		it("should recreate UI after death teardown when a new player is created", () => {
+			const ui = new ZLBFUI({
+				lactation: mock(),
+				pregnancy: mock(),
+				womb: mock()
+			});
+
+			const deadPlayer = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
+			const newPlayer = mockedPlayer({ isFemale: jest.fn().mockReturnValue(true) });
+
+			(ui as any).onCreateUI();
+			(ui as any).onCreatePlayer(deadPlayer);
+			(ui as any).onPlayerDeath(deadPlayer);
+			(ui as any).onCreatePlayer(newPlayer);
+
+			expect(newTabbedUI).toHaveBeenCalledTimes(2);
+			const recreatedUI = newTabbedUI.mock.results[1].value;
+			expect(recreatedUI.registerTab).toHaveBeenCalledTimes(2);
+			expect(recreatedUI.saveLayout).toHaveBeenCalledTimes(1);
+		});
+
+		it('should return early when the UI is not initialized', () => {
+			const ui = new ZLBFUI({
+				lactation: mock(),
+				pregnancy: mock(),
+				womb: mock()
+			});
+
+			const player = mockedPlayer();
+			(ui as any).onCreatePlayer(player);
+			(ui as any).UI = undefined;
+
+			expect(() => (ui as any).onPlayerDeath(player)).not.toThrow();
+		});
+	});
+
 	describe("Update UI", () => {
+
 		it("should return early when UI is not visible", () => {
 			const ui = new ZLBFUI({
 				lactation: mock(),

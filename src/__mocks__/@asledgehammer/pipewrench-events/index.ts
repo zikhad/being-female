@@ -26,6 +26,10 @@ export const onCreatePlayer = {
 	addListener: jest.fn()
 };
 
+export const onPlayerDeath = {
+	addListener: jest.fn()
+};
+
 export const onGameBoot = {
 	addListener: jest.fn()
 };
