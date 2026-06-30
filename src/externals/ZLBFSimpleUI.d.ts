@@ -64,6 +64,7 @@ type ZLBFTabbedUI = {
 	toggle: () => void;
 	open: () => void;
 	close: () => void;
+	removeFromUIManager: () => void;
 	setVisible: (visible: boolean) => void;
 	registerTab: (id: string, name: string) => void;
 	setActiveTab: (name: string) => void;

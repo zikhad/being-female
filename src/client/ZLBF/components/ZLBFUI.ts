@@ -12,12 +12,21 @@ type UIProps = {
 };
 
 export class ZLBFUI {
+	/** The player associated with this UI instance. */
 	private player?: IsoPlayer;
+	/** The lactation component associated with this UI instance. */
 	private readonly lactation?: Lactation;
+	/** The pregnancy component associated with this UI instance. */
 	private readonly pregnancy?: Pregnancy;
+	/** The womb component associated with this UI instance. */
 	private readonly womb?: Womb;
+	/** The default set of UI tabs for this instance. */
 	private readonly tabs = defaultZLBFUITabs;
+	
+	/** Indicates whether the UI layout has been built. */
+	private hasBuiltLayout = false;
 
+	/** The tabbed UI instance associated with this UI. */
 	private UI?: ZLBFTabbedUI;
 
 	constructor(props: UIProps) {
@@ -27,6 +36,7 @@ export class ZLBFUI {
 
 		Events.onCreateUI.addListener(() => this.onCreateUI());
 		Events.onCreatePlayer.addListener((_, player) => this.onCreatePlayer(player));
+		Events.onPlayerDeath.addListener((player) => this.onPlayerDeath(player));
 		Events.onPostRender.addListener(() => this.onUpdateUI());
 	}
 
@@ -36,8 +46,12 @@ export class ZLBFUI {
 	 */
 	private onCreatePlayer(player: IsoPlayer) {
 		this.player = player;
+		if (!this.UI) {
+			this.onCreateUI();
+		}
 		if (!this.UI) return;
 		if (!this.player?.isFemale()) return;
+		if (this.hasBuiltLayout) return;
 		const context = this.getTabContext();
 		for (const tab of this.tabs) {
 			const tabTitle = getText(tab.TITLE_KEY);
@@ -51,6 +65,16 @@ export class ZLBFUI {
 		if (this.tabs[0]) {
 			this.UI.setActiveTab(getText(this.tabs[0].TITLE_KEY));
 		}
+		this.hasBuiltLayout = true;
+	}
+
+	/**
+	 * Handles player death and removes this UI only when the tracked player dies.
+	 * @param player The player instance reported by the death event.
+	 */
+	private onPlayerDeath(player: IsoPlayer) {
+		if (!this.player || this.player !== player) return;
+		this.onRemoveUI();
 	}
 
 	/**
@@ -59,6 +83,7 @@ export class ZLBFUI {
 	private onCreateUI() {
 		pipewrenchRequire("ZLBF/ZLBFTabbedUI");
 		this.UI = NewZLBFTabbedUI();
+		this.hasBuiltLayout = false;
 
 		this.UI.setWidthPixel(200);
 		this.UI.setTitle(getText("IGUI_ZLBF_UI_Panel"));
@@ -74,6 +99,19 @@ export class ZLBFUI {
 		for (const tab of this.tabs) {
 			tab.update(this.UI, context);
 		}
+	}
+
+	/**
+	 * Removes the current UI instance from the UI manager and resets layout state.
+	 */
+	private onRemoveUI() {
+		if (!this.UI) return;
+
+		this.UI.close();
+		this.UI.removeFromUIManager();
+
+		this.UI = undefined;
+		this.hasBuiltLayout = false;
 	}
 
 	/**
