@@ -33,6 +33,14 @@ export const onPlayerDeath = {
 export const onGameBoot = {
 	addListener: jest.fn()
 };
+
+export const onServerCommand = {
+	addListener: jest.fn()
+};
+
+export const onClientCommand = {
+	addListener: jest.fn()
+};
 export const onCreateLivingCharacter = {
 	addListener: jest.fn()
 };

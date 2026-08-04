@@ -17,6 +17,7 @@
 			"jest"
 		],
 		"paths": {
+			"@shared/*": ["shared/*"],
 			"@shared/components/*": ["shared/components/*"],
 			"@server/components/*": ["server/components/*"],
 			"@server/*": ["server/*"],
