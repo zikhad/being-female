@@ -1,0 +1,63 @@
+# Timed Actions, Recipes, And Fluid Authority
+
+Status: investigating  
+Last updated: 2026-08-04  
+Project Zomboid build: 42.x  
+Scope: client, server, multiplayer
+
+## Question
+
+Which pregnancy, recipe, inventory, and fluid effects require server authority, and which should remain client presentation?
+
+## Conclusion
+
+Birth and several recipe/fluid paths currently combine presentation with persistent mutation. Exact-once birth requires a persisted server lifecycle marker or idempotency key. Animation and UI should remain client-side and react to accepted transitions.
+
+Recipe callback context and Build 42 fluid/inventory replication are unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
+
+Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state, the server re-reads live player state, a pure shared reconciler computes minimal deltas, and ownership metadata records only effects the mod actually added or suppressed. That pattern should guide cycle, contraceptive, trait, and repeatable lactation transitions.
+
+Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
+
+## Evidence
+
+-   `src/client/ZLBF/Actions/ZLBFBirth.ts` directly creates the baby and stops pregnancy from a client timed action.
+-   `src/client/ZLBF/components/Pregnancy.ts` advances pregnancy and labor with client-local state.
+-   `src/server/ZLBFRecipes.ts` imports client singleton state while callbacks mutate player state and fluid inventory.
+-   `src/shared/components/FluidContainerApi.ts` appears to remove a requested amount and then all remaining fluid in `clear(amount)`; investigate separately.
+-   Reference Mod `src/shared/components/PlushieReconciler.ts` calculates deterministic desired-state deltas without game mutation.
+-   Reference Mod `src/server/components/domain command handler.ts` validates live attachments and persists only traits actually added/suppressed by the mod.
+
+## Runtime And Version Applicability
+
+The concern applies to Build 42 multiplayer. UI and animation are client concerns; persistent transitions and externally visible inventory/fluid values require verified authority.
+
+## Confidence
+
+Confidence: high that birth needs idempotent server authority; low for recipe context and fluid replication pending runtime tests.
+
+## Implications For ZLBF
+
+-   Add a persisted lifecycle marker/idempotency key before Pregnancy migration.
+-   Drive client presentation from accepted server transitions.
+-   Validate inventory ownership and quantities server-side.
+-   Research recipes before Womb or Lactation fluid migration.
+-   Treat `FluidContainerApi.clear(amount)` as a separate bug investigation.
+-   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
+-   Persist ownership/provenance so ZLBF never removes or restores effects it did not introduce.
+
+## Remaining Questions
+
+-   Which context runs Build 42 recipe callbacks in hosted and dedicated multiplayer?
+-   Which inventory/fluid mutations synchronize automatically?
+-   What stable item identity should commands use?
+-   How does labor recover after reconnect without duplicate birth?
+
+## In-Game Validation
+
+Attempt duplicate/cancelled birth around reconnect and verify one result. Execute each fluid recipe as host and remote client, logging callback context and comparing server, actor, and observer state.
+
+## History
+
+-   2026-08-04: Initial investigation; recipe and fluid authority remain open.
+-   2026-08-04: Added Reference Mod reconciliation and ownership findings; exact-once and fluid authority remain open.
