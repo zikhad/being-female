@@ -5,6 +5,8 @@ import { Trait } from "@asledgehammer/pipewrench";
 
 export const getPlayer = jest.fn();
 export const getSpecificPlayer = jest.fn();
+export const sendClientCommand = jest.fn();
+export const sendServerCommand = jest.fn();
 
 export const ZombRandFloat = (a: number, b?: number) => a;
 export const ZombRand = (a: number, b?: number) => a;

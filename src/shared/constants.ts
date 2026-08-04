@@ -61,3 +61,18 @@ export enum ZLBFAnimations {
 	PUMP_MILK = "ZLBF.PumpMilk",
 	CLEAN_SELF = "ZLBF.CleanSelf"
 }
+
+export const ZLBF_NETWORK_MODULE = "ZLBF";
+export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
+export const ZLBF_DATA_SCHEMA_VERSION = 1;
+
+export enum ZLBFNetworkCommand {
+	SYNC_STATE_REQUEST = "SyncStateRequest",
+	SYNC_STATE_RESPONSE = "SyncStateResponse"
+}
+
+export enum ZLBFSyncStatus {
+	OK = "OK",
+	INVALID_REQUEST = "INVALID_REQUEST",
+	UNSUPPORTED_SCHEMA = "UNSUPPORTED_SCHEMA"
+}
