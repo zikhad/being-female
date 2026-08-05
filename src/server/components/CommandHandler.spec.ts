@@ -6,17 +6,17 @@ import {
 	ZLBFSyncStatus
 } from "@constants";
 import { mockedPlayer } from "@test/mock";
-import { ZLBFCommandHandler } from "@server/components/ZLBFCommandHandler";
+import { CommandHandler } from "@server/components/CommandHandler";
 
 jest.mock("@asledgehammer/pipewrench");
 
-describe("ZLBFCommandHandler", () => {
+describe("CommandHandler", () => {
 	const sendMock = sendServerCommand as jest.MockedFunction<typeof sendServerCommand>;
 
 	beforeEach(() => sendMock.mockReset());
 
 	it("filters unrelated routes and malformed raw args", () => {
-		const handler = new ZLBFCommandHandler();
+		const handler = new CommandHandler();
 		const player = mockedPlayer();
 		handler.onClientCommand("Other", ZLBFNetworkCommand.SYNC_STATE_REQUEST, player, {});
 		handler.onClientCommand(ZLBF_NETWORK_MODULE, "Other", player, {});
@@ -30,7 +30,7 @@ describe("ZLBFCommandHandler", () => {
 	});
 
 	it("returns a targeted stateless snapshot correlated to the request", () => {
-		const handler = new ZLBFCommandHandler();
+		const handler = new CommandHandler();
 		const player = mockedPlayer();
 		handler.onClientCommand(
 			ZLBF_NETWORK_MODULE,
@@ -58,7 +58,7 @@ describe("ZLBFCommandHandler", () => {
 	});
 
 	it("reports unsupported schema using the supported response envelope", () => {
-		const handler = new ZLBFCommandHandler();
+		const handler = new CommandHandler();
 		const player = mockedPlayer();
 		handler.onClientCommand(
 			ZLBF_NETWORK_MODULE,

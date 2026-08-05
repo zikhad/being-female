@@ -62,15 +62,20 @@ export enum ZLBFAnimations {
 	CLEAN_SELF = "ZLBF.CleanSelf"
 }
 
+/** Project Zomboid command module used by all ZLBF network messages. */
 export const ZLBF_NETWORK_MODULE = "ZLBF";
+/** Current version of the ZLBF request/response envelope. */
 export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
+/** Current version of the authoritative ZLBF domain-data shape. */
 export const ZLBF_DATA_SCHEMA_VERSION = 1;
 
+/** Commands supported by the initial ZLBF state-synchronization transport. */
 export enum ZLBFNetworkCommand {
 	SYNC_STATE_REQUEST = "SyncStateRequest",
 	SYNC_STATE_RESPONSE = "SyncStateResponse"
 }
 
+/** Outcomes returned by the server for a ZLBF sync request. */
 export enum ZLBFSyncStatus {
 	OK = "OK",
 	INVALID_REQUEST = "INVALID_REQUEST",

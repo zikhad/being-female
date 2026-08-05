@@ -1,4 +1,4 @@
-import { sendClientCommand } from "@asledgehammer/pipewrench";
+import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
 import {
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
@@ -6,20 +6,23 @@ import {
 	ZLBFSyncStatus
 } from "@constants";
 import { mockedPlayer } from "@test/mock";
-import { ZLBFSnapshotStore } from "@client/components/ZLBFSnapshotStore";
-import { ZLBFSyncPublisher } from "@client/components/ZLBFSyncPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import { SyncPublisher } from "@client/components/network/SyncPublisher";
 
 jest.mock("@asledgehammer/pipewrench");
 
-describe("ZLBFSyncPublisher", () => {
+describe("SyncPublisher", () => {
 	const sendMock = sendClientCommand as jest.MockedFunction<typeof sendClientCommand>;
+	const getPlayerMock = getPlayer as jest.MockedFunction<typeof getPlayer>;
 
-	beforeEach(() => sendMock.mockReset());
+	beforeEach(() => {
+		sendMock.mockReset();
+		getPlayerMock.mockReset();
+		getPlayerMock.mockReturnValue(mockedPlayer());
+	});
 
-	it("binds without sending, then retries the same correlated request three times", () => {
-		const publisher = new ZLBFSyncPublisher(new ZLBFSnapshotStore());
-		const player = mockedPlayer();
-		publisher.bindPlayer(player);
+	it("gets the available player and sends one correlated request on the first minute", () => {
+		const publisher = new SyncPublisher(new SnapshotStore());
 		expect(sendMock).not.toHaveBeenCalled();
 
 		publisher.onEveryOneMinute();
@@ -27,7 +30,8 @@ describe("ZLBFSyncPublisher", () => {
 		publisher.onEveryOneMinute();
 		publisher.onEveryOneMinute();
 
-		expect(sendMock).toHaveBeenCalledTimes(3);
+		expect(sendMock).toHaveBeenCalledTimes(1);
+		expect(getPlayerMock).toHaveBeenCalledTimes(1);
 		const firstPayload = sendMock.mock.calls[0][3];
 		expect(firstPayload).toEqual({
 			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
@@ -35,14 +39,11 @@ describe("ZLBFSyncPublisher", () => {
 			revision: 1,
 			data: {}
 		});
-		expect(sendMock.mock.calls[1][3]).toEqual(firstPayload);
-		expect(sendMock.mock.calls[2][3]).toEqual(firstPayload);
 	});
 
 	it("acknowledges only an exactly correlated valid response", () => {
-		const snapshots = new ZLBFSnapshotStore();
-		const publisher = new ZLBFSyncPublisher(snapshots);
-		publisher.bindPlayer(mockedPlayer());
+		const snapshots = new SnapshotStore();
+		const publisher = new SyncPublisher(snapshots);
 		publisher.onEveryOneMinute();
 		const response = (requestId: string, revision: number) => ({
 			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
@@ -73,14 +74,10 @@ describe("ZLBFSyncPublisher", () => {
 
 		publisher.onEveryOneMinute();
 		expect(sendMock).toHaveBeenCalledTimes(1);
-
-		publisher.bindPlayer(mockedPlayer());
-		expect(snapshots.snapshot).toBeUndefined();
 	});
 
 	it("does not acknowledge malformed responses", () => {
-		const publisher = new ZLBFSyncPublisher(new ZLBFSnapshotStore());
-		publisher.bindPlayer(mockedPlayer());
+		const publisher = new SyncPublisher(new SnapshotStore());
 		publisher.onEveryOneMinute();
 		publisher.onServerCommand(ZLBF_NETWORK_MODULE, ZLBFNetworkCommand.SYNC_STATE_RESPONSE, {
 			schemaVersion: 1,
@@ -89,6 +86,6 @@ describe("ZLBFSyncPublisher", () => {
 			data: {}
 		});
 		publisher.onEveryOneMinute();
-		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock).toHaveBeenCalledTimes(1);
 	});
 });
