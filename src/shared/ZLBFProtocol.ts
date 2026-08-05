@@ -1,4 +1,12 @@
 import { ZLBFSyncStatus } from "@constants";
+import {
+	emptyRecord,
+	nonNegativeInteger,
+	object,
+	oneOf,
+	positiveInteger,
+	string
+} from "@shared/validation/Schema";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -32,34 +40,35 @@ export type ZLBFSyncStateResponse = ZLBFEnvelopeMetadata & {
 	data: { snapshot: ZLBFSnapshot };
 };
 
-/** Returns whether an unknown runtime value is a non-null Lua table/object. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-/** Returns whether an unknown runtime value is a finite positive integer. */
-const isPositiveInteger = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value > 0;
-
-/** Returns whether an unknown runtime value is a finite non-negative integer. */
-const isNonNegativeInteger = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0;
-
-/** Returns whether an unknown runtime value is a bounded non-empty request identifier. */
-const isRequestId = (value: unknown): value is string =>
-	typeof value === "string" && value.length > 0 && value.length <= 64;
-
-/** Returns whether an unknown runtime value is a supported sync response status. */
-const isZLBFSyncStatus = (value: unknown): value is ZLBFSyncStatus =>
-	value === ZLBFSyncStatus.OK ||
-	value === ZLBFSyncStatus.INVALID_REQUEST ||
-	value === ZLBFSyncStatus.UNSUPPORTED_SCHEMA ||
-	value === ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
-
-/** Validates the metadata fields common to request and response envelopes. */
-const isEnvelopeMetadata = (value: Record<string, unknown>): boolean =>
-	isPositiveInteger(value.schemaVersion) &&
-	isRequestId(value.requestId) &&
-	isPositiveInteger(value.revision);
+/** Validator for bounded client-generated request identifiers. */
+const requestId = string({ minimumLength: 1, maximumLength: 64 });
+/** Validator for every status understood by this protocol version. */
+const syncStatus = oneOf<ZLBFSyncStatus>([
+	ZLBFSyncStatus.OK,
+	ZLBFSyncStatus.INVALID_REQUEST,
+	ZLBFSyncStatus.UNSUPPORTED_SCHEMA,
+	ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA
+]);
+/** Runtime schema for authoritative snapshot metadata. */
+const snapshotSchema = object<ZLBFSnapshot>({
+	dataSchemaVersion: positiveInteger,
+	stateVersion: nonNegativeInteger
+});
+/** Runtime schema for untrusted sync-state requests. */
+const requestSchema = object<ZLBFSyncStateRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	data: emptyRecord
+});
+/** Runtime schema for untrusted sync-state responses. */
+const responseSchema = object<ZLBFSyncStateResponse>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	status: syncStatus,
+	data: object<ZLBFSyncStateResponse["data"]>({ snapshot: snapshotSchema })
+});
 
 /**
  * Validates an untrusted client-command payload before server code reads it.
@@ -67,14 +76,7 @@ const isEnvelopeMetadata = (value: Record<string, unknown>): boolean =>
  * @param value Raw value received from Project Zomboid's client-command event.
  * @returns Whether the value is a structurally valid sync-state request.
  */
-export const isZLBFSyncStateRequest = (value: unknown): value is ZLBFSyncStateRequest => {
-	return (
-		isRecord(value) &&
-		isEnvelopeMetadata(value) &&
-		isRecord(value.data) &&
-		Object.keys(value.data).length === 0
-	);
-};
+export const isZLBFSyncStateRequest = requestSchema;
 
 /**
  * Validates an untrusted server-command payload before client code reads it.
@@ -82,16 +84,4 @@ export const isZLBFSyncStateRequest = (value: unknown): value is ZLBFSyncStateRe
  * @param response Raw value received from Project Zomboid's server-command event.
  * @returns Whether the value is a structurally valid sync-state response.
  */
-export const isZLBFSyncStateResponse = (response: unknown): response is ZLBFSyncStateResponse => {
-	if (!isRecord(response)) return false;
-	if (!isEnvelopeMetadata(response) || !isRecord(response.data)) return false;
-
-	const { data } = response;
-
-	if (!isRecord(data.snapshot)) return false;
-	if (!isZLBFSyncStatus(response.status)) return false;
-	return (
-		isPositiveInteger(data.snapshot.dataSchemaVersion) &&
-		isNonNegativeInteger(data.snapshot.stateVersion)
-	);
-};
+export const isZLBFSyncStateResponse = responseSchema;
