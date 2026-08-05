@@ -4,18 +4,7 @@ import {
 	StateLoadResult,
 	SupportedStateLoadResult
 } from "@server/components/state/AuthoritativeState";
-
-/** Returns whether a runtime value is a non-null Lua table/object. */
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-	typeof value === "object" && value !== null;
-
-/** Returns whether a runtime value is a finite positive integer. */
-const isPositiveInteger = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value > 0;
-
-/** Returns whether a runtime value is a finite non-negative integer. */
-const isNonNegativeInteger = (value: unknown): value is number =>
-	typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0;
+import { nonNegativeInteger, positiveInteger, record } from "@shared/validation/Schema";
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
 export class StateMigrator {
@@ -36,24 +25,24 @@ export class StateMigrator {
 	 * @returns Supported normalized state or metadata for an unsupported future schema.
 	 */
 	public migrate(persisted: unknown): StateLoadResult {
-		if (!isRecord(persisted)) return this.supported(this.createDefault());
+		if (!record(persisted)) return this.supported(this.createDefault());
 
 		const persistedSchemaVersion = persisted.dataSchemaVersion;
 		if (
-			isPositiveInteger(persistedSchemaVersion) &&
+			positiveInteger(persistedSchemaVersion) &&
 			persistedSchemaVersion > ZLBF_DATA_SCHEMA_VERSION
 		) {
 			return {
 				supported: false,
 				dataSchemaVersion: persistedSchemaVersion,
-				stateVersion: isNonNegativeInteger(persisted.stateVersion)
+				stateVersion: nonNegativeInteger(persisted.stateVersion)
 					? persisted.stateVersion
 					: 0
 			};
 		}
 
 		const state = this.createDefault();
-		if (isNonNegativeInteger(persisted.stateVersion)) {
+		if (nonNegativeInteger(persisted.stateVersion)) {
 			state.stateVersion = persisted.stateVersion;
 		}
 
