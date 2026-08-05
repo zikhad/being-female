@@ -2,6 +2,7 @@ import { sendServerCommand } from "@asledgehammer/pipewrench";
 import {
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBF_STATE_MOD_DATA_KEY,
 	ZLBFNetworkCommand,
 	ZLBFSyncStatus
 } from "@constants";
@@ -12,6 +13,8 @@ jest.mock("@asledgehammer/pipewrench");
 
 describe("CommandHandler", () => {
 	const sendMock = sendServerCommand as jest.MockedFunction<typeof sendServerCommand>;
+	const playerWithStore = (store: Record<string, unknown> = {}) =>
+		mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 	beforeEach(() => sendMock.mockReset());
 
@@ -29,9 +32,9 @@ describe("CommandHandler", () => {
 		expect(sendMock).not.toHaveBeenCalled();
 	});
 
-	it("returns a targeted stateless snapshot correlated to the request", () => {
+	it("returns a targeted persisted snapshot correlated to the request", () => {
 		const handler = new CommandHandler();
-		const player = mockedPlayer();
+		const player = playerWithStore();
 		handler.onClientCommand(
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
@@ -55,6 +58,65 @@ describe("CommandHandler", () => {
 				data: { snapshot: { dataSchemaVersion: 1, stateVersion: 0 } }
 			}
 		);
+	});
+
+	it("returns persisted state metadata without incrementing its version", () => {
+		const handler = new CommandHandler();
+		const player = playerWithStore({
+			[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 1, stateVersion: 6, domains: {} }
+		});
+
+		handler.onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "snapshot-1",
+				revision: 1,
+				data: {}
+			}
+		);
+
+		expect(sendMock).toHaveBeenCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+			expect.objectContaining({
+				status: ZLBFSyncStatus.OK,
+				data: { snapshot: { dataSchemaVersion: 1, stateVersion: 6 } }
+			})
+		);
+	});
+
+	it("reports an unsupported future persisted schema without overwriting it", () => {
+		const persisted = { dataSchemaVersion: 5, stateVersion: 9, domains: { future: true } };
+		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
+		const handler = new CommandHandler();
+		const player = playerWithStore(store);
+
+		handler.onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "snapshot-1",
+				revision: 1,
+				data: {}
+			}
+		);
+
+		expect(sendMock).toHaveBeenCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+			expect.objectContaining({
+				status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
+				data: { snapshot: { dataSchemaVersion: 5, stateVersion: 9 } }
+			})
+		);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(persisted);
 	});
 
 	it("reports unsupported schema using the supported response envelope", () => {
