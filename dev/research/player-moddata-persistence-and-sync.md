@@ -1,8 +1,11 @@
 # Player ModData Persistence And Synchronization
 
-Status: investigating  
-Last updated: 2026-08-04  
-Project Zomboid build: 42.x  
+Status: partially verified
+
+Last updated: 2026-08-05
+
+Project Zomboid build: 42.12 / 42.x
+
 Scope: server, multiplayer
 
 ## Question
@@ -11,53 +14,82 @@ Can server-side player ModData hold authoritative ZLBF state, and how does it pe
 
 ## Conclusion
 
-Server-side `player.getModData()` is a plausible per-character persistence location, but local evidence does not establish nested TSTL-table persistence or automatic server/client replication. Use explicit command responses for client mirrors and do not assume client ModData writes reach the server.
+Build 42 player ModData is part of the player save chain. Installed Build 42.12 bytecode shows `IsoPlayer.save` reaches `IsoObject.save`, which serializes its nonempty Kahlua table; `KahluaTableImpl.save` recursively supports strings, finite numbers, booleans, and nested tables. This directly supports a nested server-owned ZLBF root made from ordinary generated Lua tables.
 
-An earlier ZLBF experiment read legacy keys from the server player while gameplay wrote them locally on the client without `transmitModData`; multiplayer snapshots could therefore contain defaults rather than existing client state. Those experimental networking files are not present on the current branch.
+Reference Mod implements that boundary under one player key, normalizes and rewrites the root on access, mutates it through the authenticated server player, and returns client-visible results through targeted server commands. It never calls `transmitModData`. The project owner confirms this ModData behavior works in single-player and multiplayer, although that whole-mod runtime report does not isolate restart timing or automatic replication.
 
-Reference Mod provides a useful storage design: one server-owned key containing `{ protocol, authoritative }`, accessed through a wrapper that supports Kahlua `get/set` and property access, seeds missing values, and normalizes partial state every time it is loaded. Its domain handler persists ownership metadata so cleanup reverses only traits and XP effects that Reference Mod actually introduced.
+ZLBF should therefore persist authoritative domain state only on the server and maintain clients through explicit validated snapshots. It must not rely on client ModData writes or automatic replication. Exact hosted/dedicated restart and disconnect durability remains to be verified in-game.
 
-Reference Mod still does not call `transmitModData`, and the inspected code/tests do not prove nested save/reload durability or automatic client replication. Those questions remain open for ZLBF.
+An earlier ZLBF experiment read legacy keys from the server player while gameplay wrote them locally on the client without a transmission path; multiplayer snapshots could therefore contain defaults rather than existing client state. Those experimental networking files are not present on the current branch.
 
 ## Evidence
 
--   Historical ZLBF multiplayer experiment: the server read three legacy domain keys from server-side player ModData; those files are absent on this branch.
--   `src/client/ZLBF/components/ModData.ts` and domain components mutate local ModData without an explicit transmission path.
--   Static `KahluaTable` declarations do not establish save timing, nested conversion, or replication.
--   Reference Mod `src/shared/components/ModData.ts` normalizes and writes server state through either Kahlua or property access.
--   Reference Mod `src/server/components/CommandHandler.ts` separates protocol metadata from authoritative domain state and exposes a migration boundary.
--   Reference Mod `src/server/components/domain command handler.ts` records effect ownership/provenance.
+### Build 42.12 save path
+
+-   Installed game bytecode shows the player save chain reaching `IsoObject.save(ByteBuffer, boolean)` through the `IsoPlayer`, `IsoLivingCharacter`, `IsoGameCharacter`, and `IsoMovingObject` superclass chain.
+-   `IsoObject.save` calls `KahluaTable.save(ByteBuffer)` when its ModData table is non-null and nonempty.
+-   `KahluaTableImpl.save` recursively serializes supported nested table values. Supported value categories include strings, doubles, booleans, and tables; unsupported key/value pairs are omitted.
+-   Generated TSTL objects and arrays are ordinary Lua tables and therefore fit this serialization boundary when they contain only supported primitive values and nested tables.
+-   Java userdata, functions, `undefined`, `NaN`, and infinity must not be stored in the authoritative root.
+
+### Reference Mod implementation and runtime evidence
+
+-   Reference Mod `src/shared/components/ModData.ts` reads and writes through Kahlua `get/set` when present, falls back to property access, seeds missing state, normalizes it, and writes the complete root back on every access.
+-   Its server command handler stores one player value shaped as `{ protocol, authoritative }`, obtains it from the authenticated event-supplied player, and exposes a separate authoritative migration hook.
+-   Its domain handler re-reads server-observed facts, reconciles them, assigns a newly constructed authoritative nested table, and returns a targeted response.
+-   Persisted authoritative data contains nested arrays and a keyed numeric table. The generated Lua preserves those as ordinary nested tables.
+-   A source and generated-output search found no `transmitModData` call. Its client mirror is updated through command responses rather than player ModData replication.
+-   The project owner confirms the ModData behavior works across actual single-player and multiplayer use. This is direct runtime evidence for the implementation as a whole, not an isolated proof of restart timing or automatic replication.
+
+### Transmission and current ZLBF boundary
+
+-   Vanilla Build 42 client UI writes a player preference and then explicitly calls `player:transmitModData()`, demonstrating that the method is an explicit network action rather than a prerequisite for save serialization.
+-   Object bytecode treats `transmitModData` as network-oriented: the client sends an object-ModData packet and the server distributes object ModData. ZLBF does not need that broader path because its server is authoritative and clients receive targeted snapshots.
+-   Current ZLBF `CommandHandler` correctly uses the event-supplied player and a targeted response, but still returns constant state metadata rather than loading persisted state.
+-   Current ZLBF `SyncPublisher` validates and correlates the response before updating its in-memory `SnapshotStore`.
+-   Existing client domains still mutate local player ModData without an authoritative server path and must not be treated as multiplayer truth.
 
 ## Runtime And Version Applicability
 
-This uncertainty applies to Build 42 multiplayer; single-player can mask client/server separation.
+The serialization evidence applies directly to installed Build 42.12 and structurally to Build 42.x. The Reference Mod evidence applies to its deployed Build 42 single-player and multiplayer behavior. Hosted and dedicated save scheduling, immediate disconnect timing, and abnormal shutdown durability remain runtime-sensitive. Single-player can still mask process-boundary mistakes.
 
 ## Confidence
 
-Confidence: medium that server player ModData is a viable store; low for nested persistence and replication semantics.
+Confidence: high that nested supported Lua tables in player ModData are serialized by the Build 42 player save path; high that Reference Mod uses server-owned nested state and explicit responses without `transmitModData`; medium-high that this boundary transfers safely to ZLBF; medium for exact disconnect and save timing.
 
 ## Implications For ZLBF
 
--   Add server-owned normalization and legacy migration.
--   Use command responses as explicit mirror transport.
--   Do not claim authority until domain reads and writes consume server state.
--   Keep wire-schema handling separate from saved-data migration.
+-   Store one server-owned player root such as `{ dataSchemaVersion, stateVersion, domains }`.
+-   Store only strings, finite numbers, booleans, and nested tables.
+-   Normalize unknown or partial data into a newly constructed complete root and write it back on access.
+-   Keep wire protocol versions separate from persisted-data versions and migrations.
+-   Increment `stateVersion` only after a successful authoritative domain transition; read-only snapshot requests must not increment it.
+-   Keep connection epochs, pending requests, replay windows, and client revisions out of persistent domain state.
+-   Use targeted command responses as the explicit client mirror transport; do not call `transmitModData` for this design.
+-   Do not claim domain authority until gameplay reads and writes consume the server-owned root.
 -   Track ownership for traits, items, fluids, and lifecycle effects so rollback removes only ZLBF-owned changes.
--   Normalize partial persisted state before domain code runs, but do not confuse filling missing fields with a complete version migration.
 
 ## Remaining Questions
 
--   Do nested TSTL objects persist as Kahlua tables?
--   When is server player ModData saved?
--   Does ModData replicate automatically in either direction?
--   How should existing client-only saves migrate?
--   Should protocol/session bookkeeping be persisted with domain state, or kept connection-scoped to avoid replay-reset mistakes?
+-   Which exact server save and disconnect points persist a just-written player table?
+-   Can abnormal shutdown or immediate disconnect lose the latest mutation?
+-   What player ModData does `transmitModData` expose, to which peers, and in which direction?
+-   How should legacy ZLBF client-only values be imported once without accepting ongoing client authority?
 
 ## In-Game Validation
 
-Write nested values server-side, compare both sides, save/restart/reconnect, and compare again. Then mutate only the client copy without transmission. Repeat on hosted and dedicated servers with two players.
+Persist a diagnostic ZLBF root containing schema and state versions, a nested object, numeric-key array, boolean, string, and fractional number. Then:
+
+1. In single-player, write server-side, save/quit normally, restart, and compare the loaded server state with the targeted client snapshot.
+2. In hosted multiplayer, repeat across reconnect and host save/quit/restart.
+3. On a dedicated server, repeat across reconnect and graceful restart with two players holding distinct values.
+4. Modify only the client player's same key without transmission and confirm the server and subsequent snapshot remain unchanged.
+5. Modify only server ModData without `transmitModData`; confirm restart persistence and that the client learns the value only through the response.
+6. Seed partial or older data and confirm one load normalizes and persists the current schema.
+7. Mutate immediately before disconnect and reconnect to test save timing.
 
 ## History
 
 -   2026-08-04: Initial investigation; persistence and replication remain unverified.
 -   2026-08-04: Added Reference Mod server-store, normalization, migration-boundary, and ownership patterns; persistence/replication status remains investigating.
+-   2026-08-05: Confirmed recursive nested-table serialization in the Build 42.12 player save path; recorded Reference Mod runtime evidence and narrowed the remaining uncertainty to save timing, disconnect durability, and legacy migration.

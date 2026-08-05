@@ -28,12 +28,12 @@ This directory preserves reviewed reverse-engineering findings that affect ZLBF 
 
 ## Index
 
-| Topic                                                                                       | Status             | Build | Scope                       | Last updated |
-| ------------------------------------------------------------------------------------------- | ------------------ | ----- | --------------------------- | ------------ |
-| [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md)             | Partially verified | 42.x  | Client, server, shared      | 2026-08-04   |
-| [Build 42 multiplayer command contract](build42-multiplayer-command-contract.md)            | Partially verified | 42.x  | Shared, multiplayer         | 2026-08-04   |
-| [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Investigating      | 42.x  | Server, multiplayer         | 2026-08-04   |
-| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Investigating      | 42.x  | Client, server, multiplayer | 2026-08-04   |
+| Topic                                                                                       | Status             | Build        | Scope                       | Last updated |
+| ------------------------------------------------------------------------------------------- | ------------------ | ------------ | --------------------------- | ------------ |
+| [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md)             | Partially verified | 42.x         | Client, server, shared      | 2026-08-04   |
+| [Build 42 multiplayer command contract](build42-multiplayer-command-contract.md)            | Partially verified | 42.x         | Shared, multiplayer         | 2026-08-04   |
+| [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Partially verified | 42.12 / 42.x | Server, multiplayer         | 2026-08-05   |
+| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Investigating      | 42.x         | Client, server, multiplayer | 2026-08-04   |
 
 ## Multiplayer Implementation Order
 

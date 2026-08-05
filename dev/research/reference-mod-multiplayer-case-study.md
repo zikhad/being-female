@@ -54,7 +54,7 @@ It does not establish exact-once semantics for birth, item creation, or destruct
 -   `domain command handler.migrateAuthoritativeData` currently fills missing fields; version-specific migrations remain TODO.
 -   No explicit `transmitModData` call exists.
 
-This proves a clean server-owned storage abstraction, but not automatic replication or save/reload durability of nested TSTL data.
+This proves a clean server-owned storage abstraction and, together with Build 42.12 bytecode evidence, supports save serialization of nested primitive Lua tables. Reference Mod does not use automatic ModData replication for its client mirror; it uses targeted command responses. Exact save timing and immediate-disconnect durability remain unverified. See [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md).
 
 ## Safe Patterns To Transfer
 
@@ -128,9 +128,10 @@ It is not sufficient to assume ZLBF will work automatically. Reference Mod publi
 
 ## Confidence
 
-Confidence: high for Reference Mod source structure, its deployed SP/MP behavior based on project-owner runtime confirmation, and the transferable reconciliation/validation boundaries; low for engine-level persistence and reconnect semantics not isolated during this research.
+Confidence: high for Reference Mod source structure, its deployed SP/MP behavior based on project-owner runtime confirmation, the transferable reconciliation/validation boundaries, and Build 42.12 nested-table serialization; medium for save timing and reconnect durability not isolated during this research.
 
 ## History
 
 -   2026-08-04: Initial case study of the private Reference Mod implementation.
 -   2026-08-04: Recorded project-owner confirmation that Reference Mod works as intended in actual single-player and multiplayer use.
+-   2026-08-05: Linked direct Build 42.12 nested-table serialization evidence and narrowed persistence uncertainty to save timing and disconnect durability.
