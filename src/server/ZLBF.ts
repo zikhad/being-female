@@ -1,7 +1,8 @@
 import * as Events from "@asledgehammer/pipewrench-events";
-import { ZLBFCommandHandler } from "@server/components/ZLBFCommandHandler";
+import { CommandHandler } from "@server/components/CommandHandler";
 
-export const commandHandler = new ZLBFCommandHandler();
+/** Singleton command handler for the server Lua execution context. */
+export const commandHandler = new CommandHandler();
 
 Events.onClientCommand.addListener((module, command, player, args) =>
 	commandHandler.onClientCommand(module, command, player, args)

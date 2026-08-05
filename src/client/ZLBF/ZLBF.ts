@@ -4,17 +4,20 @@ import { ZLBFUI } from "@client/components/ZLBFUI";
 import { Pregnancy } from "@client/components/Pregnancy";
 import { ContextMenu } from "@client/components/ContextMenu";
 import { Animation } from "@client/components/Animation";
-import { ZLBFSnapshotStore } from "@client/components/ZLBFSnapshotStore";
-import { ZLBFSyncCoordinator } from "@client/components/ZLBFSyncCoordinator";
-import { ZLBFSyncPublisher } from "@client/components/ZLBFSyncPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import { SyncCoordinator } from "@client/components/network/SyncCoordinator";
+import { SyncPublisher } from "@client/components/network/SyncPublisher";
 
 export const lactation = new Lactation();
 export const womb = new Womb();
 export const pregnancy = new Pregnancy();
 export const animation = new Animation(womb);
-export const snapshots = new ZLBFSnapshotStore();
-export const syncPublisher = new ZLBFSyncPublisher(snapshots);
-export const syncCoordinator = new ZLBFSyncCoordinator(syncPublisher);
+/** Read-only client mirror of the latest acknowledged authoritative snapshot. */
+export const snapshots = new SnapshotStore();
+/** Client request publisher and response correlator. */
+export const syncPublisher = new SyncPublisher(snapshots);
+/** Singleton registration point for client synchronization events. */
+export const syncCoordinator = new SyncCoordinator(syncPublisher);
 
 export const UI = new ZLBFUI({
 	lactation,

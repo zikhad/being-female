@@ -8,7 +8,17 @@ import {
 } from "@constants";
 import { isZLBFSyncStateRequest, ZLBFSyncStateResponse } from "@shared/ZLBFProtocol";
 
-export class ZLBFCommandHandler {
+/** Validates and handles ZLBF commands received in the server execution context. */
+export class CommandHandler {
+	/**
+	 * Routes a read-only snapshot request and replies directly to its authenticated player.
+	 * The event-supplied player is authoritative; payload data is never used to select a player.
+	 *
+	 * @param module Project Zomboid command module.
+	 * @param command Command name within the module.
+	 * @param player Authenticated player supplied by `OnClientCommand`.
+	 * @param args Untrusted command payload supplied by Project Zomboid.
+	 */
 	public onClientCommand(
 		module: string,
 		command: string,
