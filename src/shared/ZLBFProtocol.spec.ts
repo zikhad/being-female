@@ -37,4 +37,21 @@ describe("ZLBFProtocol validators", () => {
 	])("rejects malformed response %#", value => {
 		expect(isZLBFSyncStateResponse(value)).toBe(false);
 	});
+
+	it.each([
+		ZLBFSyncStatus.OK,
+		ZLBFSyncStatus.INVALID_REQUEST,
+		ZLBFSyncStatus.UNSUPPORTED_SCHEMA,
+		ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA
+	])("accepts supported response status %s", status => {
+		expect(
+			isZLBFSyncStateResponse({
+				schemaVersion: 1,
+				requestId: "request",
+				revision: 1,
+				status,
+				data: { snapshot: { dataSchemaVersion: 1, stateVersion: 0 } }
+			})
+		).toBe(true);
+	});
 });

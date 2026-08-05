@@ -7,9 +7,13 @@ import {
 	ZLBFSyncStatus
 } from "@constants";
 import { isZLBFSyncStateRequest, ZLBFSyncStateResponse } from "@shared/ZLBFProtocol";
+import { StateRepository } from "@server/components/state/StateRepository";
 
 /** Validates and handles ZLBF commands received in the server execution context. */
 export class CommandHandler {
+	/** Creates a handler backed by the server-owned player-state repository. */
+	constructor(private readonly states = new StateRepository()) {}
+
 	/**
 	 * Routes a read-only snapshot request and replies directly to its authenticated player.
 	 * The event-supplied player is authoritative; payload data is never used to select a player.
@@ -32,17 +36,23 @@ export class CommandHandler {
 			print(`[ZLBF][MP][Server] rejected malformed request from ${label}`);
 			return;
 		}
-		const status =
-			args.schemaVersion === ZLBF_PROTOCOL_SCHEMA_VERSION
+		const protocolSupported = args.schemaVersion === ZLBF_PROTOCOL_SCHEMA_VERSION;
+		const state = protocolSupported ? this.states.load(player) : undefined;
+		const status = !protocolSupported
+			? ZLBFSyncStatus.UNSUPPORTED_SCHEMA
+			: state?.supported
 				? ZLBFSyncStatus.OK
-				: ZLBFSyncStatus.UNSUPPORTED_SCHEMA;
+				: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
 		const response: ZLBFSyncStateResponse = {
 			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 			requestId: args.requestId,
 			revision: args.revision,
 			status,
 			data: {
-				snapshot: { dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION, stateVersion: 0 }
+				snapshot: {
+					dataSchemaVersion: state?.dataSchemaVersion ?? ZLBF_DATA_SCHEMA_VERSION,
+					stateVersion: state?.stateVersion ?? 0
+				}
 			}
 		};
 		print(

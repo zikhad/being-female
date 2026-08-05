@@ -52,7 +52,8 @@ const isRequestId = (value: unknown): value is string =>
 const isZLBFSyncStatus = (value: unknown): value is ZLBFSyncStatus =>
 	value === ZLBFSyncStatus.OK ||
 	value === ZLBFSyncStatus.INVALID_REQUEST ||
-	value === ZLBFSyncStatus.UNSUPPORTED_SCHEMA;
+	value === ZLBFSyncStatus.UNSUPPORTED_SCHEMA ||
+	value === ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
 
 /** Validates the metadata fields common to request and response envelopes. */
 const isEnvelopeMetadata = (value: Record<string, unknown>): boolean =>

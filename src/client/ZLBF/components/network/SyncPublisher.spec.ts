@@ -88,4 +88,22 @@ describe("SyncPublisher", () => {
 		publisher.onEveryOneMinute();
 		expect(sendMock).toHaveBeenCalledTimes(1);
 	});
+
+	it("acknowledges an unsupported data schema without applying its snapshot", () => {
+		const snapshots = new SnapshotStore();
+		const publisher = new SyncPublisher(snapshots);
+		publisher.onEveryOneMinute();
+
+		publisher.onServerCommand(ZLBF_NETWORK_MODULE, ZLBFNetworkCommand.SYNC_STATE_RESPONSE, {
+			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+			requestId: "snapshot-1",
+			revision: 1,
+			status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
+			data: { snapshot: { dataSchemaVersion: 5, stateVersion: 9 } }
+		});
+
+		expect(snapshots.snapshot).toBeUndefined();
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(1);
+	});
 });

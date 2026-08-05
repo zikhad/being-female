@@ -1,4 +1,4 @@
-import { Fluid } from "server/types";
+import type { Fluid } from "server/types";
 
 export enum ZLBFTraitsEnum {
 	INFERTILE = "zlbf:infertile",
@@ -68,6 +68,8 @@ export const ZLBF_NETWORK_MODULE = "ZLBF";
 export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
 /** Current version of the authoritative ZLBF domain-data shape. */
 export const ZLBF_DATA_SCHEMA_VERSION = 1;
+/** Player ModData key containing the server-owned authoritative root. */
+export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.AuthoritativeState";
 
 /** Commands supported by the initial ZLBF state-synchronization transport. */
 export enum ZLBFNetworkCommand {
@@ -79,5 +81,6 @@ export enum ZLBFNetworkCommand {
 export enum ZLBFSyncStatus {
 	OK = "OK",
 	INVALID_REQUEST = "INVALID_REQUEST",
-	UNSUPPORTED_SCHEMA = "UNSUPPORTED_SCHEMA"
+	UNSUPPORTED_SCHEMA = "UNSUPPORTED_SCHEMA",
+	UNSUPPORTED_DATA_SCHEMA = "UNSUPPORTED_DATA_SCHEMA"
 }
