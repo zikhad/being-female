@@ -9,6 +9,13 @@ import { Player } from "@client/components/Player";
 import { PregnancyData } from "@types";
 import * as SpyPipewrench from "@asledgehammer/pipewrench";
 import { PregnancyOptions } from "@client/SandboxOptions";
+import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import { PregnancyState } from "@client/components/PregnancyState";
+import {
+	createDefaultPregnancyState,
+	PregnancyStatus
+} from "@shared/domain/pregnancy/PregnancyState";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -450,12 +457,14 @@ describe("Pregnancy", () => {
 			it.each([
 				{ name: ZLBFEventsEnum.PREGNANCY_START, index: 0 },
 				{ name: ZLBFEventsEnum.PREGNANCY_STOP, index: 1 },
-				{ name: ZLBFEventsEnum.PREGNANCY_LABOR, index: 2 },
-			])('should call listener for $name', ({ index }) => {
+				{ name: ZLBFEventsEnum.PREGNANCY_LABOR, index: 2 }
+			])("should call listener for $name", ({ index }) => {
 				const pregnancy = new Pregnancy();
-				(pregnancy as any).onCreatePlayer(mock({
-					getModData: jest.fn(() => ({}))
-				}));
+				(pregnancy as any).onCreatePlayer(
+					mock({
+						getModData: jest.fn(() => ({}))
+					})
+				);
 				const [callback] = addListener.mock.calls[index];
 				callback();
 				expect(listener).toHaveBeenCalled();
@@ -494,7 +503,7 @@ describe("Pregnancy", () => {
 				progress: 0.5,
 				isInLabor: false
 			});
-			
+
 			// Set both the data property and pregnancy getter to ensure test works
 			Object.defineProperty(pregnancy, "data", {
 				value: testData,
@@ -506,7 +515,7 @@ describe("Pregnancy", () => {
 			(pregnancy as any).onEveryMinute();
 
 			const updateCalls = mockTrigger.mock.calls.filter(
-				(call) => call[0] === "ZLBFPregnancyUpdate"
+				call => call[0] === "ZLBFPregnancyUpdate"
 			);
 			expect(updateCalls.length).toBeGreaterThan(0);
 			expect(updateCalls[0][1]).toEqual(testData);
@@ -534,6 +543,69 @@ describe("Pregnancy", () => {
 
 	// === Debug Functions ===
 	describe("Debug", () => {
+		it("keeps authoritative Pregnancy present when multiplayer removes the local trait", () => {
+			jest.restoreAllMocks();
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(undefined, snapshots);
+			const store: Record<string, unknown> = {};
+			const localPlayer = mock<IsoPlayer>({ getModData: jest.fn(() => store) });
+			(pregnancy as any).player = localPlayer;
+			const data = { current: 12, progress: 0.25, isInLabor: false };
+			jest.spyOn(PregnancyState, "get").mockReturnValue(null);
+			snapshots.apply({
+				dataSchemaVersion: 2,
+				stateVersion: 1,
+				domains: {
+					pregnancy: { status: PregnancyStatus.PREGNANT, ...data }
+				}
+			});
+
+			expect(pregnancy.pregnancy).toEqual(data);
+			expect(PregnancyState.get).not.toHaveBeenCalled();
+		});
+
+		it("routes start and stop through the authoritative Pregnancy publisher", () => {
+			const commands = mock<PregnancyPublisher>({ setState: jest.fn() });
+			const pregnancy = new Pregnancy(commands, new SnapshotStore());
+
+			pregnancy.Debug.start();
+			expect(commands.setState).toHaveBeenCalledWith({
+				...createDefaultPregnancyState(),
+				status: PregnancyStatus.PREGNANT
+			});
+
+			pregnancy.Debug.stop();
+			expect(commands.setState).toHaveBeenLastCalledWith(createDefaultPregnancyState());
+		});
+
+		it("routes progress changes through the authoritative Pregnancy publisher", () => {
+			const commands = mock<PregnancyPublisher>({ setState: jest.fn() });
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(commands, snapshots);
+			jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(14 * 24 * 60);
+			snapshots.apply({
+				dataSchemaVersion: 2,
+				stateVersion: 1,
+				domains: {
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 0,
+						progress: 0,
+						isInLabor: false
+					}
+				}
+			});
+
+			pregnancy.Debug.advance(60);
+
+			expect(commands.setState).toHaveBeenCalledWith({
+				status: PregnancyStatus.PREGNANT,
+				current: 60,
+				progress: 60 / (14 * 24 * 60),
+				isInLabor: false
+			});
+		});
+
 		describe("Pregnancy data not defined", () => {
 			let pregnancy: Pregnancy;
 			beforeEach(() => {
@@ -571,7 +643,7 @@ describe("Pregnancy", () => {
 				}
 			])(
 				"Method $method should have expected result when data is $data",
-				({ method, data, args, expected }) => {
+				({ method, data, args }) => {
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(data);
 					pregnancy.Debug[method](args as never);
 					if (data !== null) {

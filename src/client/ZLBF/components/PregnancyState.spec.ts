@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { mock } from "jest-mock-extended";
 import { IsoPlayer } from "@asledgehammer/pipewrench";
 import { ZLBFTraitsEnum } from "@constants";
@@ -62,5 +63,21 @@ describe("PregnancyState", () => {
 
 		expect(PregnancyState.get(player)).toBeNull();
 		expect(CharacterTraitApi.hasTrait).toHaveBeenCalledWith(player, ZLBFTraitsEnum.PREGNANCY);
+	});
+
+	it("reads compatibility data without requiring the Pregnancy trait", () => {
+		(CharacterTraitApi.hasTrait as jest.Mock).mockReturnValue(false);
+		const player = mock<IsoPlayer>({
+			getModData: jest.fn(() => ({
+				ZLBFPregnancy: { current: 12, progress: 0.25, isInLabor: false }
+			}))
+		});
+
+		expect(PregnancyState.getStored(player)).toEqual({
+			current: 12,
+			progress: 0.25,
+			isInLabor: false
+		});
+		expect(CharacterTraitApi.hasTrait).not.toHaveBeenCalled();
 	});
 });

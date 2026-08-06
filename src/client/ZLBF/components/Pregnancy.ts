@@ -9,6 +9,14 @@ import { Player, TimedEvents } from "@client/components/Player";
 import { Moodle } from "@client/components/Moodles";
 import { PregnancyState } from "@client/components/PregnancyState";
 import { PregnancyOptions } from "@client/SandboxOptions";
+import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import {
+	AuthoritativePregnancyState,
+	PregnancyStatus,
+	createDefaultPregnancyState
+} from "@shared/domain/pregnancy/PregnancyState";
+import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
 
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
@@ -21,29 +29,80 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		return PregnancyOptions.duration;
 	}
 
+	/** Debug controls routed through the authoritative server Pregnancy command. */
 	public Debug = {
+		start: () => {
+			this.commands?.setState({
+				...createDefaultPregnancyState(),
+				status: PregnancyStatus.PREGNANT
+			});
+		},
+		stop: () => {
+			this.commands?.setState(createDefaultPregnancyState());
+		},
 		advance: (minutes: number) => {
-			if (!this.pregnancy) return;
+			const pregnancy = this.authoritativePregnancy;
+			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
 
-		const { current } = this.pregnancy;
+			const { current } = pregnancy;
 			const duration = this.duration;
-			const updated = Math.min(duration, current + minutes);			
-			PregnancyState.set(this.player, {
+			const updated = Math.min(duration, current + minutes);
+			this.commands?.setState({
+				status: PregnancyStatus.PREGNANT,
 				current: updated,
 				progress: updated / duration,
 				isInLabor: updated == duration
 			});
 		},
 		advanceToLabor: () => {
-			if (!this.pregnancy) return;
-			const { current = 0 } = this.pregnancy;
+			const pregnancy = this.authoritativePregnancy;
+			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
+			const { current } = pregnancy;
 			const duration = this.duration;
 			this.Debug.advance(duration - current - 1);
 		}
 	};
 
-	constructor() {
+	/** Creates the Pregnancy component with optional authoritative network dependencies. */
+	constructor(
+		private readonly commands?: PregnancyPublisher,
+		private readonly snapshots?: SnapshotStore
+	) {
 		super();
+		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
+	}
+
+	/** Returns the latest authoritative mirror, falling back to legacy local presentation state. */
+	private get authoritativePregnancy(): AuthoritativePregnancyState {
+		const authoritative = this.snapshots?.snapshot?.domains.pregnancy;
+		if (authoritative) return authoritative;
+		const local = PregnancyState.get(this.player);
+		if (!local) return createDefaultPregnancyState();
+		return {
+			status: PregnancyStatus.PREGNANT,
+			current: local.current,
+			progress: local.progress,
+			isInLabor: local.isInLabor ?? false
+		};
+	}
+
+	/** Applies acknowledged authoritative Pregnancy state to legacy client presentation state. */
+	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
+		const pregnancy = snapshot.domains.pregnancy;
+		if (pregnancy.status === PregnancyStatus.NOT_PREGNANT) {
+			this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
+			this.resetVariables();
+			return;
+		}
+
+		this.addTrait(ZLBFTraitsEnum.PREGNANCY);
+		PregnancyState.set(this.player, {
+			current: pregnancy.current,
+			progress: pregnancy.progress,
+			isInLabor: pregnancy.isInLabor
+		});
+		this.moodle?.moodle(pregnancy.progress);
+		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 	}
 
 	protected onCreatePlayer(player: IsoPlayer): void {
@@ -56,19 +115,32 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			texture: "media/ui/Moodles/Pregnancy.png",
 			tresholds: [0.3, 0.6, 0.8, 0.9]
 		});
+		const snapshot = this.snapshots?.snapshot;
+		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
 		Events.everyOneMinute.addListener(() => this.onEveryMinute());
 		Events.everyHours.addListener(() => this.onEveryHour());
 		Events.everyDays.addListener(() => this.onEveryDay());
 
-		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_START)
-			.addListener(() => this.start());
-		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_STOP)
-			.addListener(() => this.stop());
-		new Events.EventEmitter<(delta:number) => void>(ZLBFEventsEnum.PREGNANCY_LABOR)
-			.addListener((delta) => this.onLabor(delta));
+		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_START).addListener(() => this.start());
+		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_STOP).addListener(() => this.stop());
+		new Events.EventEmitter<(delta: number) => void>(
+			ZLBFEventsEnum.PREGNANCY_LABOR
+		).addListener(delta => this.onLabor(delta));
 	}
 
+	/** Returns Pregnancy presentation data using authoritative status when synchronized. */
 	public get pregnancy(): PregnancyData | null {
+		const authoritative = this.snapshots?.snapshot?.domains.pregnancy;
+		if (authoritative) {
+			if (authoritative.status === PregnancyStatus.NOT_PREGNANT) return null;
+			return (
+				PregnancyState.getStored(this.player) ?? {
+					current: authoritative.current,
+					progress: authoritative.progress,
+					isInLabor: authoritative.isInLabor
+				}
+			);
+		}
 		return PregnancyState.get(this.player);
 	}
 
@@ -103,7 +175,9 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		this.resetVariables();
 	}
 
-	private onLabor(_delta: number) {
+	/** Applies the incremental body effect associated with active labor. */
+	private onLabor(delta: number) {
+		void delta;
 		this.applyBodyEffect(BodyPartType.Groin, { pain: 1, maxPain: 30 });
 	}
 	/**
@@ -126,7 +200,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (isInLabor && !previousInLabor) {
 			this.player!.setBlockMovement(true);
 			ISTimedActionQueue.add(new ZLBFActionBirth(this));
-		}		
+		}
 		this.moodle?.moodle(this.pregnancy.progress, true);
 		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 	}
@@ -138,10 +212,10 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 */
 	onEveryHour(): void {
 		if (!this.pregnancy) return;
-		
+
 		const { progress } = this.pregnancy;
 		this.moodle?.moodle(progress);
-		
+
 		if (progress < 0.25) return;
 
 		// Consume extra water

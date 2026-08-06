@@ -28,8 +28,16 @@ export class PregnancyState {
 	public static get(player?: IsoPlayer): PregnancyData | null {
 		if (!player) return null;
 		if (!CharacterTraitApi.hasTrait(player, ZLBFTraitsEnum.PREGNANCY)) return null;
-		const data = this.getStore(player).data ?? null;
-		return data;
+		return this.getStored(player);
+	}
+
+	/**
+	 * Reads legacy Pregnancy presentation data without using the synchronized trait as presence.
+	 * Authoritative callers must establish Pregnancy status before using this compatibility data.
+	 */
+	public static getStored(player?: IsoPlayer): PregnancyData | null {
+		if (!player) return null;
+		return this.getStore(player).data ?? null;
 	}
 
 	public static set(player: IsoPlayer | undefined, value: PregnancyData): void {
