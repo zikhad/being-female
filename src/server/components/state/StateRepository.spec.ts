@@ -1,6 +1,13 @@
 import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { mockedPlayer } from "@test/mock";
+import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+
+const state = (stateVersion: number) => ({
+	dataSchemaVersion: 2,
+	stateVersion,
+	domains: { pregnancy: createDefaultPregnancyState() }
+});
 
 describe("StateRepository", () => {
 	it("seeds and normalizes state through property access", () => {
@@ -10,12 +17,12 @@ describe("StateRepository", () => {
 		const result = new StateRepository().load(player);
 
 		if (!result.supported) throw new Error("expected supported state");
-		expect(result.state).toEqual({ dataSchemaVersion: 1, stateVersion: 0, domains: {} });
+		expect(result.state).toEqual(state(0));
 		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(result.state);
 	});
 
 	it("reads and writes state through Kahlua get and set", () => {
-		const persisted = { dataSchemaVersion: 1, stateVersion: 4, domains: {} };
+		const persisted = state(4);
 		const get = jest.fn().mockReturnValue(persisted);
 		const set = jest.fn();
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue({ get, set }) });
@@ -44,19 +51,19 @@ describe("StateRepository", () => {
 		const player = mockedPlayer({
 			getModData: jest.fn().mockReturnValue({ get: jest.fn(), set })
 		});
-		const state = { dataSchemaVersion: 1, stateVersion: 1, domains: {} };
+		const authoritative = state(1);
 
-		new StateRepository().save(player, state);
+		new StateRepository().save(player, authoritative);
 
-		expect(set).toHaveBeenCalledWith(ZLBF_STATE_MOD_DATA_KEY, state);
+		expect(set).toHaveBeenCalledWith(ZLBF_STATE_MOD_DATA_KEY, authoritative);
 	});
 
 	it("keeps different players isolated", () => {
 		const firstStore: Record<string, unknown> = {
-			[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 1, stateVersion: 2, domains: {} }
+			[ZLBF_STATE_MOD_DATA_KEY]: state(2)
 		};
 		const secondStore: Record<string, unknown> = {
-			[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 1, stateVersion: 8, domains: {} }
+			[ZLBF_STATE_MOD_DATA_KEY]: state(8)
 		};
 		const repository = new StateRepository();
 

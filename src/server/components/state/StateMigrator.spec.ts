@@ -1,5 +1,7 @@
 import { ZLBF_DATA_SCHEMA_VERSION } from "@constants";
 import { StateMigrator } from "@server/components/state/StateMigrator";
+import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
 
 describe("StateMigrator", () => {
 	const migrator = new StateMigrator();
@@ -8,7 +10,7 @@ describe("StateMigrator", () => {
 		expect(migrator.createDefault()).toEqual({
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 0,
-			domains: {}
+			domains: { pregnancy: createDefaultPregnancyState() }
 		});
 	});
 
@@ -22,7 +24,7 @@ describe("StateMigrator", () => {
 				state: {
 					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 					stateVersion: 0,
-					domains: {}
+					domains: { pregnancy: createDefaultPregnancyState() }
 				}
 			});
 		}
@@ -35,7 +37,11 @@ describe("StateMigrator", () => {
 			expect.objectContaining({
 				supported: true,
 				stateVersion: 7,
-				state: { dataSchemaVersion: 1, stateVersion: 7, domains: {} }
+				state: {
+					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+					stateVersion: 7,
+					domains: { pregnancy: createDefaultPregnancyState() }
+				}
 			})
 		);
 	});
@@ -46,5 +52,21 @@ describe("StateMigrator", () => {
 			dataSchemaVersion: 99,
 			stateVersion: 12
 		});
+	});
+
+	it("preserves a valid current Pregnancy domain", () => {
+		const pregnancy = {
+			status: PregnancyStatus.PREGNANT,
+			current: 100,
+			progress: 0.5,
+			isInLabor: false
+		};
+		const result = migrator.migrate({
+			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+			stateVersion: 3,
+			domains: { pregnancy }
+		});
+
+		expect(result.supported && result.state.domains.pregnancy).toEqual(pregnancy);
 	});
 });

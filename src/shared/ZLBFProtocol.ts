@@ -7,6 +7,9 @@ import {
 	positiveInteger,
 	string
 } from "@shared/validation/Schema";
+import type { AuthoritativeDomains } from "@shared/ZLBFState";
+import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
+import type { AuthoritativePregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -30,6 +33,8 @@ export type ZLBFSnapshot = {
 	dataSchemaVersion: number;
 	/** Server-owned revision of the authoritative state. */
 	stateVersion: number;
+	/** Server-authoritative gameplay domains mirrored to the client. */
+	domains: AuthoritativeDomains;
 };
 
 /** Targeted server response correlated to a {@link ZLBFSyncStateRequest}. */
@@ -40,6 +45,15 @@ export type ZLBFSyncStateResponse = ZLBFEnvelopeMetadata & {
 	data: { snapshot: ZLBFSnapshot };
 };
 
+/** Debug-only request to replace the authenticated player's Pregnancy domain state. */
+export type ZLBFSetPregnancyStateRequest = ZLBFEnvelopeMetadata & {
+	/** Desired Pregnancy state subject to server schema and invariant validation. */
+	data: { desired: AuthoritativePregnancyState };
+};
+
+/** Authoritative snapshot response to a Pregnancy debug mutation request. */
+export type ZLBFSetPregnancyStateResponse = ZLBFSyncStateResponse;
+
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
 /** Validator for every status understood by this protocol version. */
@@ -47,12 +61,14 @@ const syncStatus = oneOf<ZLBFSyncStatus>([
 	ZLBFSyncStatus.OK,
 	ZLBFSyncStatus.INVALID_REQUEST,
 	ZLBFSyncStatus.UNSUPPORTED_SCHEMA,
-	ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA
+	ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
+	ZLBFSyncStatus.FORBIDDEN
 ]);
 /** Runtime schema for authoritative snapshot metadata. */
 const snapshotSchema = object<ZLBFSnapshot>({
 	dataSchemaVersion: positiveInteger,
-	stateVersion: nonNegativeInteger
+	stateVersion: nonNegativeInteger,
+	domains: object<AuthoritativeDomains>({ pregnancy: pregnancyStateSchema })
 });
 /** Runtime schema for untrusted sync-state requests. */
 const requestSchema = object<ZLBFSyncStateRequest>({
@@ -68,6 +84,13 @@ const responseSchema = object<ZLBFSyncStateResponse>({
 	revision: positiveInteger,
 	status: syncStatus,
 	data: object<ZLBFSyncStateResponse["data"]>({ snapshot: snapshotSchema })
+});
+/** Runtime schema for untrusted Pregnancy debug mutation requests. */
+const setPregnancyStateRequestSchema = object<ZLBFSetPregnancyStateRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	data: object<ZLBFSetPregnancyStateRequest["data"]>({ desired: pregnancyStateSchema })
 });
 
 /**
@@ -85,3 +108,14 @@ export const isZLBFSyncStateRequest = requestSchema;
  * @returns Whether the value is a structurally valid sync-state response.
  */
 export const isZLBFSyncStateResponse = responseSchema;
+
+/**
+ * Validates an untrusted Pregnancy debug mutation payload.
+ *
+ * @param value Raw value received from Project Zomboid's client-command event.
+ * @returns Whether the value is a structurally valid Pregnancy mutation request.
+ */
+export const isZLBFSetPregnancyStateRequest = setPregnancyStateRequestSchema;
+
+/** Validates a Pregnancy mutation response, which uses the standard snapshot envelope. */
+export const isZLBFSetPregnancyStateResponse = responseSchema;

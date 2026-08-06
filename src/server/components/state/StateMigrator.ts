@@ -5,15 +5,21 @@ import {
 	SupportedStateLoadResult
 } from "@server/components/state/AuthoritativeState";
 import { nonNegativeInteger, positiveInteger, record } from "@shared/validation/Schema";
+import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
+import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { PregnancyReconciler } from "@shared/domain/pregnancy/PregnancyReconciler";
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
 export class StateMigrator {
+	/** Creates a migrator with the Pregnancy invariant policy used for persisted domains. */
+	constructor(private readonly pregnancy = new PregnancyReconciler()) {}
+
 	/** Creates a complete default authoritative root for a player without persisted state. */
 	public createDefault(): AuthoritativeState {
 		return {
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 0,
-			domains: {}
+			domains: { pregnancy: createDefaultPregnancyState() }
 		};
 	}
 
@@ -44,6 +50,13 @@ export class StateMigrator {
 		const state = this.createDefault();
 		if (nonNegativeInteger(persisted.stateVersion)) {
 			state.stateVersion = persisted.stateVersion;
+		}
+		if (record(persisted.domains) && pregnancyStateSchema(persisted.domains.pregnancy)) {
+			const pregnancy = this.pregnancy.reconcile(
+				state.domains.pregnancy,
+				persisted.domains.pregnancy
+			);
+			if (pregnancy.valid) state.domains.pregnancy = pregnancy.state;
 		}
 
 		return this.supported(state);
