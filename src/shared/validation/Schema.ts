@@ -9,6 +9,9 @@ export type IntegerOptions = {
 	maximum?: number;
 };
 
+/** Numeric bounds accepted by a finite-number validator. */
+export type NumberOptions = IntegerOptions;
+
 /** String-length bounds accepted by a string validator. */
 export type StringOptions = {
 	/** Inclusive minimum string length. */
@@ -21,6 +24,25 @@ export type StringOptions = {
 export const record: Validator<Record<string, unknown>> = (
 	value: unknown
 ): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+/** Validates a runtime boolean value. */
+export const boolean: Validator<boolean> = (value: unknown): value is boolean =>
+	typeof value === "boolean";
+
+/**
+ * Creates a validator for finite numbers within optional inclusive bounds.
+ *
+ * @param options Optional minimum and maximum values.
+ * @returns Validator for bounded finite numbers.
+ */
+export const number = ({ minimum, maximum }: NumberOptions = {}): Validator<number> => {
+	return (value: unknown): value is number => {
+		if (typeof value !== "number" || !Number.isFinite(value)) return false;
+		if (minimum !== undefined && value < minimum) return false;
+		if (maximum !== undefined && value > maximum) return false;
+		return true;
+	};
+};
 
 /**
  * Creates a validator for finite integers within optional inclusive bounds.
