@@ -67,14 +67,16 @@ export const ZLBF_NETWORK_MODULE = "ZLBF";
 /** Current version of the ZLBF request/response envelope. */
 export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
 /** Current version of the authoritative ZLBF domain-data shape. */
-export const ZLBF_DATA_SCHEMA_VERSION = 1;
+export const ZLBF_DATA_SCHEMA_VERSION = 2;
 /** Player ModData key containing the server-owned authoritative root. */
 export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.AuthoritativeState";
 
 /** Commands supported by the initial ZLBF state-synchronization transport. */
 export enum ZLBFNetworkCommand {
 	SYNC_STATE_REQUEST = "SyncStateRequest",
-	SYNC_STATE_RESPONSE = "SyncStateResponse"
+	SYNC_STATE_RESPONSE = "SyncStateResponse",
+	SET_PREGNANCY_STATE_REQUEST = "SetPregnancyStateRequest",
+	SET_PREGNANCY_STATE_RESPONSE = "SetPregnancyStateResponse"
 }
 
 /** Outcomes returned by the server for a ZLBF sync request. */
@@ -82,5 +84,6 @@ export enum ZLBFSyncStatus {
 	OK = "OK",
 	INVALID_REQUEST = "INVALID_REQUEST",
 	UNSUPPORTED_SCHEMA = "UNSUPPORTED_SCHEMA",
-	UNSUPPORTED_DATA_SCHEMA = "UNSUPPORTED_DATA_SCHEMA"
+	UNSUPPORTED_DATA_SCHEMA = "UNSUPPORTED_DATA_SCHEMA",
+	FORBIDDEN = "FORBIDDEN"
 }

@@ -1,5 +1,4 @@
-/** Persistent domain collection owned exclusively by the server. */
-export type AuthoritativeDomains = Record<string, never>;
+import type { AuthoritativeDomains } from "@shared/ZLBFState";
 
 /** Root value stored under the ZLBF key in an authenticated player's ModData. */
 export type AuthoritativeState = {

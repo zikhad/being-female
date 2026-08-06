@@ -1,5 +1,16 @@
 import { ZLBFSyncStatus } from "@constants";
-import { isZLBFSyncStateRequest, isZLBFSyncStateResponse } from "@shared/ZLBFProtocol";
+import {
+	isZLBFSetPregnancyStateRequest,
+	isZLBFSyncStateRequest,
+	isZLBFSyncStateResponse
+} from "@shared/ZLBFProtocol";
+import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+
+const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
+	dataSchemaVersion,
+	stateVersion,
+	domains: { pregnancy: createDefaultPregnancyState() }
+});
 
 describe("ZLBFProtocol validators", () => {
 	it("accepts valid request and response envelopes", () => {
@@ -9,7 +20,7 @@ describe("ZLBFProtocol validators", () => {
 			isZLBFSyncStateResponse({
 				...request,
 				status: ZLBFSyncStatus.OK,
-				data: { snapshot: { dataSchemaVersion: 1, stateVersion: 0 } }
+				data: { snapshot: snapshot(2, 0) }
 			})
 		).toBe(true);
 	});
@@ -42,7 +53,8 @@ describe("ZLBFProtocol validators", () => {
 		ZLBFSyncStatus.OK,
 		ZLBFSyncStatus.INVALID_REQUEST,
 		ZLBFSyncStatus.UNSUPPORTED_SCHEMA,
-		ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA
+		ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
+		ZLBFSyncStatus.FORBIDDEN
 	])("accepts supported response status %s", status => {
 		expect(
 			isZLBFSyncStateResponse({
@@ -50,8 +62,27 @@ describe("ZLBFProtocol validators", () => {
 				requestId: "request",
 				revision: 1,
 				status,
-				data: { snapshot: { dataSchemaVersion: 1, stateVersion: 0 } }
+				data: { snapshot: snapshot(2, 0) }
 			})
 		).toBe(true);
+	});
+
+	it("validates Pregnancy mutation request payloads", () => {
+		expect(
+			isZLBFSetPregnancyStateRequest({
+				schemaVersion: 1,
+				requestId: "pregnancy-1",
+				revision: 1,
+				data: { desired: createDefaultPregnancyState() }
+			})
+		).toBe(true);
+		expect(
+			isZLBFSetPregnancyStateRequest({
+				schemaVersion: 1,
+				requestId: "pregnancy-1",
+				revision: 1,
+				data: { desired: { status: "pregnant", progress: 2 } }
+			})
+		).toBe(false);
 	});
 });
