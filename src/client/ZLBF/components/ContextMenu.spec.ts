@@ -25,6 +25,8 @@ describe("DebugMenu", () => {
 		});
 		const pregnancy = mock<Pregnancy>({
 			Debug: {
+				start: jest.fn(),
+				stop: jest.fn(),
 				advance: jest.fn(),
 				advanceToLabor: jest.fn()
 			}
@@ -177,12 +179,12 @@ describe("DebugMenu", () => {
 				{
 					title: "Add_Pregnancy",
 					mockCondition: () => ((pregnancy as any).pregnancy = null),
-					expected: () => expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(ZLBFEventsEnum.PREGNANCY_START)
+					expected: () => expect(pregnancy.Debug.start).toHaveBeenCalled()
 				},
 				{
 					title: "Remove_Pregnancy",
 					mockCondition: () => ((pregnancy as any).pregnancy = mock()),
-					expected: () => expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(ZLBFEventsEnum.PREGNANCY_STOP)
+					expected: () => expect(pregnancy.Debug.stop).toHaveBeenCalled()
 				},
 				{
 					title: "Advance_Pregnancy",
@@ -196,11 +198,17 @@ describe("DebugMenu", () => {
 				},
 				{
 					title: "Intercourse",
-					expected: () => expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(ZLBFEventsEnum.INTERCOURSE)
+					expected: () =>
+						expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(
+							ZLBFEventsEnum.INTERCOURSE
+						)
 				},
 				{
 					title: "Menstrual_Effects",
-					expected: () => expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(ZLBFEventsEnum.MENSTRUAL_EFFECTS)
+					expected: () =>
+						expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(
+							ZLBFEventsEnum.MENSTRUAL_EFFECTS
+						)
 				}
 			])("option $title should trigger correct", ({ title, mockCondition, expected }) => {
 				mockCondition && mockCondition();

@@ -8,6 +8,13 @@ import {
 import { mockedPlayer } from "@test/mock";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { SyncPublisher } from "@client/components/network/SyncPublisher";
+import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+
+const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
+	dataSchemaVersion,
+	stateVersion,
+	domains: { pregnancy: createDefaultPregnancyState() }
+});
 
 jest.mock("@asledgehammer/pipewrench");
 
@@ -50,7 +57,7 @@ describe("SyncPublisher", () => {
 			requestId,
 			revision,
 			status: ZLBFSyncStatus.OK,
-			data: { snapshot: { dataSchemaVersion: 1, stateVersion: 4 } }
+			data: { snapshot: snapshot(2, 4) }
 		});
 
 		publisher.onServerCommand(
@@ -70,7 +77,7 @@ describe("SyncPublisher", () => {
 			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
 			response("snapshot-1", 1)
 		);
-		expect(snapshots.snapshot).toEqual({ dataSchemaVersion: 1, stateVersion: 4 });
+		expect(snapshots.snapshot).toEqual(snapshot(2, 4));
 
 		publisher.onEveryOneMinute();
 		expect(sendMock).toHaveBeenCalledTimes(1);
@@ -99,7 +106,7 @@ describe("SyncPublisher", () => {
 			requestId: "snapshot-1",
 			revision: 1,
 			status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
-			data: { snapshot: { dataSchemaVersion: 5, stateVersion: 9 } }
+			data: { snapshot: snapshot(5, 9) }
 		});
 
 		expect(snapshots.snapshot).toBeUndefined();

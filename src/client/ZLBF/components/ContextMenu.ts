@@ -2,14 +2,20 @@ import * as Events from "@asledgehammer/pipewrench-events";
 import { Lactation } from "@client/components/Lactation";
 import { Pregnancy } from "@client/components/Pregnancy";
 import { Womb } from "@client/components/Womb";
-import { getSpecificPlayer, getText, isDebugEnabled, KahluaTable, triggerEvent } from "@asledgehammer/pipewrench";
+import {
+	getSpecificPlayer,
+	getText,
+	isDebugEnabled,
+	KahluaTable,
+	triggerEvent
+} from "@asledgehammer/pipewrench";
 import { ISToolTip } from "@asledgehammer/pipewrench/client";
 import { ZLBFEventsEnum } from "@constants";
 
 export type Option = {
 	title: string;
 	description: string;
-	fn: () => void
+	fn: () => void;
 };
 
 type DebugMenuProps = {
@@ -19,10 +25,9 @@ type DebugMenuProps = {
 	options: Option[];
 };
 
-
 type AddOptionProps = {
 	menu: {
-		addOption: (...__args: unknown[]) => { toolTip: ISToolTip }
+		addOption: (...__args: unknown[]) => { toolTip: ISToolTip };
 	};
 	title: string;
 	description: string;
@@ -48,13 +53,12 @@ export class ContextMenu {
 		this.pregnancy = pregnancy;
 		this.womb = womb;
 
-		Events.onFillWorldObjectContextMenu
-			.addListener((playerId, context ) => {
-				this.createContextMenu({ playerId, context, options });
-				if (isDebugEnabled()) {
-					this.createDebugContextMenu({ playerId, context });
-				}
-			});
+		Events.onFillWorldObjectContextMenu.addListener((playerId, context) => {
+			this.createContextMenu({ playerId, context, options });
+			if (isDebugEnabled()) {
+				this.createDebugContextMenu({ playerId, context });
+			}
+		});
 	}
 
 	private addOption(props: AddOptionProps) {
@@ -73,7 +77,7 @@ export class ContextMenu {
 		const { playerId, context, options } = props;
 		const player = getSpecificPlayer(playerId);
 		if (!player.isFemale()) return;
-		for ( const { title, description, fn } of options ) {
+		for (const { title, description, fn } of options) {
 			this.addOption({
 				menu: context,
 				title,
@@ -130,12 +134,12 @@ export class ContextMenu {
 			},
 			{
 				option: "Add_Pregnancy",
-				fn: () => triggerEvent(ZLBFEventsEnum.PREGNANCY_START),
+				fn: () => this.pregnancy.Debug.start(),
 				condition: () => this.pregnancy.pregnancy == null
 			},
 			{
 				option: "Remove_Pregnancy",
-				fn: () => triggerEvent(ZLBFEventsEnum.PREGNANCY_STOP),
+				fn: () => this.pregnancy.Debug.stop(),
 				condition: () => this.pregnancy.pregnancy != null
 			},
 			{
@@ -151,14 +155,14 @@ export class ContextMenu {
 			},
 			{
 				option: "Intercourse",
-				fn: () => triggerEvent(ZLBFEventsEnum.INTERCOURSE),
+				fn: () => triggerEvent(ZLBFEventsEnum.INTERCOURSE)
 			},
 			{
 				option: "Menstrual_Effects",
-				fn: () => triggerEvent(ZLBFEventsEnum.MENSTRUAL_EFFECTS),
+				fn: () => triggerEvent(ZLBFEventsEnum.MENSTRUAL_EFFECTS)
 			}
 		]
-			.filter(({condition}) => {
+			.filter(({ condition }) => {
 				return !(condition && !condition());
 			})
 			.map<Option>(({ option, fn }) => ({
