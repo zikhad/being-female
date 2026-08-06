@@ -1,4 +1,5 @@
 import {
+	boolean,
 	emptyRecord,
 	integer,
 	nonNegativeInteger,
@@ -10,6 +11,12 @@ import {
 } from "@shared/validation/Schema";
 
 describe("Schema validators", () => {
+	it("validates boolean values", () => {
+		expect(boolean(true)).toBe(true);
+		expect(boolean(false)).toBe(true);
+		expect(boolean(0)).toBe(false);
+	});
+
 	it.each([{}, [], { value: true }])("accepts record value %#", value => {
 		expect(record(value)).toBe(true);
 	});
