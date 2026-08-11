@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { mock } from "jest-mock-extended";
 import { Trait } from "@asledgehammer/pipewrench";
 
@@ -70,6 +71,8 @@ export class GameTime {
 		};
 	}
 }
+
+export const getGameTime = jest.fn(() => ({ getMinutesStamp: jest.fn(() => 1) }));
 
 export class HaloTextHelper {
 	static addTextWithArrow() {}

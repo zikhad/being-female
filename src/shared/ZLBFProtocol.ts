@@ -54,6 +54,12 @@ export type ZLBFSetPregnancyStateRequest = ZLBFEnvelopeMetadata & {
 /** Authoritative snapshot response to a Pregnancy debug mutation request. */
 export type ZLBFSetPregnancyStateResponse = ZLBFSyncStateResponse;
 
+/** Normal progression publication for the authenticated player's Pregnancy domain. */
+export type ZLBFPublishPregnancyStateRequest = ZLBFSetPregnancyStateRequest;
+
+/** Authoritative snapshot response to a Pregnancy progression publication. */
+export type ZLBFPublishPregnancyStateResponse = ZLBFSyncStateResponse;
+
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
 /** Validator for every status understood by this protocol version. */
@@ -119,3 +125,9 @@ export const isZLBFSetPregnancyStateRequest = setPregnancyStateRequestSchema;
 
 /** Validates a Pregnancy mutation response, which uses the standard snapshot envelope. */
 export const isZLBFSetPregnancyStateResponse = responseSchema;
+
+/** Validates a normal Pregnancy progression publication payload. */
+export const isZLBFPublishPregnancyStateRequest = setPregnancyStateRequestSchema;
+
+/** Validates a Pregnancy progression response using the standard snapshot envelope. */
+export const isZLBFPublishPregnancyStateResponse = responseSchema;

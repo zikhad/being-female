@@ -223,6 +223,52 @@ describe("CommandHandler", () => {
 		);
 	});
 
+	it("persists normal Pregnancy progression without requiring debug mode", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 2,
+				stateVersion: 1,
+				domains: {
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 0,
+						progress: 0,
+						isInLabor: false
+					}
+				}
+			}
+		};
+		const player = playerWithStore(store);
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: 1,
+				requestId: "pregnancy-1",
+				revision: 1,
+				data: {
+					desired: {
+						status: PregnancyStatus.PREGNANT,
+						current: 1,
+						progress: 0.1,
+						isInLabor: false
+					}
+				}
+			}
+		);
+
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy.current).toBe(1);
+		expect(sendMock).toHaveBeenCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+		);
+	});
+
 	it("does not increment state version for an idempotent Pregnancy mutation", () => {
 		debugMock.mockReturnValue(true);
 		const store = {
