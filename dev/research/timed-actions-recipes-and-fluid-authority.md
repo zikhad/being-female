@@ -13,6 +13,8 @@ Which pregnancy, recipe, inventory, and fluid effects require server authority, 
 
 Pregnancy status and elapsed progression are now server-persisted from client-published desired state, while simulation, labor side effects, and birth remain client-owned. Birth and several recipe/fluid paths still combine presentation with persistent mutation. Exact-once birth requires a persisted server lifecycle marker or idempotency key. Animation and UI should remain client-side and react to accepted transitions.
 
+The public `ZLBFIntercourse` event remains the integration boundary for debug controls and other mods. Womb performs sperm, contraceptive, fertility, and random-conception logic locally; only a successful `ZLBFPregnancyStart` result publishes the normal persisted Pregnancy transition. Duplicate start results are idempotent while the desired or acknowledged state is already pregnant.
+
 Recipe callback context and Build 42 fluid/inventory replication are unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
 
 Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
@@ -23,6 +25,7 @@ Desired-state reconciliation does not make irreversible operations exact-once. B
 
 -   `src/client/ZLBF/Actions/ZLBFBirth.ts` directly creates the baby and stops pregnancy from a client timed action.
 -   `src/client/ZLBF/components/Pregnancy.ts` advances Pregnancy presentation and labor locally while publishing reversible progress for server persistence.
+-   `src/client/ZLBF/components/Womb.ts` listens for `ZLBFIntercourse`, computes conception, and emits `ZLBFPregnancyStart`; `Pregnancy.ts` publishes that successful lifecycle transition instead of directly mutating local state.
 -   See [EveryOneMinute server progression](every-one-minute-server-progression.md): collapsed minute jumps require timestamp-delta reconciliation, but ZLBF selected client publication instead of server player iteration for reversible progression.
 -   `src/server/ZLBFRecipes.ts` imports client singleton state while callbacks mutate player state and fluid inventory.
 -   `src/shared/components/FluidContainerApi.ts` appears to remove a requested amount and then all remaining fluid in `clear(amount)`; investigate separately.
@@ -66,3 +69,4 @@ Attempt duplicate/cancelled birth around reconnect and verify one result. Execut
 -   2026-08-11: Clarified that Pregnancy status is authoritative while progression remains client-owned; linked the minute-event research.
 -   2026-08-11: Selected client-simulated, server-persisted progression across reversible domains; retained server authority for irreversible and external-resource effects.
 -   2026-08-11: Implemented Pregnancy progression publication; labor and birth remain outside the persisted reversible transition.
+-   2026-08-11: Preserved `ZLBFIntercourse` as the public conception entrypoint and persisted only successful `ZLBFPregnancyStart` transitions.
