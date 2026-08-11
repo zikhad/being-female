@@ -33,7 +33,8 @@ This directory preserves reviewed reverse-engineering findings that affect ZLBF 
 | [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md)             | Partially verified | 42.x         | Client, server, shared      | 2026-08-04   |
 | [Build 42 multiplayer command contract](build42-multiplayer-command-contract.md)            | Partially verified | 42.x         | Shared, multiplayer         | 2026-08-04   |
 | [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Partially verified | 42.12 / 42.x | Server, multiplayer         | 2026-08-05   |
-| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Investigating      | 42.x         | Client, server, multiplayer | 2026-08-04   |
+| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Investigating      | 42.x         | Client, server, multiplayer | 2026-08-11   |
+| [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-11   |
 
 ## Multiplayer Implementation Order
 
@@ -42,7 +43,7 @@ The current research supports this order when implementation resumes:
 1. Establish shared protocol types, separate client/server entrypoints, runtime payload validation, and targeted request/response tests.
 2. Prove command delivery and loader behavior in single-player, hosted multiplayer, and dedicated-server environments.
 3. Establish normalized server-owned persistence and verify save/reload behavior.
-4. Migrate Pregnancy first, with persisted lifecycle/idempotency markers for irreversible transitions.
-5. Migrate Womb using server-validated intents and deterministic reconciliation.
-6. Migrate Lactation only after recipe, inventory, and fluid authority are verified.
+4. Migrate Pregnancy progression using client-published desired state and server-owned validated persistence; add lifecycle/idempotency markers separately for irreversible transitions.
+5. Migrate reversible Womb/cycle progression with the same client-simulated, server-persisted pattern.
+6. Migrate reversible Lactation progression with the same pattern, but defer recipe, inventory, and fluid mutations until their authority is verified.
 7. Remove legacy client-authoritative write paths after parity and reconnect tests pass.

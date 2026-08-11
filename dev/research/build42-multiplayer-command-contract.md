@@ -1,7 +1,7 @@
 # Build 42 Multiplayer Command Contract
 
 Status: partially verified  
-Last updated: 2026-08-04  
+Last updated: 2026-08-11
 Project Zomboid build: 42.x  
 Scope: shared, multiplayer
 
@@ -76,7 +76,7 @@ Confidence: high for signatures, generated-context separation, the Reference Mod
 -   Which event or bounded retry schedule is reliably late enough for bootstrap and reconnect?
 -   What server-observable lifecycle can establish a session epoch?
 -   Can a response arrive before client domain initialization?
--   Does an `EveryOneMinute` change publisher reliably deliver its initial desired state in all supported modes?
+-   Hosted multiplayer delivery from the deferred `EveryOneMinute` bootstrap has been user-validated; single-player and dedicated delivery still require instrumentation. See [EveryOneMinute server progression](every-one-minute-server-progression.md) for tick semantics.
 
 ## In-Game Validation
 
@@ -93,3 +93,4 @@ In single-player, hosted multiplayer, and a dedicated server with two clients:
 -   2026-08-04: Initial research from an earlier multiplayer branch and installed Build 42/PipeWrench resources.
 -   2026-08-04: Added hosted runtime evidence and a private Reference Mod comparison; removed stale references to multiplayer files absent from the current branch.
 -   2026-08-04: Recorded project-owner runtime confirmation of the Reference Mod's unified single-player and multiplayer behavior; retained ZLBF-specific lifecycle validation.
+-   2026-08-11: Recorded hosted bootstrap delivery and linked the server progression event research.

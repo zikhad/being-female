@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: investigating  
-Last updated: 2026-08-04  
+Last updated: 2026-08-11
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -11,11 +11,11 @@ Which pregnancy, recipe, inventory, and fluid effects require server authority, 
 
 ## Conclusion
 
-Birth and several recipe/fluid paths currently combine presentation with persistent mutation. Exact-once birth requires a persisted server lifecycle marker or idempotency key. Animation and UI should remain client-side and react to accepted transitions.
+Pregnancy status is now server-persisted, but elapsed progression, labor side effects, and birth remain client-owned. Birth and several recipe/fluid paths still combine presentation with persistent mutation. Exact-once birth requires a persisted server lifecycle marker or idempotency key. Animation and UI should remain client-side and react to accepted transitions.
 
 Recipe callback context and Build 42 fluid/inventory replication are unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
 
-Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state, the server re-reads live player state, a pure shared reconciler computes minimal deltas, and ownership metadata records only effects the mod actually added or suppressed. That pattern should guide cycle, contraceptive, trait, and repeatable lactation transitions.
+Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
 
 Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
 
@@ -23,6 +23,7 @@ Desired-state reconciliation does not make irreversible operations exact-once. B
 
 -   `src/client/ZLBF/Actions/ZLBFBirth.ts` directly creates the baby and stops pregnancy from a client timed action.
 -   `src/client/ZLBF/components/Pregnancy.ts` advances pregnancy and labor with client-local state.
+-   See [EveryOneMinute server progression](every-one-minute-server-progression.md): collapsed minute jumps require timestamp-delta reconciliation, but ZLBF selected client publication instead of server player iteration for reversible progression.
 -   `src/server/ZLBFRecipes.ts` imports client singleton state while callbacks mutate player state and fluid inventory.
 -   `src/shared/components/FluidContainerApi.ts` appears to remove a requested amount and then all remaining fluid in `clear(amount)`; investigate separately.
 -   Reference Mod `src/shared/components/PlushieReconciler.ts` calculates deterministic desired-state deltas without game mutation.
@@ -39,7 +40,8 @@ Confidence: high that birth needs idempotent server authority; low for recipe co
 ## Implications For ZLBF
 
 -   Add a persisted lifecycle marker/idempotency key before Pregnancy migration.
--   Drive client presentation from accepted server transitions.
+-   Keep reversible Pregnancy, cycle/Womb, and Lactation simulation on the owning client and publish desired state for validated server persistence.
+-   Coalesce progression while a request is pending and apply acknowledged snapshots for convergence.
 -   Validate inventory ownership and quantities server-side.
 -   Research recipes before Womb or Lactation fluid migration.
 -   Treat `FluidContainerApi.clear(amount)` as a separate bug investigation.
@@ -61,3 +63,5 @@ Attempt duplicate/cancelled birth around reconnect and verify one result. Execut
 
 -   2026-08-04: Initial investigation; recipe and fluid authority remain open.
 -   2026-08-04: Added Reference Mod reconciliation and ownership findings; exact-once and fluid authority remain open.
+-   2026-08-11: Clarified that Pregnancy status is authoritative while progression remains client-owned; linked the minute-event research.
+-   2026-08-11: Selected client-simulated, server-persisted progression across reversible domains; retained server authority for irreversible and external-resource effects.

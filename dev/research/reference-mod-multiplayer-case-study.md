@@ -1,7 +1,7 @@
 # Reference Mod Multiplayer Case Study
 
 Status: partially verified  
-Last updated: 2026-08-04  
+Last updated: 2026-08-11
 Project Zomboid build: 42.x  
 Scope: client, server, shared, multiplayer
 
@@ -42,7 +42,7 @@ The periodic publisher avoids relying on `OnCreatePlayer` as a network-ready boo
 -   `src/shared/components/PlushieReconciler.ts` is a pure function that calculates minimal deltas and the next authoritative state.
 -   The handler records ownership metadata: traits actually added by Reference Mod and traits actually suppressed by it. Detaching therefore does not remove a trait the player already owned or restore one that Reference Mod never removed.
 
-This desired-state pattern is safely transferable to reversible ZLBF state: clients publish intent, the server validates live facts and persisted state, a pure reconciler computes changes, and only the server commits them.
+This desired-state pattern is safely transferable to reversible ZLBF state. For private progression values where anti-cheat is not required, the client may calculate the desired state while the server validates shape and domain invariants, reconciles persisted state, commits changes, and returns the canonical snapshot. Claims about server-observable facts or external game-owned resources must still be independently verified on the server.
 
 It does not establish exact-once semantics for birth, item creation, or destructive fluid/inventory operations. Those require persisted lifecycle or operation idempotency.
 
@@ -111,7 +111,7 @@ It is not sufficient to assume ZLBF will work automatically. Reference Mod publi
 -   Use separate commands per bounded domain instead of one large mutable snapshot.
 -   Prefer desired-state commands for reversible state and explicit intents for validated transitions.
 -   Keep presentation—UI, sounds, and animations—client-side, driven by authoritative responses.
--   Put mutation, validation, persistence, and ownership tracking on the server.
+-   Keep reversible Pregnancy, cycle/Womb, and Lactation simulation client-side while putting validation, persistence, convergence, and ownership tracking on the server.
 -   Normalize persisted state on every access and implement explicit version migrations when the shape changes.
 -   Introduce persisted lifecycle/idempotency markers before Pregnancy birth or inventory creation.
 -   Do not migrate Womb or Lactation fluid operations until recipe and inventory authority are verified.
@@ -135,3 +135,4 @@ Confidence: high for Reference Mod source structure, its deployed SP/MP behavior
 -   2026-08-04: Initial case study of the private Reference Mod implementation.
 -   2026-08-04: Recorded project-owner confirmation that Reference Mod works as intended in actual single-player and multiplayer use.
 -   2026-08-05: Linked direct Build 42.12 nested-table serialization evidence and narrowed persistence uncertainty to save timing and disconnect durability.
+-   2026-08-11: Refined the transfer boundary for client-simulated, server-persisted reversible domain progression.
