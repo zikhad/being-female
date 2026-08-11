@@ -27,6 +27,7 @@ import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
 	private lastMinuteStamp?: number;
+	private lastAppliedStatus?: PregnancyStatus;
 
 	/**
 	 * Get current pregnancy duration from sandbox options.
@@ -96,6 +97,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	/** Applies acknowledged authoritative Pregnancy state to legacy client presentation state. */
 	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
 		const pregnancy = this.commands?.latestDesiredState ?? snapshot.domains.pregnancy;
+		const previousStatus = this.lastAppliedStatus;
+		this.lastAppliedStatus = pregnancy.status;
 		if (pregnancy.status === PregnancyStatus.NOT_PREGNANT) {
 			this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
 			this.resetVariables();
@@ -110,6 +113,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		});
 		this.moodle?.moodle(pregnancy.progress);
 		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
+		if (previousStatus === PregnancyStatus.NOT_PREGNANT) this.playStartAnimation();
 	}
 
 	protected onCreatePlayer(player: IsoPlayer): void {
@@ -164,15 +168,25 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		this.moodle?.moodle(0);
 	}
 
-	/**
-	 * start Pregnancy (add Player trait)
-	 */
+	/** Publishes a normal conception result or applies the legacy local fallback. */
 	private start() {
+		if (this.commands) {
+			const desired = this.commands.latestDesiredState ?? this.authoritativePregnancy;
+			if (desired.status === PregnancyStatus.PREGNANT) return;
+			this.commands.publishState({
+				...createDefaultPregnancyState(),
+				status: PregnancyStatus.PREGNANT
+			});
+			return;
+		}
 		this.addTrait(ZLBFTraitsEnum.PREGNANCY);
 		this.resetVariables();
-		if (this.player) {
-			ISTimedActionQueue.add(new ZLBFActionPregnancyStartAnimation(this.player));
-		}
+		this.playStartAnimation();
+	}
+
+	/** Queues the client-only Pregnancy start presentation for the bound player. */
+	private playStartAnimation(): void {
+		if (this.player) ISTimedActionQueue.add(new ZLBFActionPregnancyStartAnimation(this.player));
 	}
 
 	/**

@@ -13,6 +13,7 @@ import { PregnancyPublisher } from "@client/components/network/PregnancyPublishe
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { PregnancyState } from "@client/components/PregnancyState";
 import {
+	AuthoritativePregnancyState,
 	createDefaultPregnancyState,
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
@@ -486,6 +487,87 @@ describe("Pregnancy", () => {
 				callback();
 
 				expect(queueAdd).toHaveBeenCalledTimes(1);
+			});
+
+			it("publishes a successful conception without directly mutating local state", () => {
+				const addTrait = jest.spyOn(Player.prototype as any, "addTrait").mockClear();
+				let latest: AuthoritativePregnancyState | undefined;
+				const publishState = jest.fn((desired: AuthoritativePregnancyState) => {
+					latest = desired;
+				});
+				const commands = {
+					get latestDesiredState() {
+						return latest;
+					},
+					publishState,
+					setState: jest.fn(),
+					onServerCommand: jest.fn()
+				} as unknown as PregnancyPublisher;
+				const snapshots = new SnapshotStore();
+				const pregnancy = new Pregnancy(commands, snapshots);
+				(pregnancy as any).onCreatePlayer(
+					mock({
+						getModData: jest.fn(() => ({}))
+					})
+				);
+				snapshots.apply({
+					dataSchemaVersion: 2,
+					stateVersion: 0,
+					domains: { pregnancy: createDefaultPregnancyState() }
+				});
+				const [callback] = addListener.mock.calls[0];
+
+				callback();
+				callback();
+
+				expect(publishState).toHaveBeenCalledTimes(1);
+				expect(publishState).toHaveBeenCalledWith({
+					...createDefaultPregnancyState(),
+					status: PregnancyStatus.PREGNANT
+				});
+				expect(addTrait).not.toHaveBeenCalled();
+			});
+
+			it("plays start presentation once after the accepted status transition", () => {
+				jest.restoreAllMocks();
+				(SpyPipewrench.getGameTime as jest.Mock).mockReturnValue({
+					getMinutesStamp: jest.fn().mockReturnValue(1)
+				});
+				const queue = jest.spyOn(ISTimedActionQueue, "add").mockClear();
+				jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+				jest.spyOn(Player.prototype as any, "removeTrait").mockImplementation(jest.fn());
+				const commands = {
+					latestDesiredState: undefined,
+					publishState: jest.fn(),
+					setState: jest.fn(),
+					onServerCommand: jest.fn()
+				} as unknown as PregnancyPublisher;
+				const snapshots = new SnapshotStore();
+				const pregnancy = new Pregnancy(commands, snapshots);
+				const store: Record<string, unknown> = {};
+				(pregnancy as any).player = mock<IsoPlayer>({
+					getModData: jest.fn(() => store)
+				});
+				const notPregnant = createDefaultPregnancyState();
+				const pregnant = { ...notPregnant, status: PregnancyStatus.PREGNANT };
+
+				snapshots.apply({
+					dataSchemaVersion: 2,
+					stateVersion: 1,
+					domains: { pregnancy: notPregnant }
+				});
+				snapshots.apply({
+					dataSchemaVersion: 2,
+					stateVersion: 2,
+					domains: { pregnancy: pregnant }
+				});
+				snapshots.apply({
+					dataSchemaVersion: 2,
+					stateVersion: 2,
+					domains: { pregnancy: pregnant }
+				});
+
+				expect(queue).toHaveBeenCalledTimes(1);
 			});
 		});
 	});
