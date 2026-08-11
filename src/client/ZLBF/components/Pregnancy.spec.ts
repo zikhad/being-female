@@ -33,6 +33,10 @@ describe("Pregnancy", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		jest.resetAllMocks();
+		let minuteStamp = 0;
+		(SpyPipewrench.getGameTime as jest.Mock).mockReturnValue({
+			getMinutesStamp: jest.fn(() => ++minuteStamp)
+		});
 		jest.spyOn(Events, "EventEmitter").mockReturnValue({ addListener: jest.fn() } as any);
 	});
 
@@ -543,6 +547,47 @@ describe("Pregnancy", () => {
 
 	// === Debug Functions ===
 	describe("Debug", () => {
+		it("publishes elapsed online Pregnancy progress from the minute-stamp delta", () => {
+			jest.restoreAllMocks();
+			(SpyPipewrench.getGameTime as jest.Mock).mockReturnValue({
+				getMinutesStamp: jest.fn().mockReturnValue(13)
+			});
+			jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(100);
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const commands = mock<PregnancyPublisher>({
+				publishState: jest.fn(),
+				latestDesiredState: undefined
+			});
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(commands, snapshots);
+			const store: Record<string, unknown> = {};
+			(pregnancy as any).player = mock<IsoPlayer>({
+				getModData: jest.fn(() => store)
+			});
+			(pregnancy as any).lastMinuteStamp = 10;
+			snapshots.apply({
+				dataSchemaVersion: 2,
+				stateVersion: 1,
+				domains: {
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 5,
+						progress: 0.05,
+						isInLabor: false
+					}
+				}
+			});
+
+			pregnancy.onEveryMinute();
+
+			expect(commands.publishState).toHaveBeenCalledWith({
+				status: PregnancyStatus.PREGNANT,
+				current: 8,
+				progress: 0.08,
+				isInLabor: false
+			});
+		});
+
 		it("keeps authoritative Pregnancy present when multiplayer removes the local trait", () => {
 			jest.restoreAllMocks();
 			const snapshots = new SnapshotStore();
@@ -562,6 +607,43 @@ describe("Pregnancy", () => {
 
 			expect(pregnancy.pregnancy).toEqual(data);
 			expect(PregnancyState.get).not.toHaveBeenCalled();
+		});
+
+		it("does not roll presentation back behind a newer queued desired state", () => {
+			jest.restoreAllMocks();
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const desired = {
+				status: PregnancyStatus.PREGNANT,
+				current: 2,
+				progress: 0.02,
+				isInLabor: false
+			};
+			const commands = {
+				latestDesiredState: desired,
+				setState: jest.fn(),
+				publishState: jest.fn(),
+				onServerCommand: jest.fn()
+			} as unknown as PregnancyPublisher;
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(commands, snapshots);
+			const store: Record<string, unknown> = {};
+			(pregnancy as any).player = mock<IsoPlayer>({
+				getModData: jest.fn(() => store)
+			});
+
+			snapshots.apply({
+				dataSchemaVersion: 2,
+				stateVersion: 2,
+				domains: {
+					pregnancy: { ...desired, current: 1, progress: 0.01 }
+				}
+			});
+
+			expect(pregnancy.pregnancy).toEqual({
+				current: 2,
+				progress: 0.02,
+				isInLabor: false
+			});
 		});
 
 		it("routes start and stop through the authoritative Pregnancy publisher", () => {

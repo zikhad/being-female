@@ -56,7 +56,21 @@ export class CommandHandler {
 			return;
 		}
 		if (command === ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST) {
-			this.setPregnancyState(player, args);
+			this.setPregnancyState(
+				player,
+				args,
+				ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+				true
+			);
+			return;
+		}
+		if (command === ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST) {
+			this.setPregnancyState(
+				player,
+				args,
+				ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
+				false
+			);
 		}
 	}
 
@@ -75,8 +89,13 @@ export class CommandHandler {
 		this.sendSnapshot(player, ZLBFNetworkCommand.SYNC_STATE_RESPONSE, args, status, state);
 	}
 
-	/** Handles a debug-only reversible Pregnancy state mutation. */
-	private setPregnancyState(player: IsoPlayer, args: unknown): void {
+	/** Handles a reversible Pregnancy state publication through its selected route. */
+	private setPregnancyState(
+		player: IsoPlayer,
+		args: unknown,
+		responseCommand: ZLBFNetworkCommand,
+		debugOnly: boolean
+	): void {
 		if (!isZLBFSetPregnancyStateRequest(args)) {
 			print(
 				`[ZLBF][MP][Server] rejected malformed Pregnancy request from ${player.getUsername()}`
@@ -86,7 +105,9 @@ export class CommandHandler {
 
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && !isDebugEnabled()) status = ZLBFSyncStatus.FORBIDDEN;
+		if (status === ZLBFSyncStatus.OK && debugOnly && !isDebugEnabled()) {
+			status = ZLBFSyncStatus.FORBIDDEN;
+		}
 
 		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
 			const reconciliation = this.pregnancy.reconcile(
@@ -106,13 +127,7 @@ export class CommandHandler {
 			}
 		}
 
-		this.sendSnapshot(
-			player,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
-			args,
-			status,
-			loaded
-		);
+		this.sendSnapshot(player, responseCommand, args, status, loaded);
 	}
 
 	/** Loads persisted state only when the request uses the supported wire schema. */

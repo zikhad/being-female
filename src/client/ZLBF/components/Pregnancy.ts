@@ -1,5 +1,11 @@
 import type { PregnancyData } from "@types";
-import { BodyPartType, IsoPlayer, triggerEvent, ZombRand } from "@asledgehammer/pipewrench";
+import {
+	BodyPartType,
+	getGameTime,
+	IsoPlayer,
+	triggerEvent,
+	ZombRand
+} from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { ISTimedActionQueue } from "@asledgehammer/pipewrench/client";
 import { ITEMS, ZLBFEventsEnum, ZLBFTraitsEnum } from "@constants";
@@ -20,6 +26,7 @@ import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
 
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
+	private lastMinuteStamp?: number;
 
 	/**
 	 * Get current pregnancy duration from sandbox options.
@@ -88,7 +95,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	/** Applies acknowledged authoritative Pregnancy state to legacy client presentation state. */
 	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
-		const pregnancy = snapshot.domains.pregnancy;
+		const pregnancy = this.commands?.latestDesiredState ?? snapshot.domains.pregnancy;
 		if (pregnancy.status === PregnancyStatus.NOT_PREGNANT) {
 			this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
 			this.resetVariables();
@@ -107,6 +114,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	protected onCreatePlayer(player: IsoPlayer): void {
 		super.onCreatePlayer(player);
+		this.lastMinuteStamp = getGameTime().getMinutesStamp();
 		PregnancyState.initialize(player);
 		this.moodle = new Moodle({
 			player,
@@ -186,13 +194,24 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * - Triggers labor and birth action when reaching full duration
 	 */
 	onEveryMinute(): void {
+		const minuteStamp = getGameTime().getMinutesStamp();
+		const elapsed = Math.max(0, minuteStamp - (this.lastMinuteStamp ?? minuteStamp - 1));
+		this.lastMinuteStamp = minuteStamp;
 		if (!this.pregnancy) return;
+		if (this.commands && !this.snapshots?.snapshot) return;
+		if (elapsed === 0) return;
 		const duration = this.duration;
 		const { current } = this.pregnancy;
 		const previousInLabor = this.pregnancy.isInLabor ?? false;
-		const updated = current + 1 > duration ? duration : current + 1;
+		const updated = Math.min(duration, current + elapsed);
 		const isInLabor = updated == duration;
 		PregnancyState.set(this.player, {
+			current: updated,
+			progress: updated / duration,
+			isInLabor
+		});
+		this.commands?.publishState({
+			status: PregnancyStatus.PREGNANT,
 			current: updated,
 			progress: updated / duration,
 			isInLabor

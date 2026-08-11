@@ -76,7 +76,9 @@ export enum ZLBFNetworkCommand {
 	SYNC_STATE_REQUEST = "SyncStateRequest",
 	SYNC_STATE_RESPONSE = "SyncStateResponse",
 	SET_PREGNANCY_STATE_REQUEST = "SetPregnancyStateRequest",
-	SET_PREGNANCY_STATE_RESPONSE = "SetPregnancyStateResponse"
+	SET_PREGNANCY_STATE_RESPONSE = "SetPregnancyStateResponse",
+	PUBLISH_PREGNANCY_STATE_REQUEST = "PublishPregnancyStateRequest",
+	PUBLISH_PREGNANCY_STATE_RESPONSE = "PublishPregnancyStateResponse"
 }
 
 /** Outcomes returned by the server for a ZLBF sync request. */
