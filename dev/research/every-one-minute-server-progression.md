@@ -15,7 +15,7 @@ Build 42 triggers `EveryOneMinute` from `GameTime.update(boolean)` whenever the 
 
 The callback is a wake-up signal, not elapsed-time truth. It has no player or delta argument and fires at most once per game update, so a multi-minute jump can collapse into one callback. Any progression implementation must calculate elapsed time from minute-stamp deltas instead of incrementing once per callback.
 
-ZLBF currently registers `EveryOneMinute` only from client code. `SyncPublisher` uses its first eligible tick for bootstrap, while `Pregnancy` advances legacy local state by one. No server Pregnancy progression listener exists.
+ZLBF registers `EveryOneMinute` only from client code. `SyncPublisher` uses its first eligible tick for bootstrap, while `Pregnancy` calculates a minute-stamp delta, advances local presentation, and publishes its latest desired state for server persistence. No server Pregnancy progression listener exists.
 
 ZLBF has chosen client-simulated, server-persisted progression for reversible domain values where anti-cheat is not required. Pregnancy, cycle/Womb, and Lactation progression should continue to simulate on the owning client and publish validated desired state after ticks. The server remains the persistence and convergence boundary. A server listener and online-player enumeration remain a viable alternative, but are not the planned architecture.
 
@@ -23,7 +23,9 @@ ZLBF has chosen client-simulated, server-persisted progression for reversible do
 
 ### Direct observations
 
--   `src/client/ZLBF/components/Pregnancy.ts` registers a client minute listener that increments `current`, calculates `progress`, and begins labor/birth presentation locally.
+-   `src/client/ZLBF/components/Pregnancy.ts` registers a client minute listener that calculates elapsed online minutes, updates presentation, publishes Pregnancy progress, and begins labor/birth presentation locally.
+-   `src/client/ZLBF/components/network/PregnancyPublisher.ts` keeps one request in flight, coalesces intervening ticks to the latest desired state, and applies correlated server snapshots without rolling presentation behind queued progress.
+-   `src/server/components/CommandHandler.ts` accepts the normal progression route without debug mode, validates and reconciles desired Pregnancy state, persists changes, and returns the canonical snapshot.
 -   `src/client/ZLBF/components/network/SyncCoordinator.ts` registers a separate client listener for the one-time snapshot request.
 -   `src/server/ZLBF.ts` registers only `OnClientCommand`; it has no minute listener.
 -   Installed Build 42 `zombie.GameTime.update(boolean)` updates the minute stamp, compares it with the previous stamp, emits one `EveryOneMinute` event when different, and then stores the new stamp. There is no client/server guard around the trigger.
@@ -78,3 +80,4 @@ In a temporary research build, log client execution context, current/previous mi
 -   2026-08-11: Initial investigation from ZLBF source/generated Lua, installed Build 42 Java bytecode, vanilla client/server Lua, and PipeWrench declarations.
 -   2026-08-11: Chose online-only Pregnancy progression; reconnect establishes a new session baseline without catch-up.
 -   2026-08-11: Chose client-simulated, server-persisted progression for reversible Pregnancy, Womb/cycle, and Lactation values; retained server simulation as an unselected alternative.
+-   2026-08-11: Implemented the first Pregnancy progression publisher with minute-stamp deltas, latest-state coalescing, validated persistence, and correlated acknowledgement.
