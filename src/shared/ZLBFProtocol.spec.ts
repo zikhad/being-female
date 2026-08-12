@@ -5,11 +5,12 @@ import {
 	isZLBFSyncStateResponse
 } from "@shared/ZLBFProtocol";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
 	dataSchemaVersion,
 	stateVersion,
-	domains: { pregnancy: createDefaultPregnancyState() }
+	domains: createDefaultDomains()
 });
 
 describe("ZLBFProtocol validators", () => {

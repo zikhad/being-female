@@ -10,6 +10,7 @@ import {
 import type { AuthoritativeDomains } from "@shared/ZLBFState";
 import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
 import type { AuthoritativePregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -60,6 +61,12 @@ export type ZLBFPublishPregnancyStateRequest = ZLBFSetPregnancyStateRequest;
 /** Authoritative snapshot response to a Pregnancy progression publication. */
 export type ZLBFPublishPregnancyStateResponse = ZLBFSyncStateResponse;
 
+/** Request to allocate or recover the authenticated player's pending birth operation. */
+export type ZLBFAllocateBirthRequest = ZLBFSyncStateRequest;
+
+/** Authoritative snapshot containing the allocated pending birth identity. */
+export type ZLBFAllocateBirthResponse = ZLBFSyncStateResponse;
+
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
 /** Validator for every status understood by this protocol version. */
@@ -74,7 +81,10 @@ const syncStatus = oneOf<ZLBFSyncStatus>([
 const snapshotSchema = object<ZLBFSnapshot>({
 	dataSchemaVersion: positiveInteger,
 	stateVersion: nonNegativeInteger,
-	domains: object<AuthoritativeDomains>({ pregnancy: pregnancyStateSchema })
+	domains: object<AuthoritativeDomains>({
+		pregnancy: pregnancyStateSchema,
+		birth: birthStateSchema
+	})
 });
 /** Runtime schema for untrusted sync-state requests. */
 const requestSchema = object<ZLBFSyncStateRequest>({
@@ -131,3 +141,9 @@ export const isZLBFPublishPregnancyStateRequest = setPregnancyStateRequestSchema
 
 /** Validates a Pregnancy progression response using the standard snapshot envelope. */
 export const isZLBFPublishPregnancyStateResponse = responseSchema;
+
+/** Validates a birth-allocation request, which carries no client-selected domain data. */
+export const isZLBFAllocateBirthRequest = requestSchema;
+
+/** Validates a birth-allocation response using the standard snapshot envelope. */
+export const isZLBFAllocateBirthResponse = responseSchema;

@@ -9,6 +9,7 @@ import {
 } from "@constants";
 import {
 	isZLBFSetPregnancyStateRequest,
+	isZLBFAllocateBirthRequest,
 	isZLBFSyncStateRequest,
 	ZLBFSetPregnancyStateRequest,
 	ZLBFSnapshot,
@@ -22,13 +23,16 @@ import {
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
+import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { BirthOperationAllocator } from "@server/components/BirthOperationAllocator";
 
 /** Validates and handles ZLBF commands received in the server execution context. */
 export class CommandHandler {
 	/** Creates a handler backed by the server-owned player-state repository. */
 	constructor(
 		private readonly states = new StateRepository(),
-		private readonly pregnancy = new PregnancyReconciler()
+		private readonly pregnancy = new PregnancyReconciler(),
+		private readonly births = new BirthOperationAllocator()
 	) {}
 
 	/**
@@ -71,7 +75,43 @@ export class CommandHandler {
 				ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
 				false
 			);
+			return;
 		}
+		if (command === ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST) {
+			this.allocateBirth(player, args);
+		}
+	}
+
+	/** Allocates a pending birth only after authoritative Pregnancy reaches labor. */
+	private allocateBirth(player: IsoPlayer, args: unknown): void {
+		if (!isZLBFAllocateBirthRequest(args)) {
+			print(
+				`[ZLBF][MP][Server] rejected malformed birth allocation from ${player.getUsername()}`
+			);
+			return;
+		}
+
+		const loaded = this.loadForProtocol(player, args.schemaVersion);
+		let status = this.loadStatus(args.schemaVersion, loaded);
+		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+			const pregnancy = loaded.state.domains.pregnancy;
+			if (pregnancy.status !== PregnancyStatus.PREGNANT || !pregnancy.isInLabor) {
+				status = ZLBFSyncStatus.INVALID_REQUEST;
+			} else {
+				const allocation = this.births.allocate(
+					loaded.state.domains.birth,
+					player.getUsername()
+				);
+				if (allocation.changed) {
+					loaded.state.domains.birth = allocation.state;
+					loaded.state.stateVersion += 1;
+					loaded.stateVersion = loaded.state.stateVersion;
+					this.states.save(player, loaded.state);
+				}
+			}
+		}
+
+		this.sendSnapshot(player, ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE, args, status, loaded);
 	}
 
 	/** Handles a validated read-only authoritative snapshot request. */
@@ -161,7 +201,8 @@ export class CommandHandler {
 			domains: {
 				pregnancy: state?.supported
 					? state.state.domains.pregnancy
-					: createDefaultPregnancyState()
+					: createDefaultPregnancyState(),
+				birth: state?.supported ? state.state.domains.birth : createDefaultBirthState()
 			}
 		};
 	}

@@ -8,6 +8,8 @@ import { nonNegativeInteger, positiveInteger, record } from "@shared/validation/
 import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { PregnancyReconciler } from "@shared/domain/pregnancy/PregnancyReconciler";
+import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
 export class StateMigrator {
@@ -19,7 +21,7 @@ export class StateMigrator {
 		return {
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 0,
-			domains: { pregnancy: createDefaultPregnancyState() }
+			domains: createDefaultDomains()
 		};
 	}
 
@@ -57,6 +59,9 @@ export class StateMigrator {
 				persisted.domains.pregnancy
 			);
 			if (pregnancy.valid) state.domains.pregnancy = pregnancy.state;
+		}
+		if (record(persisted.domains) && birthStateSchema(persisted.domains.birth)) {
+			state.domains.birth = persisted.domains.birth;
 		}
 
 		return this.supported(state);
