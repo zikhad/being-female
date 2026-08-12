@@ -9,11 +9,12 @@ import { mockedPlayer } from "@test/mock";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { SyncPublisher } from "@client/components/network/SyncPublisher";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
 	dataSchemaVersion,
 	stateVersion,
-	domains: { pregnancy: createDefaultPregnancyState() }
+	domains: createDefaultDomains()
 });
 
 jest.mock("@asledgehammer/pipewrench");

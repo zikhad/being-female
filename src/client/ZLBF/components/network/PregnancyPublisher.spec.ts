@@ -2,6 +2,8 @@ import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
 import { ZLBF_NETWORK_MODULE, ZLBFNetworkCommand, ZLBFSyncStatus } from "@constants";
 import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 import {
 	createDefaultPregnancyState,
 	PregnancyStatus
@@ -52,7 +54,7 @@ describe("PregnancyPublisher", () => {
 					snapshot: {
 						dataSchemaVersion: 2,
 						stateVersion: 1,
-						domains: { pregnancy: desired }
+						domains: { pregnancy: desired, birth: createDefaultBirthState() }
 					}
 				}
 			}
@@ -94,7 +96,7 @@ describe("PregnancyPublisher", () => {
 		const snapshot = {
 			dataSchemaVersion: 2,
 			stateVersion: 1,
-			domains: { pregnancy: createDefaultPregnancyState() }
+			domains: createDefaultDomains()
 		};
 
 		publisher.onServerCommand(

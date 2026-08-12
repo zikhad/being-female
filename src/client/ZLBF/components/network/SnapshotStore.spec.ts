@@ -1,5 +1,6 @@
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 describe("SnapshotStore", () => {
 	it("updates the mirror before notifying subscribers", () => {
@@ -8,7 +9,7 @@ describe("SnapshotStore", () => {
 		const snapshot = {
 			dataSchemaVersion: 2,
 			stateVersion: 1,
-			domains: { pregnancy: createDefaultPregnancyState() }
+			domains: createDefaultDomains()
 		};
 		store.subscribe(listener);
 

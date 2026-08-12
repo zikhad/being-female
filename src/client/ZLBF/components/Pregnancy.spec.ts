@@ -17,6 +17,7 @@ import {
 	createDefaultPregnancyState,
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -513,7 +514,10 @@ describe("Pregnancy", () => {
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 0,
-					domains: { pregnancy: createDefaultPregnancyState() }
+					domains: {
+						pregnancy: createDefaultPregnancyState(),
+						birth: createDefaultBirthState()
+					}
 				});
 				const [callback] = addListener.mock.calls[0];
 
@@ -554,17 +558,17 @@ describe("Pregnancy", () => {
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 1,
-					domains: { pregnancy: notPregnant }
+					domains: { pregnancy: notPregnant, birth: createDefaultBirthState() }
 				});
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 2,
-					domains: { pregnancy: pregnant }
+					domains: { pregnancy: pregnant, birth: createDefaultBirthState() }
 				});
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 2,
-					domains: { pregnancy: pregnant }
+					domains: { pregnancy: pregnant, birth: createDefaultBirthState() }
 				});
 
 				expect(queue).toHaveBeenCalledTimes(1);
@@ -651,6 +655,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 5,
@@ -683,6 +688,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: { status: PregnancyStatus.PREGNANT, ...data }
 				}
 			});
@@ -717,6 +723,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 2,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: { ...desired, current: 1, progress: 0.01 }
 				}
 			});
@@ -751,6 +758,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 0,

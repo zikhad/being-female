@@ -71,6 +71,16 @@ export const nonNegativeInteger = integer({ minimum: 0 });
 export const positiveInteger = integer({ minimum: 1 });
 
 /**
+ * Creates a validator for a field that may be absent from a Lua table.
+ *
+ * @param validator Validator used when the field is present.
+ * @returns Validator accepting either an absent value or the supplied value shape.
+ */
+export const optional = <T>(validator: Validator<T>): Validator<T | undefined> => {
+	return (value: unknown): value is T | undefined => value === undefined || validator(value);
+};
+
+/**
  * Creates a validator for strings within optional inclusive length bounds.
  *
  * @param options Optional minimum and maximum string lengths.

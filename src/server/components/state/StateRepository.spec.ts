@@ -1,12 +1,12 @@
-import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
+import { ZLBF_DATA_SCHEMA_VERSION, ZLBF_STATE_MOD_DATA_KEY } from "@constants";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { mockedPlayer } from "@test/mock";
-import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 const state = (stateVersion: number) => ({
-	dataSchemaVersion: 2,
+	dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 	stateVersion,
-	domains: { pregnancy: createDefaultPregnancyState() }
+	domains: createDefaultDomains()
 });
 
 describe("StateRepository", () => {

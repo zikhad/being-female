@@ -2,6 +2,8 @@ import { ZLBF_DATA_SCHEMA_VERSION } from "@constants";
 import { StateMigrator } from "@server/components/state/StateMigrator";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 describe("StateMigrator", () => {
 	const migrator = new StateMigrator();
@@ -10,7 +12,7 @@ describe("StateMigrator", () => {
 		expect(migrator.createDefault()).toEqual({
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 0,
-			domains: { pregnancy: createDefaultPregnancyState() }
+			domains: createDefaultDomains()
 		});
 	});
 
@@ -24,7 +26,7 @@ describe("StateMigrator", () => {
 				state: {
 					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 					stateVersion: 0,
-					domains: { pregnancy: createDefaultPregnancyState() }
+					domains: createDefaultDomains()
 				}
 			});
 		}
@@ -40,7 +42,7 @@ describe("StateMigrator", () => {
 				state: {
 					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 					stateVersion: 7,
-					domains: { pregnancy: createDefaultPregnancyState() }
+					domains: createDefaultDomains()
 				}
 			})
 		);
@@ -64,7 +66,7 @@ describe("StateMigrator", () => {
 		const result = migrator.migrate({
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 3,
-			domains: { pregnancy }
+			domains: { pregnancy, birth: createDefaultBirthState() }
 		});
 
 		expect(result.supported && result.state.domains.pregnancy).toEqual(pregnancy);

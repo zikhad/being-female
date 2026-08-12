@@ -14,8 +14,10 @@ import {
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
+import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
-const domains = () => ({ pregnancy: createDefaultPregnancyState() });
+const domains = createDefaultDomains;
 
 jest.mock("@asledgehammer/pipewrench");
 jest.mock("@shared/components/CharacterTraitApi");
@@ -81,7 +83,7 @@ describe("CommandHandler", () => {
 				revision: 7,
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 2, stateVersion: 0, domains: domains() }
+					snapshot: { dataSchemaVersion: 3, stateVersion: 0, domains: domains() }
 				}
 			}
 		);
@@ -116,7 +118,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 2, stateVersion: 6, domains: domains() }
+					snapshot: { dataSchemaVersion: 3, stateVersion: 6, domains: domains() }
 				}
 			})
 		);
@@ -128,6 +130,7 @@ describe("CommandHandler", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 0,
@@ -229,6 +232,7 @@ describe("CommandHandler", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 0,
@@ -397,6 +401,105 @@ describe("CommandHandler", () => {
 				revision: 1,
 				status: ZLBFSyncStatus.UNSUPPORTED_SCHEMA
 			})
+		);
+	});
+
+	it("allocates and persists a username-scoped birth operation during labor", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 3,
+				stateVersion: 5,
+				domains: {
+					birth: createDefaultBirthState(),
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 100,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			}
+		};
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			getUsername: jest.fn().mockReturnValue("Dihgg")
+		});
+		const request = {
+			schemaVersion: 1,
+			requestId: "birth-1",
+			revision: 1,
+			data: {}
+		};
+
+		const handler = new CommandHandler();
+		handler.onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			player,
+			request
+		);
+
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+			birthSequence: 1,
+			pendingBirthId: "Dihgg:birth:1"
+		});
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+		);
+	});
+
+	it("returns the pending birth idempotently without advancing state version", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 3,
+				stateVersion: 6,
+				domains: {
+					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 100,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			}
+		};
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			getUsername: jest.fn().mockReturnValue("Dihgg")
+		});
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			player,
+			{ schemaVersion: 1, requestId: "birth-retry", revision: 2, data: {} }
+		);
+
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth.birthSequence).toBe(1);
+	});
+
+	it("rejects birth allocation before authoritative labor", () => {
+		const store: Record<string, unknown> = {};
+		const player = playerWithStore(store);
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			player,
+			{ schemaVersion: 1, requestId: "birth-early", revision: 1, data: {} }
+		);
+
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
 		);
 	});
 });
