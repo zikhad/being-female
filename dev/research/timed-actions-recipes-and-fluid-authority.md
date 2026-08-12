@@ -21,9 +21,13 @@ Reference Mod demonstrates a safe pattern for reversible effects: the client pub
 
 Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
 
+Hosted multiplayer testing confirmed that the current client birth path is not durable. The birth animation completes and `Inventory.AddItem` creates a visible baby, but that client-created item cannot be transferred or equipped and disappears after reconnect. The local birth reset also races the authoritative mirror: `birth()` resets legacy Pregnancy data while the snapshot remains pregnant, so the next client minute tick advances from zero and publishes that reset as valid desired state. The server then persists an apparent rollback to the beginning of Pregnancy.
+
 ## Evidence
 
 -   `src/client/ZLBF/Actions/ZLBFBirth.ts` directly creates the baby and stops pregnancy from a client timed action.
+-   Hosted Build 42 multiplayer observation: the client-created baby was visible but non-transferable/non-equippable and disappeared on reconnect.
+-   `Pregnancy.birth()` calls local `stop()`, but the authoritative snapshot remains pregnant; the next `onEveryMinute()` reads reset compatibility data and publishes near-zero Pregnancy progress, explaining the observed persisted rollback after reconnect.
 -   `src/client/ZLBF/components/Pregnancy.ts` advances Pregnancy presentation and labor locally while publishing reversible progress for server persistence.
 -   `src/client/ZLBF/components/Womb.ts` listens for `ZLBFIntercourse`, computes conception, and emits `ZLBFPregnancyStart`; `Pregnancy.ts` publishes that successful lifecycle transition instead of directly mutating local state.
 -   See [EveryOneMinute server progression](every-one-minute-server-progression.md): collapsed minute jumps require timestamp-delta reconciliation, but ZLBF selected client publication instead of server player iteration for reversible progression.
@@ -49,6 +53,7 @@ Confidence: high that birth needs idempotent server authority; low for recipe co
 -   Research recipes before Womb or Lactation fluid migration.
 -   Treat `FluidContainerApi.clear(amount)` as a separate bug investigation.
 -   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
+-   Do not let client birth completion reset Pregnancy or resume progression from reset data. A server operation must create the durable item and atomically record the completed lifecycle state.
 -   Persist ownership/provenance so ZLBF never removes or restores effects it did not introduce.
 
 ## Remaining Questions
@@ -70,3 +75,4 @@ Attempt duplicate/cancelled birth around reconnect and verify one result. Execut
 -   2026-08-11: Selected client-simulated, server-persisted progression across reversible domains; retained server authority for irreversible and external-resource effects.
 -   2026-08-11: Implemented Pregnancy progression publication; labor and birth remain outside the persisted reversible transition.
 -   2026-08-11: Preserved `ZLBFIntercourse` as the public conception entrypoint and persisted only successful `ZLBFPregnancyStart` transitions.
+-   2026-08-11: Confirmed client-created birth items are temporary in hosted multiplayer and traced the post-birth rollback to a local reset followed by normal progression publication.
