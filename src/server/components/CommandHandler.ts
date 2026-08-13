@@ -108,6 +108,9 @@ export class CommandHandler {
 					loaded.stateVersion = loaded.state.stateVersion;
 					this.states.save(player, loaded.state);
 				}
+				print(
+					`[ZLBF][MP][Server] birth allocation player=${player.getUsername()} birthId=${allocation.birthId} changed=${allocation.changed}`
+				);
 			}
 		}
 

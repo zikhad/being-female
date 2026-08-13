@@ -23,6 +23,7 @@ import {
 	createDefaultPregnancyState
 } from "@shared/domain/pregnancy/PregnancyState";
 import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
+import { BirthPublisher } from "@client/components/network/BirthPublisher";
 
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
@@ -74,7 +75,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	/** Creates the Pregnancy component with optional authoritative network dependencies. */
 	constructor(
 		private readonly commands?: PregnancyPublisher,
-		private readonly snapshots?: SnapshotStore
+		private readonly snapshots?: SnapshotStore,
+		private readonly births?: BirthPublisher
 	) {
 		super();
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
@@ -114,6 +116,9 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		this.moodle?.moodle(pregnancy.progress);
 		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 		if (previousStatus === PregnancyStatus.NOT_PREGNANT) this.playStartAnimation();
+		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
+			this.births?.allocate();
+		}
 	}
 
 	protected onCreatePlayer(player: IsoPlayer): void {
@@ -230,7 +235,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			progress: updated / duration,
 			isInLabor
 		});
-		if (isInLabor && !previousInLabor) {
+		if (isInLabor && !previousInLabor && !this.births) {
 			this.player!.setBlockMovement(true);
 			ISTimedActionQueue.add(new ZLBFActionBirth(this));
 		}
