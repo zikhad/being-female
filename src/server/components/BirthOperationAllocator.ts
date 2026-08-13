@@ -1,5 +1,4 @@
 import type { AuthoritativeBirthState } from "@shared/domain/birth/BirthState";
-import { createBabyData } from "@shared/domain/birth/BabyData";
 
 /** Result of allocating or recovering a pending server-owned birth operation. */
 export type BirthAllocation = {
@@ -26,7 +25,7 @@ export class BirthOperationAllocator {
 		}
 
 		const birthSequence = current.birthSequence + 1;
-		const birthId = createBabyData(motherUsername, birthSequence).birthId;
+		const birthId = `${motherUsername}:birth:${birthSequence}`;
 		return {
 			changed: true,
 			birthId,

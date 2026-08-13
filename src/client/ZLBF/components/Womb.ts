@@ -19,16 +19,15 @@ import { percentageToNumber, trimModuleName } from "@client/Utils";
  * for a player character in the game. Handles cycle tracking, fertility logic.
  */
 export class Womb extends Player<WombData> implements TimedEvents {
-
 	private readonly CONSTANTS = {
-		fertilityLevel: 5,
-	}
+		fertilityLevel: 5
+	};
 	private readonly options = {
 		recovery: WombOptions.recovery,
 		capacity: WombOptions.capacity
 	};
-	
-	set amount(value:number) {
+
+	set amount(value: number) {
 		this.data!.amount = value;
 	}
 
@@ -102,14 +101,14 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			[CyclePhaseEnum.MENSTRUATION]: ZombRandFloat(0, 0.3),
 			[CyclePhaseEnum.FOLLICULAR]: ZombRandFloat(0, 0.4),
 			[CyclePhaseEnum.OVULATION]: ZombRandFloat(0.85, 1),
-			[CyclePhaseEnum.LUTEAL]: ZombRandFloat(0, 0.3),
+			[CyclePhaseEnum.LUTEAL]: ZombRandFloat(0, 0.3)
 		};
 	}
 
 	set contraceptive(value: boolean) {
 		this.data!.onContraceptive = value;
 	}
-	
+
 	get contraceptive() {
 		return this.data?.onContraceptive ?? false;
 	}
@@ -177,7 +176,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 * Initializes data when the player is created.
 	 * @param player - The IsoPlayer instance.
 	 */
-	onCreatePlayer(player: IsoPlayer) {		
+	onCreatePlayer(player: IsoPlayer) {
 		super.onCreatePlayer(player);
 		this.amount = this.data?.amount ?? 0;
 
@@ -186,10 +185,12 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		Events.everyDays.addListener(() => this.onEveryDay());
 		new Events.EventEmitter<(data: PregnancyData) => void>(
 			ZLBFEventsEnum.PREGNANCY_UPDATE
-		).addListener((data) => this.onPregnancyUpdate(data));
+		).addListener(data => this.onPregnancyUpdate(data));
 
 		new Events.EventEmitter(ZLBFEventsEnum.INTERCOURSE).addListener(() => this.intercourse());
-		new Events.EventEmitter(ZLBFEventsEnum.MENSTRUAL_EFFECTS).addListener(() => this.menstruationEffects());
+		new Events.EventEmitter(ZLBFEventsEnum.MENSTRUAL_EFFECTS).addListener(() =>
+			this.menstruationEffects()
+		);
 	}
 
 	public get pregnancy(): PregnancyData | null {
@@ -202,7 +203,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		const amount = amountInMilliliters / 1000;
 		this.haloText({
 			text: `${getText("IGUI_ZLBF_UI_Sperm")} ${amountInMilliliters} ml`,
-			style: "good",
+			style: "good"
 		});
 		if (this.hasItem(ITEMS.CONDOM)) {
 			const inventory = this.player.getInventory();
@@ -246,7 +247,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 
 	onEveryTenMinutes(): void {
 		// do nothing if empty
-		if(this.amount <= 0) return;
+		if (this.amount <= 0) return;
 
 		const amount = ZombRand(0, 5) / 1000;
 		this.amount -= Math.min(this.amount, amount);
@@ -285,12 +286,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 */
 	private computeFertility() {
 		const isInfetile = this.hasTrait(ZLBFTraitsEnum.INFERTILE);
-		if (
-			!this.data ||
-			isInfetile ||
-			this.contraceptive ||
-			this.pregnancy
-		) {
+		if (!this.data || isInfetile || this.contraceptive || this.pregnancy) {
 			return 0;
 		}
 
@@ -312,7 +308,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		if (day < 16) return CyclePhaseEnum.OVULATION;
 		return CyclePhaseEnum.LUTEAL;
 	}
-	
+
 	/** Applies wetness effects */
 	private applyWetness() {
 		const amount = ZombRand(10, 100);
@@ -322,13 +318,10 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	/** Apply menstrual effects like bleeding and pain */
 	private menstruationEffects() {
 		const hasStrongCramps = this.hasTrait(ZLBFTraitsEnum.STRONG_MENSTRUAL_CRAMPS);
-		this.applyBodyEffect(
-			BodyPartType.Groin,
-			{
-				bleedTime: ZombRand(1, 5),
-				pain: hasStrongCramps ? ZombRand(10, 25) : ZombRand(5, 15),
-				maxPain: hasStrongCramps ? 50 : 25
-			}
-		);
+		this.applyBodyEffect(BodyPartType.Groin, {
+			bleedTime: ZombRand(1, 5),
+			pain: hasStrongCramps ? ZombRand(10, 25) : ZombRand(5, 15),
+			maxPain: hasStrongCramps ? 50 : 25
+		});
 	}
 }

@@ -1,4 +1,10 @@
-import { BodyPartType, IsoPlayer, triggerEvent, ZombRand, ZombRandFloat } from "@asledgehammer/pipewrench";
+import {
+	BodyPartType,
+	IsoPlayer,
+	triggerEvent,
+	ZombRand,
+	ZombRandFloat
+} from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { LactationData, LactationImages, PregnancyData } from "@types";
 import { percentageToNumber } from "@utils";
@@ -14,7 +20,7 @@ import { PregnancyState } from "@client/components/PregnancyState";
  * and visual image resolution based on state.
  */
 export class Lactation extends Player<LactationData> implements TimedEvents {
-	private readonly _bottleAmount  = 0.2;
+	private readonly _bottleAmount = 0.2;
 
 	private moodle?: Moodle;
 
@@ -29,7 +35,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	private readonly options = {
 		expiration: LactationOptions.expiration,
 		capacity: LactationOptions.capacity
-	}
+	};
 
 	/**
 	 * Debug utilities to modify internal milk data
@@ -72,11 +78,11 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 		new Events.EventEmitter<(data: PregnancyData) => void>(
 			ZLBFEventsEnum.PREGNANCY_UPDATE
-		).addListener((data) => this.onPregnancyUpdate(data));
+		).addListener(data => this.onPregnancyUpdate(data));
 
 		new Events.EventEmitter<(data: LactationData) => void>(
 			ZLBFEventsEnum.LACTATION_UPDATE
-		).addListener((data) => this.onLactationUpdate(data));
+		).addListener(data => this.onLactationUpdate(data));
 	}
 
 	private get pregnancy(): PregnancyData | null {
@@ -95,7 +101,8 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	onLactationUpdate(data: LactationData) {
 		if (!this.isLactating) return;
 		const multiplier = 1 + this.multiplier;
-		const amount = ZombRandFloat(this.CONSTANTS.AMOUNTS.MIN, this.CONSTANTS.AMOUNTS.MAX) * multiplier;
+		const amount =
+			ZombRandFloat(this.CONSTANTS.AMOUNTS.MIN, this.CONSTANTS.AMOUNTS.MAX) * multiplier;
 		this.milkAmount = Math.min(this.capacity, this.milkAmount + amount);
 	}
 
@@ -108,7 +115,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		if (!this.isLactating) return;
 
 		const modifier = percentageToNumber(this.percentage, 25);
-		
+
 		this.applyBodyEffect(BodyPartType.Torso_Upper, {
 			pain: modifier,
 			maxPain: 10,

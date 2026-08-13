@@ -1,4 +1,4 @@
-import { isDebugEnabled, sendServerCommand } from "@asledgehammer/pipewrench";
+import { instanceItem, isDebugEnabled, sendServerCommand } from "@asledgehammer/pipewrench";
 import {
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
@@ -500,6 +500,68 @@ describe("CommandHandler", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
 			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+		);
+	});
+
+	it("creates a durable baby and completes the authoritative birth", () => {
+		const itemModData: Record<string, unknown> = {};
+		const baby = { getModData: jest.fn().mockReturnValue(itemModData) };
+		(instanceItem as jest.Mock).mockReturnValue(baby);
+		const AddItem = jest.fn();
+		const descriptor = {
+			getForename: jest.fn().mockReturnValue("Jane"),
+			getSurname: jest.fn().mockReturnValue("Doe")
+		};
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 3,
+				stateVersion: 8,
+				domains: {
+					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 100,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			}
+		};
+		const inventory = { AddItem };
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			getUsername: jest.fn().mockReturnValue("Dihgg"),
+			getFullName: jest.fn().mockReturnValue("Jane Doe"),
+			getDescriptor: jest.fn().mockReturnValue(descriptor),
+			getInventory: jest.fn().mockReturnValue(inventory)
+		});
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			player,
+			{
+				schemaVersion: 1,
+				requestId: "complete-1",
+				revision: 1,
+				data: { birthId: "Dihgg:birth:1" }
+			}
+		);
+
+		expect(AddItem).toHaveBeenCalledWith(baby);
+		expect(itemModData.ZLBF).toEqual({
+			schemaVersion: 1,
+			birthId: "Dihgg:birth:1",
+			motherUsername: "Dihgg",
+			motherName: "Jane Doe",
+			birthSequence: 1
+		});
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+			birthSequence: 1,
+			completedBirthId: "Dihgg:birth:1"
+		});
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy).toEqual(
+			createDefaultPregnancyState()
 		);
 	});
 });

@@ -2,12 +2,13 @@ import { babyDataSchema, createBabyData } from "@shared/domain/birth/BabyData";
 
 describe("BabyData", () => {
 	it("creates valid immutable identity metadata from server-owned inputs", () => {
-		const data = createBabyData("Dihgg", 3);
+		const data = createBabyData({ username: "Dihgg", name: "Jane Doe" }, 3);
 
 		expect(data).toEqual({
 			schemaVersion: 1,
 			birthId: "Dihgg:birth:3",
 			motherUsername: "Dihgg",
+			motherName: "Jane Doe",
 			birthSequence: 3
 		});
 		expect(babyDataSchema(data)).toBe(true);

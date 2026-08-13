@@ -1,8 +1,14 @@
-import { IsoPlayer, isDebugEnabled, sendServerCommand } from "@asledgehammer/pipewrench";
+import {
+	IsoPlayer,
+	isDebugEnabled,
+	sendServerCommand,
+	instanceItem
+} from "@asledgehammer/pipewrench";
 import {
 	ZLBF_DATA_SCHEMA_VERSION,
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ITEMS,
 	ZLBFTraitsEnum,
 	ZLBFNetworkCommand,
 	ZLBFSyncStatus
@@ -10,6 +16,7 @@ import {
 import {
 	isZLBFSetPregnancyStateRequest,
 	isZLBFAllocateBirthRequest,
+	isZLBFCompleteBirthRequest,
 	isZLBFSyncStateRequest,
 	ZLBFSetPregnancyStateRequest,
 	ZLBFSnapshot,
@@ -25,6 +32,8 @@ import {
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { BirthOperationAllocator } from "@server/components/BirthOperationAllocator";
+import { Player } from "@shared/components/Player";
+import { createBabyData } from "@shared/domain/birth/BabyData";
 
 /** Validates and handles ZLBF commands received in the server execution context. */
 export class CommandHandler {
@@ -79,7 +88,55 @@ export class CommandHandler {
 		}
 		if (command === ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST) {
 			this.allocateBirth(player, args);
+			return;
 		}
+		if (command === ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST) {
+			this.completeBirth(player, args);
+		}
+	}
+
+	/** Validates and durably completes a pending birth operation on the server. */
+	private completeBirth(player: IsoPlayer, args: unknown): void {
+		if (!isZLBFCompleteBirthRequest(args)) return;
+		const loaded = this.loadForProtocol(player, args.schemaVersion);
+		let status = this.loadStatus(args.schemaVersion, loaded);
+		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+			const birth = loaded.state.domains.birth;
+			if (birth.completedBirthId === args.data.birthId) {
+				// An acknowledged operation may be retried after a lost response.
+			} else if (birth.pendingBirthId !== args.data.birthId) {
+				status = ZLBFSyncStatus.INVALID_REQUEST;
+			} else {
+				const mother = new Player(player).identity;
+				if (!mother) {
+					status = ZLBFSyncStatus.INVALID_REQUEST;
+				} else {
+					const baby = instanceItem(ITEMS.BABY);
+					if (!baby) {
+						status = ZLBFSyncStatus.INVALID_REQUEST;
+					} else {
+						const babyData = createBabyData(mother, birth.birthSequence);
+						(baby.getModData() as unknown as Record<string, unknown>).ZLBF = babyData;
+						const inventory = player.getInventory();
+						inventory.AddItem(baby);
+						sendAddItemToContainer(inventory, baby);
+						loaded.state.domains.birth = {
+							birthSequence: birth.birthSequence,
+							completedBirthId: args.data.birthId
+						};
+						loaded.state.domains.pregnancy = createDefaultPregnancyState();
+						loaded.state.stateVersion += 1;
+						loaded.stateVersion = loaded.state.stateVersion;
+						this.states.save(player, loaded.state);
+						this.applyPregnancyTrait(player, PregnancyStatus.NOT_PREGNANT);
+						print(
+							`[ZLBF][MP][Server] completed birth player=${mother.username} birthId=${babyData.birthId} motherName=${mother.name}`
+						);
+					}
+				}
+			}
+		}
+		this.sendSnapshot(player, ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE, args, status, loaded);
 	}
 
 	/** Allocates a pending birth only after authoritative Pregnancy reaches labor. */
