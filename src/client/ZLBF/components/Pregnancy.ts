@@ -29,6 +29,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
 	private lastMinuteStamp?: number;
 	private lastAppliedStatus?: PregnancyStatus;
+	private startedBirthId?: string;
 
 	/**
 	 * Get current pregnancy duration from sandbox options.
@@ -102,6 +103,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		const previousStatus = this.lastAppliedStatus;
 		this.lastAppliedStatus = pregnancy.status;
 		if (pregnancy.status === PregnancyStatus.NOT_PREGNANT) {
+			this.player?.setBlockMovement(false);
+			this.startedBirthId = undefined;
 			this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
 			this.resetVariables();
 			return;
@@ -118,6 +121,12 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (previousStatus === PregnancyStatus.NOT_PREGNANT) this.playStartAnimation();
 		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
 			this.births?.allocate();
+		}
+		const pendingBirthId = snapshot.domains.birth.pendingBirthId;
+		if (pregnancy.isInLabor && pendingBirthId && this.startedBirthId !== pendingBirthId) {
+			this.startedBirthId = pendingBirthId;
+			this.player?.setBlockMovement(true);
+			ISTimedActionQueue.add(new ZLBFActionBirth(this));
 		}
 	}
 
@@ -284,6 +293,11 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 */
 	public birth() {
 		if (!this.player) return;
+		const birthId = this.snapshots?.snapshot?.domains.birth.pendingBirthId;
+		if (birthId && this.births) {
+			this.births.complete(birthId);
+			return;
+		}
 		this.player.getInventory().AddItem(ITEMS.BABY);
 		this.player.setBlockMovement(false);
 		this.applyStatEffect({

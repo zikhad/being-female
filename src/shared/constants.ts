@@ -80,7 +80,9 @@ export enum ZLBFNetworkCommand {
 	PUBLISH_PREGNANCY_STATE_REQUEST = "PublishPregnancyStateRequest",
 	PUBLISH_PREGNANCY_STATE_RESPONSE = "PublishPregnancyStateResponse",
 	ALLOCATE_BIRTH_REQUEST = "AllocateBirthRequest",
-	ALLOCATE_BIRTH_RESPONSE = "AllocateBirthResponse"
+	ALLOCATE_BIRTH_RESPONSE = "AllocateBirthResponse",
+	COMPLETE_BIRTH_REQUEST = "CompleteBirthRequest",
+	COMPLETE_BIRTH_RESPONSE = "CompleteBirthResponse"
 }
 
 /** Outcomes returned by the server for a ZLBF sync request. */

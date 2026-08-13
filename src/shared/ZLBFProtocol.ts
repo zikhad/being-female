@@ -67,6 +67,15 @@ export type ZLBFAllocateBirthRequest = ZLBFSyncStateRequest;
 /** Authoritative snapshot containing the allocated pending birth identity. */
 export type ZLBFAllocateBirthResponse = ZLBFSyncStateResponse;
 
+/** Request to complete one previously allocated birth operation. */
+export type ZLBFCompleteBirthRequest = ZLBFEnvelopeMetadata & {
+	/** Server-issued identity returned by birth allocation. */
+	data: { birthId: string };
+};
+
+/** Authoritative snapshot returned after birth completion or an idempotent retry. */
+export type ZLBFCompleteBirthResponse = ZLBFSyncStateResponse;
+
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
 /** Validator for every status understood by this protocol version. */
@@ -108,6 +117,15 @@ const setPregnancyStateRequestSchema = object<ZLBFSetPregnancyStateRequest>({
 	revision: positiveInteger,
 	data: object<ZLBFSetPregnancyStateRequest["data"]>({ desired: pregnancyStateSchema })
 });
+/** Runtime schema for an untrusted birth-completion request. */
+const completeBirthRequestSchema = object<ZLBFCompleteBirthRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	data: object<ZLBFCompleteBirthRequest["data"]>({
+		birthId: string({ minimumLength: 1, maximumLength: 128 })
+	})
+});
 
 /**
  * Validates an untrusted client-command payload before server code reads it.
@@ -147,3 +165,9 @@ export const isZLBFAllocateBirthRequest = requestSchema;
 
 /** Validates a birth-allocation response using the standard snapshot envelope. */
 export const isZLBFAllocateBirthResponse = responseSchema;
+
+/** Validates a request to complete a server-issued birth operation. */
+export const isZLBFCompleteBirthRequest = completeBirthRequestSchema;
+
+/** Validates a birth-completion response using the standard snapshot envelope. */
+export const isZLBFCompleteBirthResponse = responseSchema;
