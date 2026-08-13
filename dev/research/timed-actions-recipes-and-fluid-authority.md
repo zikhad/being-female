@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: partially verified  
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -50,6 +50,14 @@ Hosted multiplayer testing confirmed that the current client birth path is not d
 -   Item IDs are serialized, but they identify an already-created item and are insufficient as a domain birth-operation key.
 -   Installed third-party Build 42 mods also use `instanceItem`, configure item fields/ModData, then call `AddItem` and `sendAddItemToContainer`. These are corroborating patterns, not independent engine verification.
 
+### Build 42 Character Name Access
+
+-   Installed Build 42 `IsoGameCharacter.getFullName()` bytecode reads the character descriptor's forename and surname and joins them with a space. `IsoPlayer` inherits this public method.
+-   PipeWrench exposes `IsoPlayer.getFullName()`, `getDescriptor()`, `getUsername()`, and `getDisplayName()`, plus `SurvivorDesc.getForename()` and `getSurname()`.
+-   `IsoPlayer.getDisplayName()` is multiplayer presentation derived from username and affected by server/disguise options; it is not the stable role-play character name required by `BabyData`.
+-   Vanilla uses `getFullName()` for persisted character attribution and explicitly combines descriptor forename and surname in character-facing UI. Vanilla server code confirms the related player identity methods are callable on the authenticated command player.
+-   `getFullName()` returns the fallback `Bob Smith` when the descriptor is absent. Birth completion must reject or explicitly handle a missing descriptor instead of persisting that fallback.
+
 ## Runtime And Version Applicability
 
 The concern applies to Build 42 multiplayer. UI and animation are client concerns; persistent transitions and externally visible inventory/fluid values require verified authority.
@@ -71,7 +79,8 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Persist a server-owned birth operation ID before animation begins and require animation completion to submit that ID through a dedicated command.
 -   Allocate the birth ID as `<motherUsername>:birth:<sequence>`, where the server derives `motherUsername` from the authenticated player and advances a persisted, never-reused per-player sequence. Usernames are unique within the server and ZLBF items cannot transfer between servers, so this is the required uniqueness boundary.
 -   Store the same birth ID in baby item ModData before adding/sending the item. On retry, reconcile pending state against a tagged baby before creating another.
--   Store the item metadata under a `BabyData` domain structure containing `schemaVersion`, `birthId`, `motherUsername`, and `birthSequence`. Treat the captured username and birth identity as immutable historical data, including after the baby is transferred to another player.
+-   Store the item metadata under a `BabyData` domain structure containing `schemaVersion`, `birthId`, `motherUsername`, `motherName`, and `birthSequence`. Treat all captured identity fields as immutable historical data, including after the baby is transferred to another player.
+-   Derive `motherUsername` from the authenticated player's `getUsername()` for stable account identity. Capture `motherName` once from `getFullName()` for character-facing history; do not use `getDisplayName()`.
 -   Configure the item completely before `AddItem` and `sendAddItemToContainer`; later field changes may require separate synchronization.
 -   Do not use inventory refresh, `transmitModData`, `sendItemStats`, or item transactions for initial creation.
 -   Retain a completed birth marker after Pregnancy reset. A missing baby must not recreate a completed operation because the item may have been transferred, dropped, or consumed.
@@ -86,7 +95,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 
 ## In-Game Validation
 
-Create a diagnostic server birth operation with a visible/logged birth ID. Verify the baby can be equipped and transferred, retains its item and birth IDs across reconnect/restart, and remains singular after duplicate completion requests. Test a disconnect before acknowledgement and a seeded pending operation with an already-tagged baby. Execute each fluid recipe separately as host and remote client, logging callback context and comparing server, actor, and observer state.
+Create a diagnostic server birth operation with a visible/logged birth ID. In hosted and dedicated multiplayer, use different account and character names and log `getUsername()`, `getFullName()`, descriptor forename/surname, and `getDisplayName()`; verify `motherName` uses the full character name even when display-name server options change. Verify the baby can be equipped and transferred, retains its item and birth IDs across reconnect/restart, and remains singular after duplicate completion requests. Test a disconnect before acknowledgement and a seeded pending operation with an already-tagged baby. Execute each fluid recipe separately as host and remote client, logging callback context and comparing server, actor, and observer state.
 
 ## History
 
@@ -99,3 +108,4 @@ Create a diagnostic server birth operation with a visible/logged birth ID. Verif
 -   2026-08-11: Confirmed client-created birth items are temporary in hosted multiplayer and traced the post-birth rollback to a local reset followed by normal progression publication.
 -   2026-08-12: Confirmed the Build 42 vanilla server inventory grant and synchronization path (`AddItem` plus `sendAddItemToContainer`), ruled out refresh/item-transaction APIs as initial-creation requirements, and defined a persisted birth-operation/item-provenance recovery boundary. Crash-atomic durability remains unverified.
 -   2026-08-12: Selected `<motherUsername>:birth:<sequence>` as the server-issued birth identity and `BabyData` as the baby item metadata model. The username must come from the authenticated player, while the per-player sequence is persisted and never reused.
+-   2026-08-13: Selected authenticated `IsoPlayer.getFullName()` as immutable `motherName`; bytecode confirms it combines descriptor forename and surname. Rejected `getDisplayName()` because it represents configurable multiplayer presentation, and recorded the descriptor-null fallback risk.
