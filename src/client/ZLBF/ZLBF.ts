@@ -8,6 +8,7 @@ import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { SyncCoordinator } from "@client/components/network/SyncCoordinator";
 import { SyncPublisher } from "@client/components/network/SyncPublisher";
 import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
+import { BirthPublisher } from "@client/components/network/BirthPublisher";
 
 export const lactation = new Lactation();
 export const womb = new Womb();
@@ -17,12 +18,15 @@ export const snapshots = new SnapshotStore();
 export const syncPublisher = new SyncPublisher(snapshots);
 /** Debug Pregnancy intent publisher and response correlator. */
 export const pregnancyPublisher = new PregnancyPublisher(snapshots);
-export const pregnancy = new Pregnancy(pregnancyPublisher, snapshots);
+/** Client request publisher for server-owned birth operation allocation. */
+export const birthPublisher = new BirthPublisher(snapshots);
+export const pregnancy = new Pregnancy(pregnancyPublisher, snapshots, birthPublisher);
 export const animation = new Animation(womb);
 /** Singleton registration point for client synchronization events. */
 export const syncCoordinator = new SyncCoordinator(syncPublisher, [
 	syncPublisher,
-	pregnancyPublisher
+	pregnancyPublisher,
+	birthPublisher
 ]);
 
 export const UI = new ZLBFUI({

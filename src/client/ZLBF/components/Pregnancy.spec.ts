@@ -18,6 +18,7 @@ import {
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { BirthPublisher } from "@client/components/network/BirthPublisher";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -577,6 +578,32 @@ describe("Pregnancy", () => {
 	});
 
 	// === PREGNANCY_UPDATE Event ===
+	it("requests a server birth allocation after authoritative labor is acknowledged", () => {
+		jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+		const snapshots = new SnapshotStore();
+		const births = mock<BirthPublisher>({ allocate: jest.fn() });
+		const pregnancy = new Pregnancy(undefined, snapshots, births);
+		(pregnancy as any).player = mock<IsoPlayer>({
+			getModData: jest.fn().mockReturnValue({})
+		});
+
+		snapshots.apply({
+			dataSchemaVersion: 3,
+			stateVersion: 2,
+			domains: {
+				pregnancy: {
+					status: PregnancyStatus.PREGNANT,
+					current: 100,
+					progress: 1,
+					isInLabor: true
+				},
+				birth: createDefaultBirthState()
+			}
+		});
+
+		expect(births.allocate).toHaveBeenCalledTimes(1);
+	});
+
 	describe("PREGNANCY_UPDATE Event", () => {
 		it("should trigger PREGNANCY_UPDATE with entire data object during onEveryMinute", () => {
 			const mockTrigger = jest.spyOn(SpyPipewrench, "triggerEvent");
