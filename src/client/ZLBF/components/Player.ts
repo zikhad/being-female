@@ -4,6 +4,7 @@ import { ZLBFTraitsEnum } from "@constants";
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
 import { increaseClamped } from "@client/Utils";
 import { ModData } from "@client/components/ModData";
+import { Player as SharedPlayer } from "@shared/components/Player";
 
 export interface TimedEvents {
 	/**
@@ -24,11 +25,7 @@ export interface TimedEvents {
 	onEveryDay?: () => void;
 }
 
-export abstract class Player<T> {
-
-	/** Reference to the current player instance */
-	public player?: IsoPlayer;
-
+export abstract class LocalPlayer<T> extends SharedPlayer {
 	/** ModData instance wrapping game storage for this player */
 	protected modData?: ModData<T>;
 
@@ -47,6 +44,7 @@ export abstract class Player<T> {
 	 * @param {string} modKey - The key used to identify this mod's data namespace.
 	 */
 	protected constructor(modKey?: string) {
+		super();
 		this.modKey = modKey;
 
 		// Register Zomboid lifecycle listeners
@@ -59,14 +57,14 @@ export abstract class Player<T> {
 	 * @param {IsoPlayer} player - The player instance created by the game.
 	 */
 	protected onCreatePlayer(player: IsoPlayer): void {
-		this.player = player;
+		this.bind(player);
 		if (this.modKey) {
 			this.modData = new ModData({
 				object: player,
 				modKey: this.modKey,
 				defaultData: this.defaultData
 			});
-			if(!this.data && this.defaultData) this.data = this.defaultData;
+			if (!this.data && this.defaultData) this.data = this.defaultData;
 		}
 	}
 
@@ -111,23 +109,17 @@ export abstract class Player<T> {
 
 		if (pain > 0) {
 			const current = bodyPart.getAdditionalPain();
-			bodyPart.setAdditionalPain(
-				increaseClamped(current, pain, maxPain)
-			);
+			bodyPart.setAdditionalPain(increaseClamped(current, pain, maxPain));
 		}
 
 		if (bleedTime > 0) {
 			const current = bodyPart.getBleedingTime();
-			bodyPart.setBleedingTime(
-				increaseClamped(current, bleedTime)
-			);
+			bodyPart.setBleedingTime(increaseClamped(current, bleedTime));
 		}
 
 		if (wetness > 0) {
 			const current = bodyPart.getWetness();
-			bodyPart.setWetness(
-				increaseClamped(current, wetness)
-			);
+			bodyPart.setWetness(increaseClamped(current, wetness));
 		}
 	}
 
@@ -176,7 +168,7 @@ export abstract class Player<T> {
 	 * @param props.text - The text to display.
 	 * @param {"good" | "bad"} [props.style] - Optional style for the text, affecting color and icon.
 	 */
-	public haloText(props: { text: string; style?: "good" | "bad"; }) {
+	public haloText(props: { text: string; style?: "good" | "bad" }) {
 		if (!this.player) return;
 		const { text, style } = props;
 		switch (style) {
@@ -240,3 +232,6 @@ export abstract class Player<T> {
 		this.modData.data = value;
 	}
 }
+
+/** @deprecated Import `LocalPlayer` for client lifecycle components. */
+export { LocalPlayer as Player };
