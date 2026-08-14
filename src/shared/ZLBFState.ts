@@ -3,6 +3,7 @@ import {
 	createDefaultPregnancyState
 } from "@shared/domain/pregnancy/PregnancyState";
 import { AuthoritativeBirthState, createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { AuthoritativeWombState, createDefaultWombState } from "@shared/domain/womb/WombState";
 
 /** Authoritative domain collection persisted by the server and mirrored to clients. */
 export type AuthoritativeDomains = {
@@ -10,10 +11,13 @@ export type AuthoritativeDomains = {
 	pregnancy: AuthoritativePregnancyState;
 	/** Server-owned allocation and completion bookkeeping for birth operations. */
 	birth: AuthoritativeBirthState;
+	/** Server-persisted reversible menstrual-cycle state. */
+	womb: AuthoritativeWombState;
 };
 
 /** Creates every authoritative domain with its current default state. */
 export const createDefaultDomains = (): AuthoritativeDomains => ({
 	pregnancy: createDefaultPregnancyState(),
-	birth: createDefaultBirthState()
+	birth: createDefaultBirthState(),
+	womb: createDefaultWombState()
 });

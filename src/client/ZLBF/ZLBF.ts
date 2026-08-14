@@ -9,11 +9,14 @@ import { SyncCoordinator } from "@client/components/network/SyncCoordinator";
 import { SyncPublisher } from "@client/components/network/SyncPublisher";
 import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
+import { WombPublisher } from "@client/components/network/WombPublisher";
 
 export const lactation = new Lactation();
-export const womb = new Womb();
 /** Read-only client mirror of the latest acknowledged authoritative snapshot. */
 export const snapshots = new SnapshotStore();
+/** Client publisher for reversible menstrual-cycle progression. */
+export const wombPublisher = new WombPublisher(snapshots);
+export const womb = new Womb(wombPublisher, snapshots);
 /** Client request publisher and response correlator. */
 export const syncPublisher = new SyncPublisher(snapshots);
 /** Debug Pregnancy intent publisher and response correlator. */
@@ -26,7 +29,8 @@ export const animation = new Animation(womb);
 export const syncCoordinator = new SyncCoordinator(syncPublisher, [
 	syncPublisher,
 	pregnancyPublisher,
-	birthPublisher
+	birthPublisher,
+	wombPublisher
 ]);
 
 export const UI = new ZLBFUI({

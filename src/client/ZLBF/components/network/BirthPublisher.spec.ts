@@ -7,6 +7,7 @@ import {
 	createDefaultPregnancyState,
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
+import { createDefaultWombState } from "@shared/domain/womb/WombState";
 
 jest.mock("@asledgehammer/pipewrench");
 
@@ -43,6 +44,7 @@ describe("BirthPublisher", () => {
 			dataSchemaVersion: 3,
 			stateVersion: 2,
 			domains: {
+				womb: createDefaultWombState(),
 				pregnancy: {
 					...createDefaultPregnancyState(),
 					status: PregnancyStatus.PREGNANT,
@@ -69,6 +71,7 @@ describe("BirthPublisher", () => {
 			dataSchemaVersion: 3,
 			stateVersion: 1,
 			domains: {
+				womb: createDefaultWombState(),
 				pregnancy: createDefaultPregnancyState(),
 				birth: {
 					...createDefaultBirthState(),

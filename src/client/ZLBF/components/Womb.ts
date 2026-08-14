@@ -13,6 +13,9 @@ import { Player, TimedEvents } from "@client/components/Player";
 import { CyclePhaseEnum, ITEMS, ZLBFEventsEnum, ZLBFTraitsEnum } from "@constants";
 import { PregnancyState } from "@client/components/PregnancyState";
 import { percentageToNumber, trimModuleName } from "@client/Utils";
+import { WombPublisher } from "@client/components/network/WombPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
 
 /**
  * Manages reproductive functions, fertility, and pregnancy-related variables
@@ -53,11 +56,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			addDay: (amount = 1) => {
 				this.contraceptive = false;
 				// handle recovery days
-				if (this.cycleDay < 0) {
-					this.cycleDay++;
-				} else {
-					this.cycleDay = Math.max(1, (this.cycleDay + amount) % 29);
-				}
+				this.cycleDay = this.advanceCycleDay(amount);
 			},
 			nextPhase: () => {
 				if (this.pregnancy) return;
@@ -168,8 +167,23 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	/**
 	 * Initializes the Womb system.
 	 */
-	constructor() {
+	constructor(
+		private readonly commands?: WombPublisher,
+		private readonly snapshots?: SnapshotStore
+	) {
 		super("ZLBFWomb");
+		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
+	}
+
+	/** Applies a concrete server-persisted cycle day while preserving legacy migration state. */
+	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
+		const cycleDay = snapshot.domains.womb.cycleDay;
+		if (cycleDay !== undefined) this.cycleDay = cycleDay;
+	}
+
+	/** Computes the next recovery or regular-cycle day without mutating player data. */
+	private advanceCycleDay(amount = 1): number {
+		return this.cycleDay < 0 ? this.cycleDay + 1 : Math.max(1, (this.cycleDay + amount) % 29);
 	}
 
 	/**
@@ -179,6 +193,8 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	onCreatePlayer(player: IsoPlayer) {
 		super.onCreatePlayer(player);
 		this.amount = this.data?.amount ?? 0;
+		const snapshot = this.snapshots?.snapshot;
+		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
 
 		Events.everyOneMinute.addListener(() => this.onEveryMinute());
 		Events.everyTenMinutes.addListener(() => this.onEveryTenMinutes());
@@ -254,9 +270,11 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		this.applyWetness();
 	}
 
+	/** Advances one online game day and publishes the resulting reversible cycle state. */
 	onEveryDay(): void {
-		// Increment cycle day
-		this.cycleDay++;
+		// Recovery counts toward zero; the regular 28-day cycle wraps back to day one.
+		this.cycleDay = this.advanceCycleDay();
+		this.commands?.publishState({ cycleDay: this.cycleDay });
 
 		// Remove contraceptive effect
 		this.contraceptive = false;

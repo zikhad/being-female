@@ -17,4 +17,26 @@ describe("SnapshotStore", () => {
 
 		expect(listener).toHaveBeenCalledWith(snapshot);
 	});
+
+	it("ignores an older snapshot delivered after newer state", () => {
+		const store = new SnapshotStore();
+		const listener = jest.fn();
+		const newer = { dataSchemaVersion: 4, stateVersion: 4, domains: createDefaultDomains() };
+		const older = {
+			dataSchemaVersion: 4,
+			stateVersion: 3,
+			domains: {
+				...createDefaultDomains(),
+				pregnancy: createDefaultPregnancyState()
+			}
+		};
+		store.subscribe(listener);
+		store.apply(newer);
+		listener.mockClear();
+
+		store.apply(older);
+
+		expect(store.snapshot).toBe(newer);
+		expect(listener).not.toHaveBeenCalled();
+	});
 });

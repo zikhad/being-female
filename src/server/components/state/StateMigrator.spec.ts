@@ -1,6 +1,5 @@
 import { ZLBF_DATA_SCHEMA_VERSION } from "@constants";
 import { StateMigrator } from "@server/components/state/StateMigrator";
-import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { createDefaultDomains } from "@shared/ZLBFState";
@@ -70,5 +69,15 @@ describe("StateMigrator", () => {
 		});
 
 		expect(result.supported && result.state.domains.pregnancy).toEqual(pregnancy);
+	});
+
+	it("preserves a valid current Womb domain", () => {
+		const result = migrator.migrate({
+			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+			stateVersion: 4,
+			domains: { womb: { cycleDay: -7 } }
+		});
+
+		expect(result.supported && result.state.domains.womb).toEqual({ cycleDay: -7 });
 	});
 });

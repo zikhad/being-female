@@ -32,6 +32,7 @@ describe("CommandHandler", () => {
 		sendMock.mockReset();
 		debugMock.mockReset();
 		debugMock.mockReturnValue(false);
+		delete (globalThis as { SandboxVars?: unknown }).SandboxVars;
 	});
 
 	it("filters unrelated routes and malformed raw args", () => {
@@ -83,7 +84,7 @@ describe("CommandHandler", () => {
 				revision: 7,
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 3, stateVersion: 0, domains: domains() }
+					snapshot: { dataSchemaVersion: 4, stateVersion: 0, domains: domains() }
 				}
 			}
 		);
@@ -118,7 +119,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 3, stateVersion: 6, domains: domains() }
+					snapshot: { dataSchemaVersion: 4, stateVersion: 6, domains: domains() }
 				}
 			})
 		);
@@ -459,6 +460,7 @@ describe("CommandHandler", () => {
 				stateVersion: 6,
 				domains: {
 					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					womb: {},
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 100,
@@ -504,6 +506,9 @@ describe("CommandHandler", () => {
 	});
 
 	it("creates a durable baby and completes the authoritative birth", () => {
+		(globalThis as { SandboxVars?: { ZLBF?: ZLBFSandboxOptions } }).SandboxVars = {
+			ZLBF: { PregnancyRecovery: 11 }
+		};
 		const itemModData: Record<string, unknown> = {};
 		const baby = { getModData: jest.fn().mockReturnValue(itemModData) };
 		(instanceItem as jest.Mock).mockReturnValue(baby);
@@ -518,6 +523,7 @@ describe("CommandHandler", () => {
 				stateVersion: 8,
 				domains: {
 					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					womb: {},
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 100,
@@ -562,6 +568,39 @@ describe("CommandHandler", () => {
 		});
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy).toEqual(
 			createDefaultPregnancyState()
+		);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({ cycleDay: -11 });
+	});
+
+	it("persists reversible Womb cycle progression", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 4,
+				stateVersion: 3,
+				domains: { ...domains(), womb: { cycleDay: -7 } }
+			}
+		};
+		const player = playerWithStore(store);
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: 1,
+				requestId: "womb-1",
+				revision: 1,
+				data: { desired: { cycleDay: -6 } }
+			}
+		);
+
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({ cycleDay: -6 });
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.OK })
 		);
 	});
 });

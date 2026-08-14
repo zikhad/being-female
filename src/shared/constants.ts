@@ -67,7 +67,7 @@ export const ZLBF_NETWORK_MODULE = "ZLBF";
 /** Current version of the ZLBF request/response envelope. */
 export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
 /** Current version of the authoritative ZLBF domain-data shape. */
-export const ZLBF_DATA_SCHEMA_VERSION = 3;
+export const ZLBF_DATA_SCHEMA_VERSION = 4;
 /** Player ModData key containing the server-owned authoritative root. */
 export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.AuthoritativeState";
 
@@ -82,7 +82,9 @@ export enum ZLBFNetworkCommand {
 	ALLOCATE_BIRTH_REQUEST = "AllocateBirthRequest",
 	ALLOCATE_BIRTH_RESPONSE = "AllocateBirthResponse",
 	COMPLETE_BIRTH_REQUEST = "CompleteBirthRequest",
-	COMPLETE_BIRTH_RESPONSE = "CompleteBirthResponse"
+	COMPLETE_BIRTH_RESPONSE = "CompleteBirthResponse",
+	PUBLISH_WOMB_STATE_REQUEST = "PublishWombStateRequest",
+	PUBLISH_WOMB_STATE_RESPONSE = "PublishWombStateResponse"
 }
 
 /** Outcomes returned by the server for a ZLBF sync request. */
