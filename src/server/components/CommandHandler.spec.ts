@@ -84,7 +84,7 @@ describe("CommandHandler", () => {
 				revision: 7,
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 4, stateVersion: 0, domains: domains() }
+					snapshot: { dataSchemaVersion: 5, stateVersion: 0, domains: domains() }
 				}
 			}
 		);
@@ -119,7 +119,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 4, stateVersion: 6, domains: domains() }
+					snapshot: { dataSchemaVersion: 5, stateVersion: 6, domains: domains() }
 				}
 			})
 		);
@@ -158,7 +158,7 @@ describe("CommandHandler", () => {
 	});
 
 	it("reports an unsupported future persisted schema without overwriting it", () => {
-		const persisted = { dataSchemaVersion: 5, stateVersion: 9, domains: { future: true } };
+		const persisted = { dataSchemaVersion: 6, stateVersion: 9, domains: { future: true } };
 		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
 		const handler = new CommandHandler();
 		const player = playerWithStore(store);
@@ -182,7 +182,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
 				data: {
-					snapshot: { dataSchemaVersion: 5, stateVersion: 9, domains: domains() }
+					snapshot: { dataSchemaVersion: 6, stateVersion: 9, domains: domains() }
 				}
 			})
 		);
@@ -590,12 +590,23 @@ describe("CommandHandler", () => {
 				schemaVersion: 1,
 				requestId: "womb-1",
 				revision: 1,
-				data: { desired: { cycleDay: -6 } }
+				data: {
+					desired: {
+						cycleDay: -6,
+						amount: 0.2,
+						total: 0.4,
+						future: true
+					}
+				}
 			}
 		);
 
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({ cycleDay: -6 });
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
+			cycleDay: -6,
+			amount: 0.2,
+			total: 0.4
+		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
 			ZLBF_NETWORK_MODULE,

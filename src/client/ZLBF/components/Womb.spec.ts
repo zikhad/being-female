@@ -147,13 +147,17 @@ describe("Womb", () => {
 				);
 				jest.spyOn(SpyPipeWrench, "ZombRand").mockReturnValue(10);
 
-				const womb = new Womb();
+				const commands = { publishState: jest.fn() } as unknown as WombPublisher;
+				const womb = new Womb(commands);
 				womb.onCreatePlayer(mockedPlayer());
 
 				(womb as any).onEveryTenMinutes();
 				(womb as any).onEveryMinute();
 
 				expect(womb.amount).toBeCloseTo(0.09);
+				expect(commands.publishState).toHaveBeenCalledWith(
+					expect.objectContaining({ amount: expect.any(Number) })
+				);
 			});
 			it("should not apply wetness if there is no sperm left", () => {
 				jest.spyOn(Player.prototype, "data", "get").mockReturnValue(
@@ -392,7 +396,11 @@ describe("Womb", () => {
 					womb.onEveryDay();
 
 					expect(data.cycleDay).toBe(expected);
-					expect(commands.publishState).toHaveBeenCalledWith({ cycleDay: expected });
+					expect(commands.publishState).toHaveBeenCalledWith({
+						cycleDay: expected,
+						amount: 0.2,
+						total: 0.4
+					});
 				}
 			);
 		});
@@ -416,7 +424,7 @@ describe("Womb", () => {
 	});
 
 	describe("authoritative snapshots", () => {
-		it("applies a server-persisted recovery day", () => {
+		it("applies every server-persisted reversible Womb field", () => {
 			const data = mockedModData({ cycleDay: 16 });
 			jest.spyOn(Player.prototype, "data", "get").mockReturnValue(data);
 			const snapshots = new SnapshotStore();
@@ -426,10 +434,47 @@ describe("Womb", () => {
 			snapshots.apply({
 				dataSchemaVersion: 4,
 				stateVersion: 2,
-				domains: { ...createDefaultDomains(), womb: { cycleDay: -11 } }
+				domains: {
+					...createDefaultDomains(),
+					womb: {
+						cycleDay: -11,
+						amount: 0.1,
+						total: 1.2
+					}
+				}
 			});
 
 			expect(data.cycleDay).toBe(-11);
+			expect(data.amount).toBe(0.1);
+			expect(data.total).toBe(1.2);
+		});
+
+		it("keeps an in-flight local mutation when an unrelated older snapshot arrives", () => {
+			const data = mockedModData({ amount: 0.2, total: 0.5 });
+			jest.spyOn(Player.prototype, "data", "get").mockReturnValue(data);
+			const snapshots = new SnapshotStore();
+			const publisher = new WombPublisher(snapshots);
+			const womb = new Womb(publisher, snapshots);
+			womb.onCreatePlayer(mockedPlayer());
+			womb.cycleDay = 5;
+			womb.amount = 0.3;
+			womb.total = 0.8;
+			womb.publishState();
+
+			snapshots.apply({
+				dataSchemaVersion: 5,
+				stateVersion: 3,
+				domains: {
+					...createDefaultDomains(),
+					womb: {
+						cycleDay: 4,
+						amount: 0.2,
+						total: 0.5
+					}
+				}
+			});
+
+			expect(data).toEqual(expect.objectContaining({ cycleDay: 5, amount: 0.3, total: 0.8 }));
 		});
 	});
 
@@ -612,6 +657,7 @@ describe("Womb", () => {
 			womb.contraceptive = true;
 			expect(womb.contraceptive).toBe(true);
 		});
+
 		it("Should be able to retrieve phaseTranslation", () => {
 			const womb = new Womb();
 			womb.onCreatePlayer(mockedPlayer());

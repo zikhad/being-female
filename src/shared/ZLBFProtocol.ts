@@ -11,8 +11,8 @@ import type { AuthoritativeDomains } from "@shared/ZLBFState";
 import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
 import type { AuthoritativePregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
-import { wombCycleStateSchema, wombStateSchema } from "@shared/domain/womb/WombSchema";
-import type { WombCycleState } from "@shared/domain/womb/WombState";
+import { wombProgressStateSchema, wombStateSchema } from "@shared/domain/womb/WombSchema";
+import type { WombProgressState } from "@shared/domain/womb/WombState";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -81,7 +81,7 @@ export type ZLBFCompleteBirthResponse = ZLBFSyncStateResponse;
 /** Publishes the owning client's reversible menstrual-cycle progression. */
 export type ZLBFPublishWombStateRequest = ZLBFEnvelopeMetadata & {
 	/** Desired concrete Womb cycle state. */
-	data: { desired: WombCycleState };
+	data: { desired: WombProgressState };
 };
 
 /** Authoritative snapshot returned after Womb progression publication. */
@@ -143,7 +143,7 @@ const publishWombStateRequestSchema = object<ZLBFPublishWombStateRequest>({
 	schemaVersion: positiveInteger,
 	requestId,
 	revision: positiveInteger,
-	data: object<ZLBFPublishWombStateRequest["data"]>({ desired: wombCycleStateSchema })
+	data: object<ZLBFPublishWombStateRequest["data"]>({ desired: wombProgressStateSchema })
 });
 
 /**
