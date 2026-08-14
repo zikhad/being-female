@@ -72,12 +72,17 @@ describe("StateMigrator", () => {
 	});
 
 	it("preserves a valid current Womb domain", () => {
+		const womb = {
+			cycleDay: -7,
+			amount: 0.2,
+			total: 1.4
+		};
 		const result = migrator.migrate({
 			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
 			stateVersion: 4,
-			domains: { womb: { cycleDay: -7 } }
+			domains: { womb: { ...womb, future: true } }
 		});
 
-		expect(result.supported && result.state.domains.womb).toEqual({ cycleDay: -7 });
+		expect(result.supported && result.state.domains.womb).toEqual(womb);
 	});
 });

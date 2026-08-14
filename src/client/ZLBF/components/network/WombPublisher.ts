@@ -6,31 +6,25 @@ import {
 	ZLBFSyncStatus
 } from "@constants";
 import { isZLBFPublishWombStateResponse, ZLBFPublishWombStateRequest } from "@shared/ZLBFProtocol";
-import type { WombCycleState } from "@shared/domain/womb/WombState";
+import type { WombProgressState } from "@shared/domain/womb/WombState";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 
-/** Publishes reversible Womb cycle progression and applies authoritative responses. */
+/** Publishes reversible Womb contents and cycle progression and applies responses. */
 export class WombPublisher {
 	private nextRevision = 1;
 	private pending?: ZLBFPublishWombStateRequest;
-	private queued?: WombCycleState;
+	private queued?: WombProgressState;
 
 	/** Creates a Womb publisher backed by the shared snapshot mirror. */
-	constructor(private readonly snapshots: SnapshotStore) {
-		this.snapshots.subscribe(() => this.releasePendingAfterSnapshot());
+	constructor(private readonly snapshots: SnapshotStore) {}
+
+	/** Returns the newest queued or in-flight desired state for optimistic presentation. */
+	public get latestDesiredState(): WombProgressState | undefined {
+		return this.queued ?? this.pending?.data.desired;
 	}
 
-	/** Releases an unanswered request after a newer authoritative sync and sends queued state. */
-	private releasePendingAfterSnapshot(): void {
-		if (!this.pending) return;
-		this.pending = undefined;
-		const queued = this.queued;
-		this.queued = undefined;
-		if (queued) this.send(queued);
-	}
-
-	/** Publishes or coalesces the latest concrete menstrual-cycle state. */
-	public publishState(desired: WombCycleState): void {
+	/** Publishes or coalesces the latest concrete reversible Womb state. */
+	public publishState(desired: WombProgressState): void {
 		if (this.pending) {
 			this.queued = desired;
 			return;
@@ -38,8 +32,8 @@ export class WombPublisher {
 		this.send(desired);
 	}
 
-	/** Creates and sends one correlated Womb progression request. */
-	private send(desired: WombCycleState): void {
+	/** Creates and sends one correlated Womb-state request. */
+	private send(desired: WombProgressState): void {
 		const revision = this.nextRevision++;
 		const payload: ZLBFPublishWombStateRequest = {
 			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
@@ -48,7 +42,9 @@ export class WombPublisher {
 			data: { desired }
 		};
 		this.pending = payload;
-		print(`[ZLBF][MP][Client] send PublishWombStateRequest cycleDay=${desired.cycleDay}`);
+		print(
+			`[ZLBF][MP][Client] send PublishWombStateRequest cycleDay=${desired.cycleDay} amount=${desired.amount} total=${desired.total}`
+		);
 		sendClientCommand(
 			getPlayer(),
 			ZLBF_NETWORK_MODULE,
@@ -75,7 +71,7 @@ export class WombPublisher {
 			args.status !== ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
 		if (compatible) this.snapshots.apply(args.data.snapshot);
 		print(
-			`[ZLBF][MP][Client] acknowledged PublishWombStateResponse status=${args.status} cycleDay=${args.data.snapshot.domains.womb.cycleDay}`
+			`[ZLBF][MP][Client] acknowledged PublishWombStateResponse status=${args.status} cycleDay=${args.data.snapshot.domains.womb.cycleDay} amount=${args.data.snapshot.domains.womb.amount} total=${args.data.snapshot.domains.womb.total}`
 		);
 		const queued = this.queued;
 		this.queued = undefined;

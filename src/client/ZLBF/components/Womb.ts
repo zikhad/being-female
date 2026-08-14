@@ -47,16 +47,27 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			add: (amount: number) => {
 				this.amount = Math.min(this.options.capacity, this.amount + amount);
 				this.total += amount;
+				this.publishState();
 			},
-			remove: (amount: number) => (this.amount = Math.max(0, this.amount - amount)),
-			set: (amount: number) => (this.amount = amount),
-			setTotal: (amount: number) => (this.total = Math.max(0, amount))
+			remove: (amount: number) => {
+				this.amount = Math.max(0, this.amount - amount);
+				this.publishState();
+			},
+			set: (amount: number) => {
+				this.amount = Math.max(0, Math.min(this.options.capacity, amount));
+				this.publishState();
+			},
+			setTotal: (amount: number) => {
+				this.total = Math.max(0, amount);
+				this.publishState();
+			}
 		},
 		cycle: {
 			addDay: (amount = 1) => {
 				this.contraceptive = false;
 				// handle recovery days
 				this.cycleDay = this.advanceCycleDay(amount);
+				this.publishState();
 			},
 			nextPhase: () => {
 				if (this.pregnancy) return;
@@ -74,6 +85,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 					this.cycleDay = 1;
 				}
 				this.contraceptive = false;
+				this.publishState();
 			}
 		}
 	};
@@ -175,10 +187,28 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
 	}
 
-	/** Applies a concrete server-persisted cycle day while preserving legacy migration state. */
+	/** Applies concrete server-persisted fields while preserving uninitialized legacy values. */
 	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
-		const cycleDay = snapshot.domains.womb.cycleDay;
+		const { cycleDay, amount, total } =
+			this.commands?.latestDesiredState ?? snapshot.domains.womb;
 		if (cycleDay !== undefined) this.cycleDay = cycleDay;
+		if (amount !== undefined) this.amount = amount;
+		if (total !== undefined) this.total = total;
+	}
+
+	/** Publishes the complete reversible Womb state after a local gameplay mutation. */
+	public publishState(): void {
+		const boundedAmount = Number.isFinite(this.amount)
+			? Math.max(0, Math.min(this.options.capacity, this.amount))
+			: 0;
+		const boundedTotal = Number.isFinite(this.total) ? Math.max(0, this.total) : 0;
+		if (boundedAmount !== this.amount) this.amount = boundedAmount;
+		if (boundedTotal !== this.total) this.total = boundedTotal;
+		this.commands?.publishState({
+			cycleDay: this.cycleDay,
+			amount: boundedAmount,
+			total: boundedTotal
+		});
 	}
 
 	/** Computes the next recovery or regular-cycle day without mutating player data. */
@@ -226,8 +256,9 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			inventory.Remove(trimModuleName(ITEMS.CONDOM)); // for whichever reason the remove method doesn't work with the module.name of the item.
 			inventory.AddItem(ITEMS.CONDOM_USED);
 		} else {
-			this.amount += amount;
+			this.amount = Math.min(this.capacity, this.amount + amount);
 			this.total += amount;
+			this.publishState();
 			if (!this.pregnancy) this.impregnate();
 		}
 	}
@@ -251,8 +282,9 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		if (!this.pregnancy) return;
 
 		this.cycleDay = -this.options.recovery;
-		if (data.progress > 0.5) {
+		if (data.progress > 0.5 && this.amount > 0) {
 			this.amount = 0;
+			this.publishState();
 		}
 	}
 
@@ -266,7 +298,11 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		if (this.amount <= 0) return;
 
 		const amount = ZombRand(0, 5) / 1000;
-		this.amount -= Math.min(this.amount, amount);
+		const removed = Math.min(this.amount, amount);
+		if (removed > 0) {
+			this.amount -= removed;
+			this.publishState();
+		}
 		this.applyWetness();
 	}
 
@@ -274,10 +310,9 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	onEveryDay(): void {
 		// Recovery counts toward zero; the regular 28-day cycle wraps back to day one.
 		this.cycleDay = this.advanceCycleDay();
-		this.commands?.publishState({ cycleDay: this.cycleDay });
-
 		// Remove contraceptive effect
 		this.contraceptive = false;
+		this.publishState();
 
 		this.data!.chances = Womb.chances;
 		if (

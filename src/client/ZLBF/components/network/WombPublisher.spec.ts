@@ -8,23 +8,28 @@ jest.mock("@asledgehammer/pipewrench");
 
 describe("WombPublisher", () => {
 	const sendMock = sendClientCommand as jest.MockedFunction<typeof sendClientCommand>;
+	const state = (cycleDay: number) => ({
+		cycleDay,
+		amount: 0.2,
+		total: 0.4
+	});
 
 	beforeEach(() => sendMock.mockReset());
 
-	it("publishes a concrete cycle day", () => {
-		new WombPublisher(new SnapshotStore()).publishState({ cycleDay: -6 });
+	it("publishes concrete reversible Womb state", () => {
+		new WombPublisher(new SnapshotStore()).publishState(state(-6));
 		expect(sendMock).toHaveBeenCalledWith(
 			getPlayer(),
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
-			expect.objectContaining({ data: { desired: { cycleDay: -6 } } })
+			expect.objectContaining({ data: { desired: state(-6) } })
 		);
 	});
 
 	it("applies a correlated authoritative response", () => {
 		const snapshots = new SnapshotStore();
 		const publisher = new WombPublisher(snapshots);
-		publisher.publishState({ cycleDay: -6 });
+		publisher.publishState(state(-6));
 		const snapshot = {
 			dataSchemaVersion: 4,
 			stateVersion: 2,
@@ -46,9 +51,9 @@ describe("WombPublisher", () => {
 
 	it("coalesces daily progression and sends the latest state after acknowledgement", () => {
 		const publisher = new WombPublisher(new SnapshotStore());
-		publisher.publishState({ cycleDay: -6 });
-		publisher.publishState({ cycleDay: -5 });
-		publisher.publishState({ cycleDay: -4 });
+		publisher.publishState(state(-6));
+		publisher.publishState(state(-5));
+		publisher.publishState(state(-4));
 
 		publisher.onServerCommand(
 			ZLBF_NETWORK_MODULE,
@@ -73,14 +78,14 @@ describe("WombPublisher", () => {
 			getPlayer(),
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
-			expect.objectContaining({ data: { desired: { cycleDay: -4 } } })
+			expect.objectContaining({ data: { desired: state(-4) } })
 		);
 	});
 
 	it("ignores a response with a different request or protocol schema", () => {
 		const snapshots = new SnapshotStore();
 		const publisher = new WombPublisher(snapshots);
-		publisher.publishState({ cycleDay: -6 });
+		publisher.publishState(state(-6));
 		const response = {
 			schemaVersion: 1,
 			requestId: "other",
@@ -107,26 +112,5 @@ describe("WombPublisher", () => {
 		);
 
 		expect(snapshots.snapshot).toBeUndefined();
-	});
-
-	it("releases a lost pending request when another authoritative snapshot arrives", () => {
-		const snapshots = new SnapshotStore();
-		const publisher = new WombPublisher(snapshots);
-		publisher.publishState({ cycleDay: -6 });
-		publisher.publishState({ cycleDay: -5 });
-
-		snapshots.apply({
-			dataSchemaVersion: 4,
-			stateVersion: 3,
-			domains: { ...createDefaultDomains(), womb: { cycleDay: -6 } }
-		});
-
-		expect(sendMock).toHaveBeenCalledTimes(2);
-		expect(sendMock).toHaveBeenLastCalledWith(
-			getPlayer(),
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
-			expect.objectContaining({ data: { desired: { cycleDay: -5 } } })
-		);
 	});
 });

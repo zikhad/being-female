@@ -103,15 +103,24 @@ export class CommandHandler {
 		}
 	}
 
-	/** Persists client-simulated reversible menstrual-cycle progression. */
+	/** Persists client-simulated reversible Womb contents and cycle progression. */
 	private publishWombState(player: IsoPlayer, args: unknown): void {
 		if (!isZLBFPublishWombStateRequest(args)) return;
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		const status = this.loadStatus(args.schemaVersion, loaded);
 		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
-			const cycleDay = args.data.desired.cycleDay;
-			if (loaded.state.domains.womb?.cycleDay !== cycleDay) {
-				loaded.state.domains.womb = { cycleDay };
+			const desired = args.data.desired;
+			const womb = loaded.state.domains.womb;
+			if (
+				womb.cycleDay !== desired.cycleDay ||
+				womb.amount !== desired.amount ||
+				womb.total !== desired.total
+			) {
+				loaded.state.domains.womb = {
+					cycleDay: desired.cycleDay,
+					amount: desired.amount,
+					total: desired.total
+				};
 				loaded.state.stateVersion += 1;
 				loaded.stateVersion = loaded.state.stateVersion;
 				this.states.save(player, loaded.state);
@@ -158,6 +167,7 @@ export class CommandHandler {
 						loaded.state.domains.pregnancy = createDefaultPregnancyState();
 						const recovery = this.recovery.read();
 						loaded.state.domains.womb = {
+							...loaded.state.domains.womb,
 							cycleDay: recovery.days === 0 ? 1 : -recovery.days
 						};
 						if (recovery.usedFallback) {
