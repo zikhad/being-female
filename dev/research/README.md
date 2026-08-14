@@ -35,6 +35,7 @@ This directory preserves reviewed reverse-engineering findings that affect ZLBF 
 | [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Partially verified | 42.12 / 42.x | Server, multiplayer         | 2026-08-05   |
 | [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Partially verified | 42.x         | Client, server, multiplayer | 2026-08-13   |
 | [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-11   |
+| [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-14   |
 
 ## Multiplayer Implementation Order
 
