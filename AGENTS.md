@@ -67,6 +67,14 @@ These instructions apply to all AI assistants working in this repository.
 -   Never rewrite shared history unless explicitly requested.
 -   Never use destructive git commands like `git reset --hard` without explicit user approval.
 
+## Review Delegation
+
+-   After a meaningful implementation or refactor, delegate maintainability review to the read-only `code_reviewer` when simplification, abstraction quality, OOP responsibility, duplication, or test friction warrants an independent pass.
+-   The `code_reviewer` identifies concrete improvements but never edits files. The primary agent decides which findings belong in the current slice and delegates accepted changes to the implementer.
+-   Use the read-only `runtime_reviewer` separately for TypeScript-to-Lua shape, Project Zomboid loaders and events, multiplayer authority, persistence compatibility, regression risk, and missing runtime tests.
+-   Prefer review order: implementation, code review, accepted cleanup, runtime review, automated validation, then in-game validation.
+-   Do not turn reviewer suggestions into broad refactors without checking the requested scope, save compatibility, and client/server/shared boundaries.
+
 ## Persistent Research
 
 -   Persistent reverse-engineering findings live under `dev/research/`.
