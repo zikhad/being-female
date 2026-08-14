@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: partially verified  
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -17,7 +17,7 @@ The public `ZLBFIntercourse` event remains the integration boundary for debug co
 
 Installed Build 42 vanilla server handlers establish the player-item grant path: create and configure the item, mutate the authenticated server player's inventory with `AddItem`, then call `sendAddItemToContainer` to target the owning client. The network helper is a no-op outside `GameServer`, so single-player needs only the local inventory mutation. Vanilla basic grant paths do not require inventory refresh, `transmitModData`, `sendItemStats`, or an item transaction. Normal persistence is supported by the player inventory save chain, but crash-atomic coordination with player ModData is not exposed.
 
-Recipe callback context and Build 42 fluid replication remain unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
+Build 42 handcraft callback authority is verified. `OnTest` may execute in both client recipe evaluation and server validation, while `OnCreate` executes locally in single-player and on the authoritative server in multiplayer. Callbacks receive the crafting character explicitly and must not use `getPlayer()` as the actor. Fluid replication after authoritative mutation remains unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
 
 Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
 
@@ -50,6 +50,17 @@ Hosted multiplayer testing confirmed that the current client birth path is not d
 -   Item IDs are serialized, but they identify an already-created item and are insufficient as a domain birth-operation key.
 -   Installed third-party Build 42 mods also use `instanceItem`, configure item fields/ModData, then call `AddItem` and `sendAddItemToContainer`. These are corroborating patterns, not independent engine verification.
 
+### Build 42 CraftRecipe Callback Context
+
+-   Installed Build 42 `media/lua/shared/Entity/TimedActions/ISHandcraftAction.lua` calls `performRecipe()` from `perform()` only when `not isClient()`, and from `complete()` when `isServer()`.
+-   `ISHandcraftAction.performRecipe()` calls `CraftRecipeData.luaCallOnCreate(self.character)`. Therefore ordinary handcraft `OnCreate` runs locally in single-player and on the authoritative server in multiplayer, with the crafting character supplied explicitly.
+-   Installed Build 42 bytecode for `CraftRecipeData.luaCallOnCreate(IsoGameCharacter)` resolves the configured function and invokes it with `(recipeData, character)`.
+-   Installed Build 42 bytecode for `CraftRecipe.OnTestItem(InventoryItem, IsoGameCharacter)` resolves and invokes `OnTest` with `(item, character)`. If the function cannot be resolved, it returns `true`.
+-   `OnTest` participates in recipe viability evaluation and must be safe in both client and server Lua contexts. A server-only registration gives remote clients no local rejection and must not be the sole source of menu feedback.
+-   `LuaManager.GlobalObject.getPlayer()` returns `IsoPlayer.getInstance()` and is not an authenticated-server actor lookup.
+-   The player overload of `sendClientCommand` synchronously triggers `OnClientCommand` when called in `GameServer` context; it does not send a request from the server to a client. Server recipe code must call its domain handler directly with the supplied crafting character.
+-   Current generated `media/lua/server/ZLBFRecipes.lua` requires `ZLBF/ZLBF`, while that singleton entrypoint is generated under `media/lua/client`. This cross-context dependency is unsafe for hosted and dedicated servers even if it appears functional in single-player.
+
 ### Build 42 Character Name Access
 
 -   Installed Build 42 `IsoGameCharacter.getFullName()` bytecode reads the character descriptor's forename and surname and joins them with a space. `IsoPlayer` inherits this public method.
@@ -72,7 +83,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Keep reversible Pregnancy, cycle/Womb, and Lactation simulation on the owning client and publish desired state for validated server persistence.
 -   Coalesce progression while a request is pending and apply acknowledged snapshots for convergence.
 -   Validate inventory ownership and quantities server-side.
--   Research recipes before Womb or Lactation fluid migration.
+-   Separate shared, side-effect-free recipe eligibility from server-authoritative `OnCreate` mutation before Womb or Lactation recipe migration. Use the supplied crafting character as the actor; never import client singleton state or call `getPlayer()` from authoritative callbacks. Fluid replication still requires runtime validation.
 -   Treat `FluidContainerApi.clear(amount)` as a separate bug investigation.
 -   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
 -   Do not let client birth completion reset Pregnancy or resume progression from reset data. A server operation must create the durable item and atomically record the completed lifecycle state.
@@ -88,8 +99,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 
 ## Remaining Questions
 
--   Which context runs Build 42 recipe callbacks in hosted and dedicated multiplayer?
--   Which fluid mutations synchronize automatically?
+-   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
 -   How does labor recover after reconnect without duplicate birth?
 
@@ -109,3 +119,4 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-12: Confirmed the Build 42 vanilla server inventory grant and synchronization path (`AddItem` plus `sendAddItemToContainer`), ruled out refresh/item-transaction APIs as initial-creation requirements, and defined a persisted birth-operation/item-provenance recovery boundary. Crash-atomic durability remains unverified.
 -   2026-08-12: Selected `<motherUsername>:birth:<sequence>` as the server-issued birth identity and `BabyData` as the baby item metadata model. The username must come from the authenticated player, while the per-player sequence is persisted and never reused.
 -   2026-08-13: Selected authenticated `IsoPlayer.getFullName()` as immutable `motherName`; bytecode confirms it combines descriptor forename and surname. Rejected `getDisplayName()` because it represents configurable multiplayer presentation, and recorded the descriptor-null fallback risk.
+-   2026-08-14: Verified Build 42 handcraft callback authority: `OnTest` participates in client and server viability evaluation, while `OnCreate` runs locally in SP and on the authoritative server in MP. Confirmed that callbacks receive the actor explicitly, `getPlayer()` is not a server actor lookup, and server `sendClientCommand(player, ...)` re-enters `OnClientCommand` locally. The current server-to-client-singleton require boundary is unsafe; fluid replication remains unverified.
