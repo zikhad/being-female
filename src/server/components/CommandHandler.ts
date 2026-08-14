@@ -17,6 +17,7 @@ import {
 	isZLBFSetPregnancyStateRequest,
 	isZLBFAllocateBirthRequest,
 	isZLBFCompleteBirthRequest,
+	isZLBFPublishWombStateRequest,
 	isZLBFSyncStateRequest,
 	ZLBFSetPregnancyStateRequest,
 	ZLBFSnapshot,
@@ -34,6 +35,8 @@ import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { BirthOperationAllocator } from "@server/components/BirthOperationAllocator";
 import { Player } from "@shared/components/Player";
 import { createBabyData } from "@shared/domain/birth/BabyData";
+import { PregnancyRecoveryOptions } from "@shared/components/PregnancyRecoveryOptions";
+import { createDefaultWombState } from "@shared/domain/womb/WombState";
 
 /** Validates and handles ZLBF commands received in the server execution context. */
 export class CommandHandler {
@@ -41,7 +44,8 @@ export class CommandHandler {
 	constructor(
 		private readonly states = new StateRepository(),
 		private readonly pregnancy = new PregnancyReconciler(),
-		private readonly births = new BirthOperationAllocator()
+		private readonly births = new BirthOperationAllocator(),
+		private readonly recovery = new PregnancyRecoveryOptions()
 	) {}
 
 	/**
@@ -92,7 +96,34 @@ export class CommandHandler {
 		}
 		if (command === ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST) {
 			this.completeBirth(player, args);
+			return;
 		}
+		if (command === ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST) {
+			this.publishWombState(player, args);
+		}
+	}
+
+	/** Persists client-simulated reversible menstrual-cycle progression. */
+	private publishWombState(player: IsoPlayer, args: unknown): void {
+		if (!isZLBFPublishWombStateRequest(args)) return;
+		const loaded = this.loadForProtocol(player, args.schemaVersion);
+		const status = this.loadStatus(args.schemaVersion, loaded);
+		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+			const cycleDay = args.data.desired.cycleDay;
+			if (loaded.state.domains.womb?.cycleDay !== cycleDay) {
+				loaded.state.domains.womb = { cycleDay };
+				loaded.state.stateVersion += 1;
+				loaded.stateVersion = loaded.state.stateVersion;
+				this.states.save(player, loaded.state);
+			}
+		}
+		this.sendSnapshot(
+			player,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			args,
+			status,
+			loaded
+		);
 	}
 
 	/** Validates and durably completes a pending birth operation on the server. */
@@ -125,6 +156,13 @@ export class CommandHandler {
 							completedBirthId: args.data.birthId
 						};
 						loaded.state.domains.pregnancy = createDefaultPregnancyState();
+						const recovery = this.recovery.read();
+						loaded.state.domains.womb = {
+							cycleDay: recovery.days === 0 ? 1 : -recovery.days
+						};
+						if (recovery.usedFallback) {
+							print("[ZLBF][MP][Server] invalid PregnancyRecovery; using default=7");
+						}
 						loaded.state.stateVersion += 1;
 						loaded.stateVersion = loaded.state.stateVersion;
 						this.states.save(player, loaded.state);
@@ -262,7 +300,8 @@ export class CommandHandler {
 				pregnancy: state?.supported
 					? state.state.domains.pregnancy
 					: createDefaultPregnancyState(),
-				birth: state?.supported ? state.state.domains.birth : createDefaultBirthState()
+				birth: state?.supported ? state.state.domains.birth : createDefaultBirthState(),
+				womb: state?.supported ? state.state.domains.womb : createDefaultWombState()
 			}
 		};
 	}

@@ -54,7 +54,11 @@ describe("PregnancyPublisher", () => {
 					snapshot: {
 						dataSchemaVersion: 2,
 						stateVersion: 1,
-						domains: { pregnancy: desired, birth: createDefaultBirthState() }
+						domains: {
+							...createDefaultDomains(),
+							pregnancy: desired,
+							birth: createDefaultBirthState()
+						}
 					}
 				}
 			}

@@ -18,6 +18,7 @@ import {
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
+import { createDefaultWombState } from "@shared/domain/womb/WombState";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
 
 jest.mock("@actions/ZLBFBirth");
@@ -516,6 +517,7 @@ describe("Pregnancy", () => {
 					dataSchemaVersion: 2,
 					stateVersion: 0,
 					domains: {
+						womb: createDefaultWombState(),
 						pregnancy: createDefaultPregnancyState(),
 						birth: createDefaultBirthState()
 					}
@@ -559,17 +561,29 @@ describe("Pregnancy", () => {
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 1,
-					domains: { pregnancy: notPregnant, birth: createDefaultBirthState() }
+					domains: {
+						pregnancy: notPregnant,
+						birth: createDefaultBirthState(),
+						womb: createDefaultWombState()
+					}
 				});
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 2,
-					domains: { pregnancy: pregnant, birth: createDefaultBirthState() }
+					domains: {
+						pregnancy: pregnant,
+						birth: createDefaultBirthState(),
+						womb: createDefaultWombState()
+					}
 				});
 				snapshots.apply({
 					dataSchemaVersion: 2,
 					stateVersion: 2,
-					domains: { pregnancy: pregnant, birth: createDefaultBirthState() }
+					domains: {
+						pregnancy: pregnant,
+						birth: createDefaultBirthState(),
+						womb: createDefaultWombState()
+					}
 				});
 
 				expect(queue).toHaveBeenCalledTimes(1);
@@ -591,6 +605,7 @@ describe("Pregnancy", () => {
 			dataSchemaVersion: 3,
 			stateVersion: 2,
 			domains: {
+				womb: createDefaultWombState(),
 				pregnancy: {
 					status: PregnancyStatus.PREGNANT,
 					current: 100,
@@ -682,6 +697,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					womb: createDefaultWombState(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -702,6 +718,42 @@ describe("Pregnancy", () => {
 			});
 		});
 
+		it("does not republish a pregnancy that is already at full labor", () => {
+			jest.restoreAllMocks();
+			(SpyPipewrench.getGameTime as jest.Mock).mockReturnValue({
+				getMinutesStamp: jest.fn().mockReturnValue(11)
+			});
+			jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const commands = mock<PregnancyPublisher>({
+				publishState: jest.fn(),
+				latestDesiredState: undefined
+			});
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(commands, snapshots);
+			(pregnancy as any).player = mock<IsoPlayer>({
+				getModData: jest.fn(() => ({}))
+			});
+			(pregnancy as any).lastMinuteStamp = 10;
+			snapshots.apply({
+				dataSchemaVersion: 4,
+				stateVersion: 2,
+				domains: {
+					womb: createDefaultWombState(),
+					birth: createDefaultBirthState(),
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 10,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			});
+			pregnancy.onEveryMinute();
+
+			expect(commands.publishState).not.toHaveBeenCalled();
+		});
+
 		it("keeps authoritative Pregnancy present when multiplayer removes the local trait", () => {
 			jest.restoreAllMocks();
 			const snapshots = new SnapshotStore();
@@ -715,6 +767,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					womb: createDefaultWombState(),
 					birth: createDefaultBirthState(),
 					pregnancy: { status: PregnancyStatus.PREGNANT, ...data }
 				}
@@ -750,6 +803,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 2,
 				domains: {
+					womb: createDefaultWombState(),
 					birth: createDefaultBirthState(),
 					pregnancy: { ...desired, current: 1, progress: 0.01 }
 				}
@@ -785,6 +839,7 @@ describe("Pregnancy", () => {
 				dataSchemaVersion: 2,
 				stateVersion: 1,
 				domains: {
+					womb: createDefaultWombState(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,

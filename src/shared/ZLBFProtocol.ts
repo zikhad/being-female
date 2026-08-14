@@ -11,6 +11,8 @@ import type { AuthoritativeDomains } from "@shared/ZLBFState";
 import { pregnancyStateSchema } from "@shared/domain/pregnancy/PregnancySchema";
 import type { AuthoritativePregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
+import { wombCycleStateSchema, wombStateSchema } from "@shared/domain/womb/WombSchema";
+import type { WombCycleState } from "@shared/domain/womb/WombState";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -76,6 +78,15 @@ export type ZLBFCompleteBirthRequest = ZLBFEnvelopeMetadata & {
 /** Authoritative snapshot returned after birth completion or an idempotent retry. */
 export type ZLBFCompleteBirthResponse = ZLBFSyncStateResponse;
 
+/** Publishes the owning client's reversible menstrual-cycle progression. */
+export type ZLBFPublishWombStateRequest = ZLBFEnvelopeMetadata & {
+	/** Desired concrete Womb cycle state. */
+	data: { desired: WombCycleState };
+};
+
+/** Authoritative snapshot returned after Womb progression publication. */
+export type ZLBFPublishWombStateResponse = ZLBFSyncStateResponse;
+
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
 /** Validator for every status understood by this protocol version. */
@@ -92,7 +103,8 @@ const snapshotSchema = object<ZLBFSnapshot>({
 	stateVersion: nonNegativeInteger,
 	domains: object<AuthoritativeDomains>({
 		pregnancy: pregnancyStateSchema,
-		birth: birthStateSchema
+		birth: birthStateSchema,
+		womb: wombStateSchema
 	})
 });
 /** Runtime schema for untrusted sync-state requests. */
@@ -125,6 +137,13 @@ const completeBirthRequestSchema = object<ZLBFCompleteBirthRequest>({
 	data: object<ZLBFCompleteBirthRequest["data"]>({
 		birthId: string({ minimumLength: 1, maximumLength: 128 })
 	})
+});
+/** Runtime schema for an untrusted Womb progression publication. */
+const publishWombStateRequestSchema = object<ZLBFPublishWombStateRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	data: object<ZLBFPublishWombStateRequest["data"]>({ desired: wombCycleStateSchema })
 });
 
 /**
@@ -171,3 +190,9 @@ export const isZLBFCompleteBirthRequest = completeBirthRequestSchema;
 
 /** Validates a birth-completion response using the standard snapshot envelope. */
 export const isZLBFCompleteBirthResponse = responseSchema;
+
+/** Validates client-published reversible Womb cycle progression. */
+export const isZLBFPublishWombStateRequest = publishWombStateRequestSchema;
+
+/** Validates a Womb progression response using the standard snapshot envelope. */
+export const isZLBFPublishWombStateResponse = responseSchema;
