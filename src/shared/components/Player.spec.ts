@@ -4,10 +4,7 @@ import { mock } from "jest-mock-extended";
 
 describe("shared Player", () => {
 	it("reads account and character identity from the supplied player", () => {
-		const descriptor = mock<SurvivorDesc>({
-			getForename: jest.fn().mockReturnValue("Jane"),
-			getSurname: jest.fn().mockReturnValue("Doe")
-		});
+		const descriptor = mock<SurvivorDesc>();
 		const player = mock<IsoPlayer>({
 			getDescriptor: jest.fn().mockReturnValue(descriptor),
 			getUsername: jest.fn().mockReturnValue("Dihgg"),
@@ -21,12 +18,14 @@ describe("shared Player", () => {
 		undefined,
 		mock<IsoPlayer>({ getDescriptor: jest.fn().mockReturnValue(undefined) }),
 		mock<IsoPlayer>({
-			getDescriptor: jest.fn().mockReturnValue(
-				mock<SurvivorDesc>({
-					getForename: jest.fn().mockReturnValue(""),
-					getSurname: jest.fn().mockReturnValue("Doe")
-				})
-			)
+			getDescriptor: jest.fn().mockReturnValue(mock<SurvivorDesc>()),
+			getUsername: jest.fn().mockReturnValue(""),
+			getFullName: jest.fn().mockReturnValue("Jane Doe")
+		}),
+		mock<IsoPlayer>({
+			getDescriptor: jest.fn().mockReturnValue(mock<SurvivorDesc>()),
+			getUsername: jest.fn().mockReturnValue("Dihgg"),
+			getFullName: jest.fn().mockReturnValue("")
 		})
 	])("rejects incomplete identity %#", player => {
 		expect(new Player(player).identity).toBeUndefined();

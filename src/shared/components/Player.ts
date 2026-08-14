@@ -23,10 +23,9 @@ export class Player {
 		const player = this.player;
 		const descriptor = player?.getDescriptor();
 		if (!player || !descriptor) return undefined;
-		const forename = descriptor.getForename();
-		const surname = descriptor.getSurname();
 		const username = player.getUsername();
-		if (!forename || !surname || !username) return undefined;
-		return { username, name: player.getFullName() };
+		const name = player.getFullName();
+		if (!username || !name) return undefined;
+		return { username, name };
 	}
 }
