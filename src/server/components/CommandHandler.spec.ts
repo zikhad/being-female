@@ -30,6 +30,9 @@ describe("CommandHandler", () => {
 
 	beforeEach(() => {
 		sendMock.mockReset();
+		(
+			globalThis as unknown as { sendAddItemToContainer: jest.Mock }
+		).sendAddItemToContainer.mockReset();
 		debugMock.mockReset();
 		debugMock.mockReturnValue(false);
 		delete (globalThis as { SandboxVars?: unknown }).SandboxVars;
@@ -580,6 +583,49 @@ describe("CommandHandler", () => {
 			createDefaultPregnancyState()
 		);
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({ cycleDay: -11 });
+	});
+
+	it("acknowledges duplicate birth completion without another item or state revision", () => {
+		const AddItem = jest.fn();
+		const inventory = { AddItem };
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 5,
+				stateVersion: 9,
+				domains: {
+					...domains(),
+					birth: { birthSequence: 1, completedBirthId: "Dihgg:birth:1" }
+				}
+			}
+		};
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			getInventory: jest.fn().mockReturnValue(inventory)
+		});
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "complete-retry",
+				revision: 1,
+				data: { birthId: "Dihgg:birth:1" }
+			}
+		);
+
+		expect(AddItem).not.toHaveBeenCalled();
+		expect(
+			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
+		).not.toHaveBeenCalled();
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(9);
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+		);
 	});
 
 	it("persists reversible Womb cycle progression", () => {

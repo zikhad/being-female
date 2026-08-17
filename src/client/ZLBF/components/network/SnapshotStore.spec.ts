@@ -84,4 +84,16 @@ describe("SnapshotStore", () => {
 		store.notifyCurrent();
 		expect(listener).toHaveBeenCalledWith(snapshot);
 	});
+
+	it("clears the connection snapshot while retaining subscribers", () => {
+		const store = new SnapshotStore();
+		const listener = jest.fn();
+		store.subscribe(listener);
+		store.apply({ dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() });
+
+		store.resetSession();
+		expect(store.snapshot).toBeUndefined();
+		store.apply({ dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() });
+		expect(listener).toHaveBeenCalledTimes(2);
+	});
 });

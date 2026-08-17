@@ -18,6 +18,12 @@ export class WombPublisher {
 	/** Creates a Womb publisher backed by the shared snapshot mirror. */
 	constructor(private readonly snapshots: SnapshotStore) {}
 
+	/** Clears connection-scoped mutation correlation and optimistic queued state. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.queued = undefined;
+	}
+
 	/** Returns the newest queued or in-flight desired state for optimistic presentation. */
 	public get latestDesiredState(): WombProgressState | undefined {
 		return this.queued ?? this.pending?.data.desired;

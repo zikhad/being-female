@@ -211,4 +211,12 @@ describe("WombPublisher", () => {
 
 		expect(snapshots.snapshot).toBeUndefined();
 	});
+
+	it("clears pending and queued optimism on session reset", () => {
+		const publisher = new WombPublisher(new SnapshotStore());
+		publisher.publishState(state(-6));
+		publisher.publishState(state(-5));
+		publisher.resetSession();
+		expect(publisher.latestDesiredState).toBeUndefined();
+	});
 });

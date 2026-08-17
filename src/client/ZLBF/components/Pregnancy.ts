@@ -130,6 +130,14 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
 			this.births?.allocate();
 		}
+		const pendingBirthId = snapshot.domains.birth.pendingBirthId;
+		if (
+			pendingBirthId &&
+			this.birthPresentation.phase === "submitted" &&
+			this.birthPresentation.birthId === pendingBirthId
+		) {
+			this.births?.complete(pendingBirthId);
+		}
 		this.queuePendingBirthPresentation(snapshot, false);
 	}
 
@@ -147,8 +155,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (!snapshot.domains.pregnancy.isInLabor || !pendingBirthId) return;
 		const presentation = this.birthPresentation;
 		if (presentation.phase === "active") return;
-		if (presentation.phase === "submitted" && presentation.birthId === pendingBirthId)
-			return;
+		if (presentation.phase === "submitted" && presentation.birthId === pendingBirthId) return;
 		if (
 			presentation.phase === "interrupted" &&
 			presentation.birthId === pendingBirthId &&
@@ -167,10 +174,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * @param canResumeInterrupted Whether the minute lifecycle may resume a canceled action.
 	 * @param isInLabor Current local labor state, including a transition calculated this minute.
 	 */
-	private queueLegacyBirthPresentation(
-		canResumeInterrupted: boolean,
-		isInLabor: boolean
-	): void {
+	private queueLegacyBirthPresentation(canResumeInterrupted: boolean, isInLabor: boolean): void {
 		if (this.births) return;
 		if (!isInLabor) return;
 		const presentation = this.birthPresentation;
@@ -355,8 +359,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (this.births) {
 			if (!birthId || birthId !== pendingBirthId) return;
 			const presentation = this.birthPresentation;
-			if (presentation.phase !== "active" || presentation.birthId !== birthId)
-				return;
+			if (presentation.phase !== "active" || presentation.birthId !== birthId) return;
 			this.birthPresentation = { phase: "submitted", birthId };
 			this.player.setBlockMovement(false);
 			this.births.complete(birthId);

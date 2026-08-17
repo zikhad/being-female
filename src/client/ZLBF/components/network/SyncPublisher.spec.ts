@@ -114,4 +114,16 @@ describe("SyncPublisher", () => {
 		publisher.onEveryOneMinute();
 		expect(sendMock).toHaveBeenCalledTimes(1);
 	});
+
+	it("bootstraps with fresh correlation on the minute after a session reset", () => {
+		const publisher = new SyncPublisher(new SnapshotStore());
+		publisher.onEveryOneMinute();
+		publisher.resetSession();
+		expect(sendMock).toHaveBeenCalledTimes(1);
+
+		publisher.onEveryOneMinute();
+
+		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock.mock.calls[1][3]).toMatchObject({ requestId: "snapshot-2", revision: 2 });
+	});
 });

@@ -33,6 +33,11 @@ export class SnapshotStore {
 		for (const listener of this.listeners) listener(this.current);
 	}
 
+	/** Clears connection-scoped authoritative state without removing long-lived listeners. */
+	public resetSession(): void {
+		this.current = undefined;
+	}
+
 	/**
 	 * Registers a listener for future authoritative snapshot replacements.
 	 *

@@ -93,4 +93,159 @@ describe("BirthPublisher", () => {
 
 		expect(sendMock).not.toHaveBeenCalled();
 	});
+
+	it("retries the exact completion envelope on each minute until correlated resolution", () => {
+		const publisher = new BirthPublisher(new SnapshotStore());
+		publisher.complete("Dihgg:birth:1");
+		publisher.onEveryOneMinute();
+		publisher.onEveryOneMinute();
+
+		expect(sendMock).toHaveBeenCalledTimes(3);
+		expect(sendMock.mock.calls[1][3]).toBe(sendMock.mock.calls[0][3]);
+		expect(sendMock.mock.calls[2][3]).toBe(sendMock.mock.calls[0][3]);
+
+		publisher.onServerCommand(ZLBF_NETWORK_MODULE, ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE, {
+			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+			requestId: "birth-completion-1",
+			revision: 1,
+			status: ZLBFSyncStatus.OK,
+			data: {
+				snapshot: {
+					dataSchemaVersion: 3,
+					stateVersion: 2,
+					domains: {
+						womb: createDefaultWombState(),
+						lactation: createDefaultLactationState(),
+						pregnancy: createDefaultPregnancyState(),
+						birth: { birthSequence: 1, completedBirthId: "Dihgg:birth:1" }
+					}
+				}
+			}
+		});
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(3);
+	});
+
+	it("clears completion correlation on a session reset", () => {
+		const publisher = new BirthPublisher(new SnapshotStore());
+		publisher.complete("Dihgg:birth:1");
+		publisher.resetSession();
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("retains completion retry after a correlated response with the wrong protocol schema", () => {
+		const publisher = new BirthPublisher(new SnapshotStore());
+		publisher.complete("Dihgg:birth:1");
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			completionResponse(ZLBFSyncStatus.OK, 99)
+		);
+
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock.mock.calls[1][3]).toBe(sendMock.mock.calls[0][3]);
+	});
+
+	it("retains completion retry for an incompatible correlated response", () => {
+		const publisher = new BirthPublisher(new SnapshotStore());
+		publisher.complete("Dihgg:birth:1");
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			completionResponse(ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA)
+		);
+
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(2);
+	});
+
+	it("applies a compatible invalid response and retains the exact envelope while still pending", () => {
+		const snapshots = new SnapshotStore();
+		const publisher = new BirthPublisher(snapshots);
+		publisher.complete("Dihgg:birth:1");
+		const original = sendMock.mock.calls[0][3];
+		const response = completionResponse(ZLBFSyncStatus.INVALID_REQUEST);
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			response
+		);
+
+		expect(snapshots.snapshot).toEqual(response.data.snapshot);
+		expect(sendMock).toHaveBeenCalledTimes(1);
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock.mock.calls[1][3]).toBe(original);
+	});
+
+	it("re-notifies reconciliation when a compatible response repeats the current version", () => {
+		const snapshots = new SnapshotStore();
+		const response = completionResponse(ZLBFSyncStatus.INVALID_REQUEST);
+		snapshots.apply(response.data.snapshot);
+		const listener = jest.fn();
+		snapshots.subscribe(listener);
+		const publisher = new BirthPublisher(snapshots);
+		publisher.complete("Dihgg:birth:1");
+
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			response
+		);
+
+		expect(listener).toHaveBeenCalledWith(response.data.snapshot);
+	});
+
+	it("does not create an immediate request storm when pending reconciliation resubmits", () => {
+		const snapshots = new SnapshotStore();
+		const response = completionResponse(ZLBFSyncStatus.INVALID_REQUEST);
+		snapshots.apply(response.data.snapshot);
+		const publisher = new BirthPublisher(snapshots);
+		publisher.complete("Dihgg:birth:1");
+		const original = sendMock.mock.calls[0][3];
+		snapshots.subscribe(snapshot => {
+			const pendingBirthId = snapshot.domains.birth.pendingBirthId;
+			if (pendingBirthId) publisher.complete(pendingBirthId);
+		});
+
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			response
+		);
+
+		expect(sendMock).toHaveBeenCalledTimes(1);
+		publisher.onEveryOneMinute();
+		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock.mock.calls[1][3]).toBe(original);
+	});
+});
+
+/** Creates a correlated completion response with a still-pending authoritative birth. */
+const completionResponse = (
+	status: ZLBFSyncStatus,
+	schemaVersion = ZLBF_PROTOCOL_SCHEMA_VERSION
+) => ({
+	schemaVersion,
+	requestId: "birth-completion-1",
+	revision: 1,
+	status,
+	data: {
+		snapshot: {
+			dataSchemaVersion: 5,
+			stateVersion: 2,
+			domains: {
+				womb: createDefaultWombState(),
+				lactation: createDefaultLactationState(),
+				pregnancy: {
+					...createDefaultPregnancyState(),
+					status: PregnancyStatus.PREGNANT,
+					isInLabor: true
+				},
+				birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" }
+			}
+		}
+	}
 });

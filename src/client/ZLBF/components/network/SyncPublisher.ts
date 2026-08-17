@@ -16,8 +16,8 @@ import { SnapshotStore } from "@client/components/network/SnapshotStore";
  * Publishes one read-only snapshot request and accepts its correlated server response.
  *
  * The first send is deferred until `EveryOneMinute`, where runtime testing established
- * that `getPlayer()` is available. This initial slice intentionally performs no retry;
- * a pending or acknowledged request prevents subsequent sends.
+ * that `getPlayer()` is available. Connection resets discard correlation so the next
+ * minute performs a fresh bootstrap rather than sending from a lifecycle callback.
  */
 export class SyncPublisher {
 	private nextRevision = 1;
@@ -30,6 +30,12 @@ export class SyncPublisher {
 	 * @param snapshots Store updated after a valid successful response is acknowledged.
 	 */
 	constructor(private readonly snapshots: SnapshotStore) {}
+
+	/** Discards transport correlation and permits a fresh minute-deferred bootstrap. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.acknowledged = undefined;
+	}
 
 	/** Sends the initial snapshot request on the first eligible in-game minute tick. */
 	public onEveryOneMinute(): void {

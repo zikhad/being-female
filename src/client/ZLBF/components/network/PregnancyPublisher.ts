@@ -37,6 +37,12 @@ export class PregnancyPublisher {
 	/** Creates a Pregnancy publisher backed by the shared client snapshot mirror. */
 	constructor(private readonly snapshots: SnapshotStore) {}
 
+	/** Clears connection-scoped mutation correlation and optimistic queued state. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.queued = undefined;
+	}
+
 	/**
 	 * Returns the newest in-flight or queued desired state for optimistic presentation.
 	 * The authoritative mirror remains unchanged until a correlated response arrives.
