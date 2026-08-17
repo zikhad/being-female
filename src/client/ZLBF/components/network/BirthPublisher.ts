@@ -20,7 +20,25 @@ export class BirthPublisher {
 	private completion?: ZLBFCompleteBirthRequest;
 
 	/** Creates a birth publisher backed by the shared authoritative snapshot mirror. */
-	constructor(private readonly snapshots: SnapshotStore) {}
+	constructor(private readonly snapshots: SnapshotStore) {
+		this.snapshots.subscribe(snapshot => {
+			const completion = this.completion;
+			if (completion && snapshot.domains.birth.completedBirthId === completion.data.birthId) {
+				this.completion = undefined;
+			}
+		});
+	}
+
+	/** Discards connection-scoped allocation and completion correlation. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.completion = undefined;
+	}
+
+	/** Retries the exact retained completion envelope once per in-game minute. */
+	public onEveryOneMinute(): void {
+		if (this.completion) this.sendCompletion(this.completion);
+	}
 
 	/** Requests allocation unless an operation is already pending locally or authoritatively. */
 	public allocate(): void {
@@ -56,6 +74,12 @@ export class BirthPublisher {
 			data: { birthId }
 		};
 		this.completion = payload;
+		this.sendCompletion(payload);
+	}
+
+	/** Sends a retained completion request without changing its correlation metadata. */
+	private sendCompletion(payload: ZLBFCompleteBirthRequest): void {
+		const birthId = payload.data.birthId;
 		print(`[ZLBF][MP][Client] send CompleteBirthRequest birthId=${birthId}`);
 		sendClientCommand(
 			getPlayer(),
@@ -115,11 +139,22 @@ export class BirthPublisher {
 		if (
 			!completion ||
 			args.requestId !== completion.requestId ||
-			args.revision !== completion.revision
+			args.revision !== completion.revision ||
+			args.schemaVersion !== ZLBF_PROTOCOL_SCHEMA_VERSION
 		)
 			return;
-		this.completion = undefined;
-		if (args.status === ZLBFSyncStatus.OK) this.snapshots.apply(args.data.snapshot);
+		const compatible =
+			args.status !== ZLBFSyncStatus.UNSUPPORTED_SCHEMA &&
+			args.status !== ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
+		if (!compatible) return;
+		const stillPending =
+			args.data.snapshot.domains.birth.pendingBirthId === completion.data.birthId;
+		if (!stillPending) this.completion = undefined;
+		const current = this.snapshots.snapshot;
+		this.snapshots.apply(args.data.snapshot);
+		if (current && current.stateVersion === args.data.snapshot.stateVersion) {
+			this.snapshots.notifyCurrent();
+		}
 		print(
 			`[ZLBF][MP][Client] acknowledged CompleteBirthResponse status=${args.status} birthId=${completion.data.birthId}`
 		);

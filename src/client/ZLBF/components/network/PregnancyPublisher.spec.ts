@@ -134,4 +134,15 @@ describe("PregnancyPublisher", () => {
 		);
 		expect(snapshots.snapshot).toEqual(snapshot);
 	});
+
+	it("clears pending and queued optimism on session reset", () => {
+		const publisher = new PregnancyPublisher(new SnapshotStore());
+		publisher.publishState(createDefaultPregnancyState());
+		publisher.publishState({
+			...createDefaultPregnancyState(),
+			status: PregnancyStatus.PREGNANT
+		});
+		publisher.resetSession();
+		expect(publisher.latestDesiredState).toBeUndefined();
+	});
 });

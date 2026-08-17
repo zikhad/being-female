@@ -694,6 +694,27 @@ describe("Pregnancy", () => {
 			expect(queue).toHaveBeenCalledTimes(1);
 		});
 
+		it("resubmits after a fresh session snapshot proves the birth is still pending", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			snapshots.apply(laborSnapshot(1));
+			pregnancy.birth(birthId);
+			snapshots.resetSession();
+
+			snapshots.apply(laborSnapshot(1));
+
+			expect(births.complete).toHaveBeenCalledTimes(2);
+			expect(births.complete).toHaveBeenLastCalledWith(birthId);
+			expect(queue).toHaveBeenCalledTimes(1);
+		});
+
 		it("ignores a stale action whose ID does not match the current pending birth", () => {
 			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
 			const snapshots = new SnapshotStore();

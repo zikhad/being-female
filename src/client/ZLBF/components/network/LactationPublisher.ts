@@ -41,6 +41,13 @@ export class LactationPublisher {
 	/** Creates a publisher backed by the common authoritative snapshot mirror. */
 	constructor(private readonly snapshots: SnapshotStore) {}
 
+	/** Clears connection-scoped mutation correlation, retry timing, and optimism. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.queued = undefined;
+		this.pendingMinutes = 0;
+	}
+
 	/** Returns the newest optimistic state awaiting authoritative convergence. */
 	public get latestDesiredState(): LactationState | undefined {
 		return this.queued?.desired ?? this.pending?.request.data.desired;

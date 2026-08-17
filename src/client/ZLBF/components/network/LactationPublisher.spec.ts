@@ -174,6 +174,16 @@ describe("LactationPublisher", () => {
 		expect(publisher.latestDesiredState).toEqual(state(0.6));
 	});
 
+	it("clears pending retry and queued optimism on session reset", () => {
+		const publisher = new LactationPublisher(new SnapshotStore());
+		publisher.publishState(state(0.5));
+		publisher.publishState(state(0.6));
+		publisher.resetSession();
+		publisher.onEveryOneMinute();
+		expect(publisher.latestDesiredState).toBeUndefined();
+		expect(sendMock).toHaveBeenCalledTimes(1);
+	});
+
 	it("rebases activity replacement and numeric expiration/multiplier deltas", () => {
 		const base = { isActive: false, milkAmount: 0.5, expiration: 8, multiplier: 0.2 };
 		const desired = { isActive: true, milkAmount: 0.5, expiration: 6, multiplier: 0.5 };

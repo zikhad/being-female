@@ -32,14 +32,25 @@ export const birthPublisher = new BirthPublisher(snapshots);
 export const pregnancy = new Pregnancy(pregnancyPublisher, snapshots, birthPublisher);
 export const animation = new Animation(womb);
 /** Singleton registration point for client synchronization events. */
-export const syncCoordinator = new SyncCoordinator(syncPublisher, [
-	syncPublisher,
-	pregnancyPublisher,
-	birthPublisher,
-	wombPublisher,
-	lactationPublisher,
-	recipeSnapshots
-]);
+export const syncCoordinator = new SyncCoordinator({
+	commandReceivers: [
+		syncPublisher,
+		pregnancyPublisher,
+		birthPublisher,
+		wombPublisher,
+		lactationPublisher,
+		recipeSnapshots
+	],
+	sessionResettables: [
+		snapshots,
+		syncPublisher,
+		pregnancyPublisher,
+		birthPublisher,
+		wombPublisher,
+		lactationPublisher
+	],
+	minutePublishers: [syncPublisher, birthPublisher]
+});
 
 export const UI = new ZLBFUI({
 	lactation,
