@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: partially verified  
-Last updated: 2026-08-14
+Last updated: 2026-08-17
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -24,6 +24,8 @@ Reference Mod demonstrates a safe pattern for reversible effects: the client pub
 Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
 
 Hosted multiplayer testing confirmed that the current client birth path is not durable. The birth animation completes and `Inventory.AddItem` creates a visible baby, but that client-created item cannot be transferred or equipped and disappears after reconnect. The local birth reset also races the authoritative mirror: `birth()` resets legacy Pregnancy data while the snapshot remains pregnant, so the next client minute tick advances from zero and publishes that reset as valid desired state. The server then persists an apparent rollback to the beginning of Pregnancy.
+
+Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSperm` and `HandExpress` must treat the callback-supplied character as the actor. `ClearSperm` now persists `Womb.amount = 0` into the server-owned root and returns an authoritative snapshot. `HandExpress` now updates the actor's complete Lactation domain, mutates the server-kept fluid item, calls `syncItemFields` in server context, and acknowledges the resulting snapshot. This implementation evidence does not by itself verify observer-side fluid convergence.
 
 ## Evidence
 
@@ -60,6 +62,8 @@ Hosted multiplayer testing confirmed that the current client birth path is not d
 -   `LuaManager.GlobalObject.getPlayer()` returns `IsoPlayer.getInstance()` and is not an authenticated-server actor lookup.
 -   The player overload of `sendClientCommand` synchronously triggers `OnClientCommand` when called in `GameServer` context; it does not send a request from the server to a client. Server recipe code must call its domain handler directly with the supplied crafting character.
 -   Current generated `media/lua/server/ZLBFRecipes.lua` requires `ZLBF/ZLBF`, while that singleton entrypoint is generated under `media/lua/client`. This cross-context dependency is unsafe for hosted and dedicated servers even if it appears functional in single-player.
+-   The 2026-08-17 repository fix removes that client singleton dependency. Recipe eligibility reads only callback-actor ModData, and authoritative mutations load and save the callback actor's server-owned state.
+-   `FluidContainerApi.clear(amount)` previously removed the requested quantity and then immediately removed all remaining fluid. The corrected branch returns after the requested removal.
 
 ### Build 42 Character Name Access
 
@@ -100,6 +104,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 ## Remaining Questions
 
 -   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
+-   Does `syncItemFields` after server-side `FluidContainer.addFluid` converge amount and primary fluid for both the crafting client and observers in hosted and dedicated multiplayer?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
 -   How does labor recover after reconnect without duplicate birth?
 
@@ -120,3 +125,5 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-12: Selected `<motherUsername>:birth:<sequence>` as the server-issued birth identity and `BabyData` as the baby item metadata model. The username must come from the authenticated player, while the per-player sequence is persisted and never reused.
 -   2026-08-13: Selected authenticated `IsoPlayer.getFullName()` as immutable `motherName`; bytecode confirms it combines descriptor forename and surname. Rejected `getDisplayName()` because it represents configurable multiplayer presentation, and recorded the descriptor-null fallback risk.
 -   2026-08-14: Verified Build 42 handcraft callback authority: `OnTest` participates in client and server viability evaluation, while `OnCreate` runs locally in SP and on the authoritative server in MP. Confirmed that callbacks receive the actor explicitly, `getPlayer()` is not a server actor lookup, and server `sendClientCommand(player, ...)` re-enters `OnClientCommand` locally. The current server-to-client-singleton require boundary is unsafe; fluid replication remains unverified.
+-   2026-08-17: Reproduced the actor/authority failures in `HandExpress` and `ClearSperm`; implemented callback-actor state access, complete Lactation persistence, authoritative Womb clearing, recipe snapshot acknowledgement, and server-context `syncItemFields`. Automated tests cover persistence and actor isolation; in-game fluid convergence remains unverified.
+-   2026-08-17: Added versioned complete Lactation publication. Client simulation coalesces changes and delta-rebases rejected state over authoritative recipe snapshots, so recipe milk consumption remains authoritative while concurrent production/expiration changes converge. Dedicated and hosted multiplayer runtime validation remains pending.
