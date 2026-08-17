@@ -1,13 +1,19 @@
 import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
-import { ZLBF_NETWORK_MODULE, ZLBFNetworkCommand, ZLBFSyncStatus } from "@constants";
+import {
+	ZLBF_NETWORK_MODULE,
+	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBFNetworkCommand,
+	ZLBFSyncStatus
+} from "@constants";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import {
 	createDefaultPregnancyState,
 	PregnancyStatus
 } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultWombState } from "@shared/domain/womb/WombState";
+import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
 
 jest.mock("@asledgehammer/pipewrench");
 
@@ -28,7 +34,7 @@ describe("BirthPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "birth-allocation-1",
 				revision: 1,
 				data: {}
@@ -45,6 +51,7 @@ describe("BirthPublisher", () => {
 			stateVersion: 2,
 			domains: {
 				womb: createDefaultWombState(),
+				lactation: createDefaultLactationState(),
 				pregnancy: {
 					...createDefaultPregnancyState(),
 					status: PregnancyStatus.PREGNANT,
@@ -55,7 +62,7 @@ describe("BirthPublisher", () => {
 		};
 
 		publisher.onServerCommand(ZLBF_NETWORK_MODULE, ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE, {
-			schemaVersion: 1,
+			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 			requestId: "birth-allocation-1",
 			revision: 1,
 			status: ZLBFSyncStatus.OK,
@@ -72,6 +79,7 @@ describe("BirthPublisher", () => {
 			stateVersion: 1,
 			domains: {
 				womb: createDefaultWombState(),
+				lactation: createDefaultLactationState(),
 				pregnancy: createDefaultPregnancyState(),
 				birth: {
 					...createDefaultBirthState(),

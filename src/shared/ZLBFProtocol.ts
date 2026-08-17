@@ -13,6 +13,8 @@ import type { AuthoritativePregnancyState } from "@shared/domain/pregnancy/Pregn
 import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
 import { wombProgressStateSchema, wombStateSchema } from "@shared/domain/womb/WombSchema";
 import type { WombProgressState } from "@shared/domain/womb/WombState";
+import { lactationStateSchema } from "@shared/domain/lactation/LactationSchema";
+import type { LactationState } from "@shared/domain/lactation/LactationState";
 
 /** Metadata shared by every request and response in the ZLBF sync protocol. */
 type ZLBFEnvelopeMetadata = {
@@ -80,12 +82,25 @@ export type ZLBFCompleteBirthResponse = ZLBFSyncStateResponse;
 
 /** Publishes the owning client's reversible menstrual-cycle progression. */
 export type ZLBFPublishWombStateRequest = ZLBFEnvelopeMetadata & {
+	/** Authoritative version on which the desired transition was calculated. */
+	baseStateVersion: number;
 	/** Desired concrete Womb cycle state. */
 	data: { desired: WombProgressState };
 };
 
 /** Authoritative snapshot returned after Womb progression publication. */
 export type ZLBFPublishWombStateResponse = ZLBFSyncStateResponse;
+
+/** Publishes complete client-simulated Lactation state against one authoritative base. */
+export type ZLBFPublishLactationStateRequest = ZLBFEnvelopeMetadata & {
+	/** Authoritative version on which the complete desired state was calculated. */
+	baseStateVersion: number;
+	/** Complete desired Lactation state. */
+	data: { desired: LactationState };
+};
+
+/** Authoritative snapshot returned after Lactation publication or conflict. */
+export type ZLBFPublishLactationStateResponse = ZLBFSyncStateResponse;
 
 /** Validator for bounded client-generated request identifiers. */
 const requestId = string({ minimumLength: 1, maximumLength: 64 });
@@ -104,7 +119,8 @@ const snapshotSchema = object<ZLBFSnapshot>({
 	domains: object<AuthoritativeDomains>({
 		pregnancy: pregnancyStateSchema,
 		birth: birthStateSchema,
-		womb: wombStateSchema
+		womb: wombStateSchema,
+		lactation: lactationStateSchema
 	})
 });
 /** Runtime schema for untrusted sync-state requests. */
@@ -143,7 +159,16 @@ const publishWombStateRequestSchema = object<ZLBFPublishWombStateRequest>({
 	schemaVersion: positiveInteger,
 	requestId,
 	revision: positiveInteger,
+	baseStateVersion: nonNegativeInteger,
 	data: object<ZLBFPublishWombStateRequest["data"]>({ desired: wombProgressStateSchema })
+});
+/** Runtime schema for an untrusted complete Lactation publication. */
+const publishLactationStateRequestSchema = object<ZLBFPublishLactationStateRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	baseStateVersion: nonNegativeInteger,
+	data: object<ZLBFPublishLactationStateRequest["data"]>({ desired: lactationStateSchema })
 });
 
 /**
@@ -196,3 +221,9 @@ export const isZLBFPublishWombStateRequest = publishWombStateRequestSchema;
 
 /** Validates a Womb progression response using the standard snapshot envelope. */
 export const isZLBFPublishWombStateResponse = responseSchema;
+
+/** Validates complete client-simulated Lactation publication. */
+export const isZLBFPublishLactationStateRequest = publishLactationStateRequestSchema;
+
+/** Validates a Lactation publication response using the standard snapshot envelope. */
+export const isZLBFPublishLactationStateResponse = responseSchema;

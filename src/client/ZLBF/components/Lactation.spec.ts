@@ -8,6 +8,15 @@ import { ZLBFEventsEnum } from "@constants";
 import { Player } from "@client/components/Player";
 import { mockedPlayer } from "@test/mock";
 import { PregnancyState } from "@client/components/PregnancyState";
+import { LactationPublisher } from "@client/components/network/LactationPublisher";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import {
+	ZLBF_NETWORK_MODULE,
+	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBFNetworkCommand,
+	ZLBFSyncStatus
+} from "@constants";
+import { createDefaultDomains } from "@shared/ZLBFState";
 
 jest.mock("@asledgehammer/pipewrench-events");
 jest.mock("@client/components/Moodles");
@@ -73,6 +82,63 @@ describe("Lactation", () => {
 			expect(lactation.milkAmount).toBeCloseTo(0.3);
 		});
 
+		it("publishes complete state after milk use", () => {
+			const commands = { publishState: jest.fn() } as unknown as LactationPublisher;
+			const lactation = new Lactation(new SnapshotStore(), commands);
+			lactation.onCreatePlayer(mockedPlayer());
+			lactation.useMilk(0.1, 0.2);
+			const published = jest.mocked(commands.publishState).mock.calls[0][0];
+			expect(published).toEqual(expect.objectContaining({ isActive: true, multiplier: 0.2 }));
+			expect(published.milkAmount).toBeCloseTo(0.3);
+		});
+
+		it("publishes only the final compound Pregnancy activation state", () => {
+			const commands = { publishState: jest.fn() } as unknown as LactationPublisher;
+			const lactation = new Lactation(new SnapshotStore(), commands);
+			lactation.onCreatePlayer(mockedPlayer());
+			(PregnancyState.get as jest.Mock).mockReturnValue({ progress: 0.6, current: 1 });
+			lactation.onPregnancyUpdate({ progress: 0.6, current: 1 });
+			expect(commands.publishState).toHaveBeenCalledTimes(1);
+			expect(commands.publishState).toHaveBeenCalledWith(
+				expect.objectContaining({ isActive: true, multiplier: 0.6 }),
+				expect.objectContaining({
+					isActive: { mode: "replace", value: true },
+					multiplier: { mode: "replace", value: 0.6 }
+				})
+			);
+		});
+
+		it("drains equal-version optimism back to the retained recipe snapshot", () => {
+			const snapshots = new SnapshotStore();
+			const publisher = new LactationPublisher(snapshots);
+			const assigned: LactationData[] = [];
+			jest.spyOn(Player.prototype, "data", "set").mockImplementation(value =>
+				assigned.push(value)
+			);
+			new Lactation(snapshots, publisher);
+			const desired = { isActive: true, milkAmount: 0.6, expiration: 8, multiplier: 0 };
+			const authoritative = { ...desired, milkAmount: 0.3 };
+			publisher.publishState(desired, {});
+			const snapshot = {
+				dataSchemaVersion: 5,
+				stateVersion: 2,
+				domains: { ...createDefaultDomains(), lactation: authoritative }
+			};
+			snapshots.apply(snapshot);
+			publisher.onServerCommand(
+				ZLBF_NETWORK_MODULE,
+				ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_RESPONSE,
+				{
+					schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+					requestId: "lactation-1",
+					revision: 1,
+					status: ZLBFSyncStatus.OK,
+					data: { snapshot }
+				}
+			);
+			expect(assigned[assigned.length - 1]).toEqual(authoritative);
+		});
+
 		describe("Timer events", () => {
 			const data: LactationData = {
 				isActive: true,
@@ -114,14 +180,14 @@ describe("Lactation", () => {
 						.mockReturnValueOnce(data)
 						.mockReturnValue({ ...data, expiration: 0 });
 				});
-			it("Should call moodle", () => {
-				const moodle = jest.fn();
-				const lactation = new Lactation();
-				lactation.onCreatePlayer(mockedPlayer());
-				(lactation as any).moodle = { moodle };
-				lactation.onEveryHour();
-				expect(moodle).toHaveBeenCalled();
-			});
+				it("Should call moodle", () => {
+					const moodle = jest.fn();
+					const lactation = new Lactation();
+					lactation.onCreatePlayer(mockedPlayer());
+					(lactation as any).moodle = { moodle };
+					lactation.onEveryHour();
+					expect(moodle).toHaveBeenCalled();
+				});
 				it("Should de-activate lactation when it expires", () => {
 					const lactation = new Lactation();
 					lactation.onCreatePlayer(mockedPlayer());
@@ -135,7 +201,9 @@ describe("Lactation", () => {
 		describe("Lactation update event", () => {
 			it("should register PREGNANCY_UPDATE listener and call onPregnancyUpdate", () => {
 				const addListener = jest.fn();
-				jest.spyOn(Events, "EventEmitter").mockImplementation(() => ({ addListener }) as any);
+				jest.spyOn(Events, "EventEmitter").mockImplementation(
+					() => ({ addListener }) as any
+				);
 
 				const lactation = new Lactation();
 				const onPregnancyUpdateSpy = jest.spyOn(lactation, "onPregnancyUpdate");
@@ -153,7 +221,9 @@ describe("Lactation", () => {
 
 			it("should register LACTATION_UPDATE listener and call onLactationUpdate", () => {
 				const addListener = jest.fn();
-				jest.spyOn(Events, "EventEmitter").mockImplementation(() => ({ addListener }) as any);
+				jest.spyOn(Events, "EventEmitter").mockImplementation(
+					() => ({ addListener }) as any
+				);
 
 				const lactation = new Lactation();
 				const onLactationUpdateSpy = jest.spyOn(lactation, "onLactationUpdate");
@@ -194,31 +264,61 @@ describe("Lactation", () => {
 
 				expect(lactation.milkAmount).toBeGreaterThan(0.4);
 			});
+
+			it("publishes only the actual near-capacity production delta", () => {
+				jest.spyOn(SpyPipewrench, "ZombRandFloat").mockReturnValue(0.01);
+				jest.spyOn(Player.prototype, "data", "get").mockReturnValue({
+					isActive: true,
+					milkAmount: 0.999,
+					expiration: 8,
+					multiplier: 0
+				});
+				const commands = { publishState: jest.fn() } as unknown as LactationPublisher;
+				const lactation = new Lactation(new SnapshotStore(), commands);
+				lactation.onCreatePlayer(mockedPlayer());
+				lactation.onLactationUpdate(lactation.data!);
+				const intent = jest.mocked(commands.publishState).mock.calls[0][1]!;
+				expect(intent.milkAmount?.value).toBeCloseTo(0.001);
+			});
+
+			it("does not publish production while already at capacity", () => {
+				jest.spyOn(Player.prototype, "data", "get").mockReturnValue({
+					isActive: true,
+					milkAmount: 1,
+					expiration: 8,
+					multiplier: 0
+				});
+				const commands = { publishState: jest.fn() } as unknown as LactationPublisher;
+				const lactation = new Lactation(new SnapshotStore(), commands);
+				lactation.onCreatePlayer(mockedPlayer());
+				lactation.onLactationUpdate(lactation.data!);
+				expect(commands.publishState).not.toHaveBeenCalled();
+			});
 		});
 
 		describe("Debug functions", () => {
 			it.each<{ operation: "add" | "remove" | "set"; expected: number }>([
-			{ operation: "add", expected: 0.5 },
-			{ operation: "remove", expected: 0.3 },
-			{ operation: "set", expected: 0.1 }
-		])("should $operation milk", ({ operation, expected }) => {
-			const lactation = new Lactation();
-			lactation.onCreatePlayer(mockedPlayer());
-			lactation.Debug.set(0.4);
-			lactation.Debug[operation](0.1);
-			expect(lactation.milkAmount).toBeCloseTo(expected);
+				{ operation: "add", expected: 0.5 },
+				{ operation: "remove", expected: 0.3 },
+				{ operation: "set", expected: 0.1 }
+			])("should $operation milk", ({ operation, expected }) => {
+				const lactation = new Lactation();
+				lactation.onCreatePlayer(mockedPlayer());
+				lactation.Debug.set(0.4);
+				lactation.Debug[operation](0.1);
+				expect(lactation.milkAmount).toBeCloseTo(expected);
 			});
 
-		it("should be able to toggle lactation and call moodle with 0", () => {
-			const moodle = jest.fn();
-			const lactation = new Lactation();
-			lactation.onCreatePlayer(mockedPlayer());
-			(lactation as any).moodle = { moodle };
-			expect(lactation.isLactating).toBe(true);
-			moodle.mockClear();
-			lactation.Debug.toggle(false);
-			expect(lactation.isLactating).toBe(false);
-			expect(moodle).toHaveBeenCalledWith(0);
+			it("should be able to toggle lactation and call moodle with 0", () => {
+				const moodle = jest.fn();
+				const lactation = new Lactation();
+				lactation.onCreatePlayer(mockedPlayer());
+				(lactation as any).moodle = { moodle };
+				expect(lactation.isLactating).toBe(true);
+				moodle.mockClear();
+				lactation.Debug.toggle(false);
+				expect(lactation.isLactating).toBe(false);
+				expect(moodle).toHaveBeenCalledWith(0);
 			});
 		});
 	});
@@ -291,9 +391,7 @@ describe("Lactation", () => {
 		])(
 			"Lactation should be $expected when pregnancy progress is: $progress",
 			({ progress, expected }) => {
-				(PregnancyState.get as jest.Mock).mockReturnValue(
-					progress ? { progress } : null
-				);
+				(PregnancyState.get as jest.Mock).mockReturnValue(progress ? { progress } : null);
 				jest.spyOn(Player.prototype, "data", "get").mockReturnValue({
 					isActive: false,
 					milkAmount: 0,
@@ -372,9 +470,7 @@ describe("Lactation", () => {
 		])(
 			"returns correct image when state is $state and fullness is $fullness",
 			({ progress, amount, expected }) => {
-				(PregnancyState.get as jest.Mock).mockReturnValue(
-					progress ? { progress } : null
-				);
+				(PregnancyState.get as jest.Mock).mockReturnValue(progress ? { progress } : null);
 				jest.spyOn(Player.prototype, "data", "get").mockReturnValue({
 					isActive: true,
 					milkAmount: amount,

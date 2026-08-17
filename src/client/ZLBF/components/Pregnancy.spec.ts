@@ -20,6 +20,7 @@ import {
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { createDefaultWombState } from "@shared/domain/womb/WombState";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
+import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -518,6 +519,7 @@ describe("Pregnancy", () => {
 					stateVersion: 0,
 					domains: {
 						womb: createDefaultWombState(),
+						lactation: createDefaultLactationState(),
 						pregnancy: createDefaultPregnancyState(),
 						birth: createDefaultBirthState()
 					}
@@ -564,7 +566,8 @@ describe("Pregnancy", () => {
 					domains: {
 						pregnancy: notPregnant,
 						birth: createDefaultBirthState(),
-						womb: createDefaultWombState()
+						womb: createDefaultWombState(),
+						lactation: createDefaultLactationState()
 					}
 				});
 				snapshots.apply({
@@ -573,7 +576,8 @@ describe("Pregnancy", () => {
 					domains: {
 						pregnancy: pregnant,
 						birth: createDefaultBirthState(),
-						womb: createDefaultWombState()
+						womb: createDefaultWombState(),
+						lactation: createDefaultLactationState()
 					}
 				});
 				snapshots.apply({
@@ -582,7 +586,8 @@ describe("Pregnancy", () => {
 					domains: {
 						pregnancy: pregnant,
 						birth: createDefaultBirthState(),
-						womb: createDefaultWombState()
+						womb: createDefaultWombState(),
+						lactation: createDefaultLactationState()
 					}
 				});
 
@@ -606,6 +611,7 @@ describe("Pregnancy", () => {
 			stateVersion: 2,
 			domains: {
 				womb: createDefaultWombState(),
+				lactation: createDefaultLactationState(),
 				pregnancy: {
 					status: PregnancyStatus.PREGNANT,
 					current: 100,
@@ -698,6 +704,7 @@ describe("Pregnancy", () => {
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -740,6 +747,7 @@ describe("Pregnancy", () => {
 				stateVersion: 2,
 				domains: {
 					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -768,6 +776,7 @@ describe("Pregnancy", () => {
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
 					birth: createDefaultBirthState(),
 					pregnancy: { status: PregnancyStatus.PREGNANT, ...data }
 				}
@@ -804,6 +813,7 @@ describe("Pregnancy", () => {
 				stateVersion: 2,
 				domains: {
 					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
 					birth: createDefaultBirthState(),
 					pregnancy: { ...desired, current: 1, progress: 0.01 }
 				}
@@ -840,6 +850,7 @@ describe("Pregnancy", () => {
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,

@@ -1,4 +1,4 @@
-import type { Fluid } from "server/types";
+import type { Fluid } from "@shared/components/FluidContainerApi";
 
 export enum ZLBFTraitsEnum {
 	INFERTILE = "zlbf:infertile",
@@ -65,7 +65,7 @@ export enum ZLBFAnimations {
 /** Project Zomboid command module used by all ZLBF network messages. */
 export const ZLBF_NETWORK_MODULE = "ZLBF";
 /** Current version of the ZLBF request/response envelope. */
-export const ZLBF_PROTOCOL_SCHEMA_VERSION = 1;
+export const ZLBF_PROTOCOL_SCHEMA_VERSION = 2;
 /** Current version of the authoritative ZLBF domain-data shape. */
 export const ZLBF_DATA_SCHEMA_VERSION = 5;
 /** Player ModData key containing the server-owned authoritative root. */
@@ -84,7 +84,10 @@ export enum ZLBFNetworkCommand {
 	COMPLETE_BIRTH_REQUEST = "CompleteBirthRequest",
 	COMPLETE_BIRTH_RESPONSE = "CompleteBirthResponse",
 	PUBLISH_WOMB_STATE_REQUEST = "PublishWombStateRequest",
-	PUBLISH_WOMB_STATE_RESPONSE = "PublishWombStateResponse"
+	PUBLISH_WOMB_STATE_RESPONSE = "PublishWombStateResponse",
+	PUBLISH_LACTATION_STATE_REQUEST = "PublishLactationStateRequest",
+	PUBLISH_LACTATION_STATE_RESPONSE = "PublishLactationStateResponse",
+	RECIPE_STATE_RESPONSE = "RecipeStateResponse"
 }
 
 /** Outcomes returned by the server for a ZLBF sync request. */

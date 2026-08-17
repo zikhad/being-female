@@ -189,11 +189,12 @@ export class Womb extends Player<WombData> implements TimedEvents {
 
 	/** Applies concrete server-persisted fields while preserving uninitialized legacy values. */
 	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
-		const { cycleDay, amount, total } =
+		const { cycleDay, amount, total, onContraceptive } =
 			this.commands?.latestDesiredState ?? snapshot.domains.womb;
 		if (cycleDay !== undefined) this.cycleDay = cycleDay;
 		if (amount !== undefined) this.amount = amount;
 		if (total !== undefined) this.total = total;
+		if (onContraceptive !== undefined) this.contraceptive = onContraceptive;
 	}
 
 	/** Publishes the complete reversible Womb state after a local gameplay mutation. */
@@ -207,7 +208,8 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		this.commands?.publishState({
 			cycleDay: this.cycleDay,
 			amount: boundedAmount,
-			total: boundedTotal
+			total: boundedTotal,
+			onContraceptive: this.contraceptive
 		});
 	}
 

@@ -1,7 +1,12 @@
 import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
 import { WombPublisher } from "@client/components/network/WombPublisher";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
-import { ZLBF_NETWORK_MODULE, ZLBFNetworkCommand, ZLBFSyncStatus } from "@constants";
+import {
+	ZLBF_NETWORK_MODULE,
+	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBFNetworkCommand,
+	ZLBFSyncStatus
+} from "@constants";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
 jest.mock("@asledgehammer/pipewrench");
@@ -39,7 +44,7 @@ describe("WombPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "womb-1",
 				revision: 1,
 				status: ZLBFSyncStatus.OK,
@@ -59,7 +64,7 @@ describe("WombPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "womb-1",
 				revision: 1,
 				status: ZLBFSyncStatus.OK,
@@ -82,12 +87,105 @@ describe("WombPublisher", () => {
 		);
 	});
 
+	it("drops same-day queued contraceptive clearing when authoritative state is already true", () => {
+		const snapshots = new SnapshotStore();
+		snapshots.apply({ dataSchemaVersion: 5, stateVersion: 3, domains: createDefaultDomains() });
+		const publisher = new WombPublisher(snapshots);
+		publisher.publishState({ ...state(1), onContraceptive: false });
+		publisher.publishState({ ...state(1), onContraceptive: false });
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "womb-1",
+				revision: 1,
+				status: ZLBFSyncStatus.OK,
+				data: {
+					snapshot: {
+						dataSchemaVersion: 5,
+						stateVersion: 4,
+						domains: {
+							...createDefaultDomains(),
+							womb: { ...state(1), onContraceptive: true }
+						}
+					}
+				}
+			}
+		);
+
+		expect(sendMock).toHaveBeenCalledTimes(1);
+		expect(snapshots.snapshot?.domains.womb.onContraceptive).toBe(true);
+	});
+
+	it("rebases and retries a rejected pending day change without a queued update", () => {
+		const snapshots = new SnapshotStore();
+		snapshots.apply({
+			dataSchemaVersion: 5,
+			stateVersion: 3,
+			domains: { ...createDefaultDomains(), womb: state(1) }
+		});
+		const publisher = new WombPublisher(snapshots);
+		publisher.publishState(state(2));
+
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "womb-1",
+				revision: 1,
+				status: ZLBFSyncStatus.OK,
+				data: {
+					snapshot: {
+						dataSchemaVersion: 5,
+						stateVersion: 4,
+						domains: { ...createDefaultDomains(), womb: state(1) }
+					}
+				}
+			}
+		);
+
+		expect(sendMock).toHaveBeenCalledTimes(2);
+		expect(sendMock).toHaveBeenLastCalledWith(
+			getPlayer(),
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+			expect.objectContaining({ baseStateVersion: 4, data: { desired: state(2) } })
+		);
+	});
+
+	it("does not retry when the correlated snapshot already equals the pending intent", () => {
+		const snapshots = new SnapshotStore();
+		const publisher = new WombPublisher(snapshots);
+		publisher.publishState(state(2));
+		publisher.onServerCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "womb-1",
+				revision: 1,
+				status: ZLBFSyncStatus.OK,
+				data: {
+					snapshot: {
+						dataSchemaVersion: 5,
+						stateVersion: 1,
+						domains: { ...createDefaultDomains(), womb: state(2) }
+					}
+				}
+			}
+		);
+
+		expect(sendMock).toHaveBeenCalledTimes(1);
+	});
+
 	it("ignores a response with a different request or protocol schema", () => {
 		const snapshots = new SnapshotStore();
 		const publisher = new WombPublisher(snapshots);
 		publisher.publishState(state(-6));
 		const response = {
-			schemaVersion: 1,
+			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 			requestId: "other",
 			revision: 1,
 			status: ZLBFSyncStatus.OK,
@@ -108,7 +206,7 @@ describe("WombPublisher", () => {
 		publisher.onServerCommand(
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
-			{ ...response, schemaVersion: 2, requestId: "womb-1" }
+			{ ...response, schemaVersion: 1, requestId: "womb-1" }
 		);
 
 		expect(snapshots.snapshot).toBeUndefined();

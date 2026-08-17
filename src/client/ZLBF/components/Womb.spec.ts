@@ -396,10 +396,11 @@ describe("Womb", () => {
 					womb.onEveryDay();
 
 					expect(data.cycleDay).toBe(expected);
-					expect(commands.publishState).toHaveBeenCalledWith({
-						cycleDay: expected,
-						amount: 0.2,
-						total: 0.4
+						expect(commands.publishState).toHaveBeenCalledWith({
+							cycleDay: expected,
+							amount: 0.2,
+							total: 0.4,
+							onContraceptive: false
 					});
 				}
 			);

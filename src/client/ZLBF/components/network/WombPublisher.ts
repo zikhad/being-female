@@ -32,13 +32,18 @@ export class WombPublisher {
 		this.send(desired);
 	}
 
-	/** Creates and sends one correlated Womb-state request. */
+	/**
+	 * Creates and sends one correlated Womb-state request based on the current snapshot version.
+	 *
+	 * @param desired Complete client-simulated state calculated from the current mirror.
+	 */
 	private send(desired: WombProgressState): void {
 		const revision = this.nextRevision++;
 		const payload: ZLBFPublishWombStateRequest = {
 			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 			requestId: `womb-${revision}`,
 			revision,
+			baseStateVersion: this.snapshots.snapshot?.stateVersion ?? 0,
 			data: { desired }
 		};
 		this.pending = payload;
@@ -75,6 +80,23 @@ export class WombPublisher {
 		);
 		const queued = this.queued;
 		this.queued = undefined;
-		if (compatible && queued) this.send(queued);
+		if (compatible) {
+			const authoritative = args.data.snapshot.domains.womb;
+			const desired = queued ?? pending.data.desired;
+			const reconciled =
+				desired.cycleDay === authoritative.cycleDay &&
+				authoritative.onContraceptive !== undefined
+					? { ...desired, onContraceptive: authoritative.onContraceptive }
+					: desired;
+			const unapplied =
+				(authoritative.cycleDay !== undefined &&
+					authoritative.cycleDay !== reconciled.cycleDay) ||
+				(authoritative.amount !== undefined &&
+					authoritative.amount !== reconciled.amount) ||
+				(authoritative.total !== undefined && authoritative.total !== reconciled.total) ||
+				(authoritative.onContraceptive !== undefined &&
+					authoritative.onContraceptive !== reconciled.onContraceptive);
+			if (unapplied) this.send(reconciled);
+		}
 	}
 }

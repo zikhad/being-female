@@ -1,5 +1,6 @@
 import { InventoryItem } from "@asledgehammer/pipewrench";
-import { Fluid } from "server/types";
+/** Build 42 fluid registry identifier accepted by fluid containers. */
+export type Fluid = string;
 
 /**
  * Wrapper for inventory items that may expose a fluid container.
@@ -28,7 +29,7 @@ export class FluidContainerApi {
 		 * Current amount of fluid in the wrapped container (in milliliters).
 		 * Returns 0 when no container is present.
 		 */
-		return this.container?.getAmount() ?? 0
+		return this.container?.getAmount() ?? 0;
 	}
 
 	/**
@@ -61,7 +62,6 @@ export class FluidContainerApi {
 	public isEmpty(): boolean {
 		return this.container?.isEmpty() ?? false;
 	}
-	
 
 	/**
 	 * Adds fluid to the wrapped container up to the requested amount.
@@ -84,7 +84,10 @@ export class FluidContainerApi {
 	 * Clears any fluid from the wrapped container.
 	 */
 	public clear(amount?: number): void {
-		if (typeof amount == "number") this.container?.removeFluid(amount);
+		if (typeof amount === "number") {
+			this.container?.removeFluid(amount);
+			return;
+		}
 		this.container?.removeFluid();
 	}
 }

@@ -22,9 +22,15 @@ export class SnapshotStore {
 	 * @param snapshot Snapshot received in a correlated successful response.
 	 */
 	public apply(snapshot: ZLBFSnapshot): void {
-		if (this.current && snapshot.stateVersion < this.current.stateVersion) return;
+		if (this.current && snapshot.stateVersion <= this.current.stateVersion) return;
 		this.current = snapshot;
 		for (const listener of this.listeners) listener(snapshot);
+	}
+
+	/** Re-notifies listeners of the retained current snapshot after optimism drains. */
+	public notifyCurrent(): void {
+		if (!this.current) return;
+		for (const listener of this.listeners) listener(this.current);
 	}
 
 	/**
