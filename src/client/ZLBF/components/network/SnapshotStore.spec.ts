@@ -39,4 +39,49 @@ describe("SnapshotStore", () => {
 		expect(store.snapshot).toBe(newer);
 		expect(listener).not.toHaveBeenCalled();
 	});
+
+	it("ignores a conflicting snapshot with the same server version", () => {
+		const store = new SnapshotStore();
+		const listener = jest.fn();
+		const accepted = { dataSchemaVersion: 5, stateVersion: 4, domains: createDefaultDomains() };
+		const stale = {
+			dataSchemaVersion: 5,
+			stateVersion: 4,
+			domains: {
+				...createDefaultDomains(),
+				lactation: { isActive: true, milkAmount: 1, expiration: 10, multiplier: 1 }
+			}
+		};
+		store.subscribe(listener);
+		store.apply(accepted);
+		listener.mockClear();
+
+		store.apply(stale);
+
+		expect(store.snapshot).toBe(accepted);
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it("treats a true equal-version duplicate as a no-op", () => {
+		const store = new SnapshotStore();
+		const listener = jest.fn();
+		const snapshot = { dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() };
+		store.subscribe(listener);
+		store.apply(snapshot);
+		listener.mockClear();
+
+		store.apply(snapshot);
+
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	it("explicitly re-notifies listeners of the retained current snapshot", () => {
+		const store = new SnapshotStore();
+		const listener = jest.fn();
+		const snapshot = { dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() };
+		store.apply(snapshot);
+		store.subscribe(listener);
+		store.notifyCurrent();
+		expect(listener).toHaveBeenCalledWith(snapshot);
+	});
 });

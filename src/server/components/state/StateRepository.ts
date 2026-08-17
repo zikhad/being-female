@@ -2,6 +2,8 @@ import type { IsoPlayer } from "@asledgehammer/pipewrench";
 import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
 import { AuthoritativeState, StateLoadResult } from "@server/components/state/AuthoritativeState";
 import { StateMigrator } from "@server/components/state/StateMigrator";
+import { lactationStateSchema } from "@shared/domain/lactation/LactationSchema";
+import { record } from "@shared/validation/Schema";
 
 /** Kahlua-compatible access surface used by Project Zomboid ModData tables. */
 type ModDataStore = Record<string, unknown> & {
@@ -27,6 +29,14 @@ export class StateRepository {
 		const result = this.migrator.migrate(persisted);
 
 		if (result.supported) {
+			const persistedHasLactation =
+				record(persisted) &&
+				record(persisted.domains) &&
+				lactationStateSchema(persisted.domains.lactation);
+			const legacy = this.getStoreValue(store, "ZLBFLactation");
+			if (!persistedHasLactation && lactationStateSchema(legacy)) {
+				result.state.domains.lactation = legacy;
+			}
 			this.setValue(store, result.state);
 		}
 
@@ -52,8 +62,13 @@ export class StateRepository {
 
 	/** Reads the namespaced state through Kahlua or property access. */
 	private getValue(store: ModDataStore): unknown {
-		if (typeof store.get === "function") return store.get(ZLBF_STATE_MOD_DATA_KEY);
-		return store[ZLBF_STATE_MOD_DATA_KEY];
+		return this.getStoreValue(store, ZLBF_STATE_MOD_DATA_KEY);
+	}
+
+	/** Reads one ModData value through Kahlua or property access. */
+	private getStoreValue(store: ModDataStore, key: string): unknown {
+		if (typeof store.get === "function") return store.get(key);
+		return store[key];
 	}
 
 	/** Writes the complete namespaced state through Kahlua or property access. */

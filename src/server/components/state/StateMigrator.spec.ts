@@ -85,4 +85,15 @@ describe("StateMigrator", () => {
 
 		expect(result.supported && result.state.domains.womb).toEqual(womb);
 	});
+
+	it("preserves the complete current Lactation domain", () => {
+		const lactation = { isActive: true, milkAmount: 0.4, expiration: 12, multiplier: 0.2 };
+		const result = migrator.migrate({
+			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+			stateVersion: 5,
+			domains: { lactation }
+		});
+
+		expect(result.supported && result.state.domains.lactation).toEqual(lactation);
+	});
 });

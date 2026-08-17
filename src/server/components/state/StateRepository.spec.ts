@@ -35,6 +35,18 @@ describe("StateRepository", () => {
 		expect(result.stateVersion).toBe(4);
 	});
 
+	it("seeds a missing authoritative Lactation domain from validated legacy data", () => {
+		const legacy = { isActive: true, milkAmount: 0.6, expiration: 8, multiplier: 0.3 };
+		const persisted = state(4) as unknown as { domains: Record<string, unknown> };
+		delete persisted.domains.lactation;
+		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted, ZLBFLactation: legacy };
+		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
+
+		const result = new StateRepository().load(player);
+
+		expect(result.supported && result.state.domains.lactation).toEqual(legacy);
+	});
+
 	it("does not overwrite an unsupported future schema", () => {
 		const persisted = { dataSchemaVersion: 9, stateVersion: 3, domains: { future: true } };
 		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };

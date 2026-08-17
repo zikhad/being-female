@@ -10,13 +10,19 @@ import { SyncPublisher } from "@client/components/network/SyncPublisher";
 import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
 import { WombPublisher } from "@client/components/network/WombPublisher";
+import { RecipeSnapshotReceiver } from "@client/components/network/RecipeSnapshotReceiver";
+import { LactationPublisher } from "@client/components/network/LactationPublisher";
 
-export const lactation = new Lactation();
 /** Read-only client mirror of the latest acknowledged authoritative snapshot. */
 export const snapshots = new SnapshotStore();
+/** Publishes complete reversible Lactation simulation. */
+export const lactationPublisher = new LactationPublisher(snapshots);
+export const lactation = new Lactation(snapshots, lactationPublisher);
 /** Client publisher for reversible menstrual-cycle progression. */
 export const wombPublisher = new WombPublisher(snapshots);
 export const womb = new Womb(wombPublisher, snapshots);
+/** Applies server-authoritative recipe mutation acknowledgements. */
+export const recipeSnapshots = new RecipeSnapshotReceiver(snapshots);
 /** Client request publisher and response correlator. */
 export const syncPublisher = new SyncPublisher(snapshots);
 /** Debug Pregnancy intent publisher and response correlator. */
@@ -30,7 +36,9 @@ export const syncCoordinator = new SyncCoordinator(syncPublisher, [
 	syncPublisher,
 	pregnancyPublisher,
 	birthPublisher,
-	wombPublisher
+	wombPublisher,
+	lactationPublisher,
+	recipeSnapshots
 ]);
 
 export const UI = new ZLBFUI({

@@ -147,7 +147,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "snapshot-1",
 				revision: 1,
 				data: {}
@@ -198,7 +198,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -250,7 +250,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -289,7 +289,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: { desired: createDefaultPregnancyState() }
@@ -317,7 +317,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -355,7 +355,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -426,7 +426,7 @@ describe("CommandHandler", () => {
 			getUsername: jest.fn().mockReturnValue("Dihgg")
 		});
 		const request = {
-			schemaVersion: 1,
+			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 			requestId: "birth-1",
 			revision: 1,
 			data: {}
@@ -479,7 +479,12 @@ describe("CommandHandler", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
-			{ schemaVersion: 1, requestId: "birth-retry", revision: 2, data: {} }
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "birth-retry",
+				revision: 2,
+				data: {}
+			}
 		);
 
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
@@ -494,7 +499,12 @@ describe("CommandHandler", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
-			{ schemaVersion: 1, requestId: "birth-early", revision: 1, data: {} }
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "birth-early",
+				revision: 1,
+				data: {}
+			}
 		);
 
 		expect(sendMock).toHaveBeenLastCalledWith(
@@ -547,7 +557,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "complete-1",
 				revision: 1,
 				data: { birthId: "Dihgg:birth:1" }
@@ -587,9 +597,10 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "womb-1",
 				revision: 1,
+				baseStateVersion: 3,
 				data: {
 					desired: {
 						cycleDay: -6,
@@ -613,5 +624,76 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
 			expect.objectContaining({ status: ZLBFSyncStatus.OK })
 		);
+	});
+
+	it("rejects stale contraceptive clearing but accepts the next versioned day change", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 5,
+				stateVersion: 4,
+				domains: {
+					...domains(),
+					womb: { cycleDay: 1, amount: 0, total: 0, onContraceptive: true }
+				}
+			}
+		};
+		const player = playerWithStore(store);
+		const handler = new CommandHandler();
+		const publish = (baseStateVersion: number, cycleDay: number) =>
+			handler.onClientCommand(
+				ZLBF_NETWORK_MODULE,
+				ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+				player,
+				{
+					schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+					requestId: `womb-${cycleDay}-${baseStateVersion}`,
+					revision: baseStateVersion + 1,
+					baseStateVersion,
+					data: { desired: { cycleDay, amount: 0, total: 0, onContraceptive: false } }
+				}
+			);
+
+		publish(3, 1);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(true);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		publish(4, 2);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(false);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(5);
+	});
+
+	it("persists complete Lactation only against the current authoritative version", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 5, stateVersion: 2, domains: domains() }
+		};
+		const player = playerWithStore(store);
+		const handler = new CommandHandler();
+		const desired = { isActive: true, milkAmount: 0.4, expiration: 8, multiplier: 0.2 };
+		handler.onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "lactation-stale",
+				revision: 1,
+				baseStateVersion: 1,
+				data: { desired }
+			}
+		);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
+		handler.onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "lactation-current",
+				revision: 2,
+				baseStateVersion: 2,
+				data: { desired }
+			}
+		);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(3);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.lactation).toEqual(desired);
 	});
 });

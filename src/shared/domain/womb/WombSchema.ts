@@ -1,5 +1,5 @@
 import type { AuthoritativeWombState, WombProgressState } from "@shared/domain/womb/WombState";
-import { integer, number, object, optional } from "@shared/validation/Schema";
+import { boolean, integer, number, object, optional } from "@shared/validation/Schema";
 
 /** Valid recovery and menstrual-cycle range supported by the current Womb model. */
 const cycleDay = integer({ minimum: -56, maximum: 28 });
@@ -12,12 +12,14 @@ const total = number({ minimum: 0 });
 export const wombStateSchema = object<AuthoritativeWombState>({
 	cycleDay: optional(cycleDay),
 	amount: optional(amount),
-	total: optional(total)
+	total: optional(total),
+	onContraceptive: optional(boolean)
 });
 
 /** Runtime schema for concrete client-published reversible Womb state. */
 export const wombProgressStateSchema = object<WombProgressState>({
 	cycleDay,
 	amount,
-	total
+	total,
+	onContraceptive: optional(boolean)
 });

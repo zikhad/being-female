@@ -18,6 +18,7 @@ import {
 	isZLBFAllocateBirthRequest,
 	isZLBFCompleteBirthRequest,
 	isZLBFPublishWombStateRequest,
+	isZLBFPublishLactationStateRequest,
 	isZLBFSyncStateRequest,
 	ZLBFSetPregnancyStateRequest,
 	ZLBFSnapshot,
@@ -37,6 +38,7 @@ import { Player } from "@shared/components/Player";
 import { createBabyData } from "@shared/domain/birth/BabyData";
 import { PregnancyRecoveryOptions } from "@shared/components/PregnancyRecoveryOptions";
 import { createDefaultWombState } from "@shared/domain/womb/WombState";
+import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
 
 /** Validates and handles ZLBF commands received in the server execution context. */
 export class CommandHandler {
@@ -100,7 +102,44 @@ export class CommandHandler {
 		}
 		if (command === ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST) {
 			this.publishWombState(player, args);
+			return;
 		}
+		if (command === ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST) {
+			this.publishLactationState(player, args);
+		}
+	}
+
+	/** Persists complete client-simulated Lactation state when based on the current version. */
+	private publishLactationState(player: IsoPlayer, args: unknown): void {
+		if (!isZLBFPublishLactationStateRequest(args)) return;
+		const loaded = this.loadForProtocol(player, args.schemaVersion);
+		const status = this.loadStatus(args.schemaVersion, loaded);
+		if (
+			status === ZLBFSyncStatus.OK &&
+			loaded?.supported &&
+			args.baseStateVersion === loaded.stateVersion
+		) {
+			const desired = args.data.desired;
+			const current = loaded.state.domains.lactation;
+			if (
+				current.isActive !== desired.isActive ||
+				current.milkAmount !== desired.milkAmount ||
+				current.expiration !== desired.expiration ||
+				current.multiplier !== desired.multiplier
+			) {
+				loaded.state.domains.lactation = { ...desired };
+				loaded.state.stateVersion += 1;
+				loaded.stateVersion = loaded.state.stateVersion;
+				this.states.save(player, loaded.state);
+			}
+		}
+		this.sendSnapshot(
+			player,
+			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_RESPONSE,
+			args,
+			status,
+			loaded
+		);
 	}
 
 	/** Persists client-simulated reversible Womb contents and cycle progression. */
@@ -111,15 +150,24 @@ export class CommandHandler {
 		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
 			const desired = args.data.desired;
 			const womb = loaded.state.domains.womb;
+			const clearsContraceptive =
+				womb.onContraceptive === true && desired.onContraceptive === false;
+			const acceptedBase = args.baseStateVersion === loaded.stateVersion;
+			const acceptedClear = !clearsContraceptive || desired.cycleDay !== womb.cycleDay;
 			if (
-				womb.cycleDay !== desired.cycleDay ||
-				womb.amount !== desired.amount ||
-				womb.total !== desired.total
+				acceptedBase &&
+				acceptedClear &&
+				(womb.cycleDay !== desired.cycleDay ||
+					womb.amount !== desired.amount ||
+					womb.total !== desired.total ||
+					(desired.onContraceptive !== undefined &&
+						womb.onContraceptive !== desired.onContraceptive))
 			) {
 				loaded.state.domains.womb = {
 					cycleDay: desired.cycleDay,
 					amount: desired.amount,
-					total: desired.total
+					total: desired.total,
+					onContraceptive: desired.onContraceptive ?? womb.onContraceptive
 				};
 				loaded.state.stateVersion += 1;
 				loaded.stateVersion = loaded.state.stateVersion;
@@ -311,7 +359,10 @@ export class CommandHandler {
 					? state.state.domains.pregnancy
 					: createDefaultPregnancyState(),
 				birth: state?.supported ? state.state.domains.birth : createDefaultBirthState(),
-				womb: state?.supported ? state.state.domains.womb : createDefaultWombState()
+				womb: state?.supported ? state.state.domains.womb : createDefaultWombState(),
+				lactation: state?.supported
+					? state.state.domains.lactation
+					: createDefaultLactationState()
 			}
 		};
 	}

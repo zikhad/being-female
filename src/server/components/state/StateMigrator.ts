@@ -11,6 +11,7 @@ import { birthStateSchema } from "@shared/domain/birth/BirthSchema";
 import { createDefaultDomains } from "@shared/ZLBFState";
 import { wombStateSchema } from "@shared/domain/womb/WombSchema";
 import type { AuthoritativeWombState } from "@shared/domain/womb/WombState";
+import { lactationStateSchema } from "@shared/domain/lactation/LactationSchema";
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
 export class StateMigrator {
@@ -70,7 +71,12 @@ export class StateMigrator {
 			if (persistedWomb.cycleDay !== undefined) womb.cycleDay = persistedWomb.cycleDay;
 			if (persistedWomb.amount !== undefined) womb.amount = persistedWomb.amount;
 			if (persistedWomb.total !== undefined) womb.total = persistedWomb.total;
+			if (persistedWomb.onContraceptive !== undefined)
+				womb.onContraceptive = persistedWomb.onContraceptive;
 			state.domains.womb = womb;
+		}
+		if (record(persisted.domains) && lactationStateSchema(persisted.domains.lactation)) {
+			state.domains.lactation = persisted.domains.lactation;
 		}
 
 		return this.supported(state);

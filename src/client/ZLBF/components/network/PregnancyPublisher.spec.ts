@@ -1,5 +1,10 @@
 import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
-import { ZLBF_NETWORK_MODULE, ZLBFNetworkCommand, ZLBFSyncStatus } from "@constants";
+import {
+	ZLBF_NETWORK_MODULE,
+	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBFNetworkCommand,
+	ZLBFSyncStatus
+} from "@constants";
 import { PregnancyPublisher } from "@client/components/network/PregnancyPublisher";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
@@ -46,7 +51,7 @@ describe("PregnancyPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				status: ZLBFSyncStatus.OK,
@@ -107,7 +112,7 @@ describe("PregnancyPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "wrong",
 				revision: 1,
 				status: ZLBFSyncStatus.OK,
@@ -120,7 +125,7 @@ describe("PregnancyPublisher", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
 			{
-				schemaVersion: 1,
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				status: ZLBFSyncStatus.OK,

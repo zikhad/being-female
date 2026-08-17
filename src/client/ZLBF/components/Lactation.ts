@@ -13,6 +13,12 @@ import { LactationOptions } from "@client/SandboxOptions";
 import { Player, TimedEvents } from "@client/components/Player";
 import { Moodle } from "@client/components/Moodles";
 import { PregnancyState } from "@client/components/PregnancyState";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
+import {
+	LactationMutationIntent,
+	LactationPublisher
+} from "@client/components/network/LactationPublisher";
 
 /**
  * Lactation management system for a player character.
@@ -23,6 +29,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	private readonly _bottleAmount = 0.2;
 
 	private moodle?: Moodle;
+	private publicationSuppressed = false;
 
 	private readonly CONSTANTS = {
 		MAX_LEVEL: 5,
@@ -41,9 +48,18 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 * Debug utilities to modify internal milk data
 	 */
 	public Debug = {
-		add: (amount: number) => (this.milkAmount += amount),
-		remove: (amount: number) => (this.milkAmount -= amount),
-		set: (amount: number) => (this.milkAmount = amount),
+		add: (amount: number) => {
+			this.milkAmount += amount;
+			this.publishState({ milkAmount: { mode: "delta", value: amount } });
+		},
+		remove: (amount: number) => {
+			this.milkAmount -= amount;
+			this.publishState({ milkAmount: { mode: "delta", value: -amount } });
+		},
+		set: (amount: number) => {
+			this.milkAmount = amount;
+			this.publishState({ milkAmount: { mode: "replace", value: this.milkAmount } });
+		},
 		toggle: (status: boolean) => this.toggle(status)
 	};
 
@@ -54,8 +70,42 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		multiplier: 0
 	};
 
-	constructor() {
+	/**
+	 * Creates client Lactation simulation with optional authoritative convergence.
+	 *
+	 * @param snapshots Authoritative snapshot mirror used for recipe and progression acknowledgement.
+	 * @param commands Complete-state publisher; omitted in isolated single-player-compatible use.
+	 */
+	constructor(
+		private readonly snapshots?: SnapshotStore,
+		private readonly commands?: LactationPublisher
+	) {
 		super("ZLBFLactation");
+		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
+	}
+
+	/** Replaces local Lactation compatibility data after an authoritative acknowledgement. */
+	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
+		this.data = { ...(this.commands?.latestDesiredState ?? snapshot.domains.lactation) };
+	}
+
+	/** Publishes the complete current Lactation state after a local simulation mutation. */
+	private publishState(intent: LactationMutationIntent): void {
+		if (!this.publicationSuppressed && this.data)
+			this.commands?.publishState({ ...this.data }, intent);
+	}
+
+	/**
+	 * Applies a compound synchronous mutation while publishing only its final complete state.
+	 * Public mutation methods retain immediate publication outside this boundary.
+	 *
+	 * @param mutate Mutation composed from existing Lactation operations.
+	 */
+	private applyMutation(mutate: () => void, intent: () => LactationMutationIntent): void {
+		this.publicationSuppressed = true;
+		mutate();
+		this.publicationSuppressed = false;
+		this.publishState(intent());
 	}
 
 	/**
@@ -64,6 +114,8 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 */
 	onCreatePlayer(player: IsoPlayer): void {
 		super.onCreatePlayer(player);
+		const snapshot = this.snapshots?.snapshot;
+		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
 		this.moodle = new Moodle({
 			player,
 			name: "Engorgement",
@@ -94,19 +146,32 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 		const { progress } = data;
 		if (progress < 0.5) return;
-		this.toggle(true);
-		this.useMilk(0, progress);
+		this.applyMutation(
+			() => {
+				this.toggle(true);
+				this.useMilk(0, progress);
+			},
+			() => ({
+				isActive: { mode: "replace", value: true },
+				expiration: { mode: "replace", value: this.expiration },
+				multiplier: { mode: "replace", value: this.multiplier }
+			})
+		);
 	}
 
 	onLactationUpdate(data: LactationData) {
 		if (!this.isLactating) return;
 		const multiplier = 1 + this.multiplier;
-		const amount =
+		const requested =
 			ZombRandFloat(this.CONSTANTS.AMOUNTS.MIN, this.CONSTANTS.AMOUNTS.MAX) * multiplier;
-		this.milkAmount = Math.min(this.capacity, this.milkAmount + amount);
+		const previous = this.milkAmount;
+		this.milkAmount = Math.min(this.capacity, previous + requested);
+		const produced = this.milkAmount - previous;
+		if (produced > 0) this.publishState({ milkAmount: { mode: "delta", value: produced } });
 	}
 
 	onEveryMinute() {
+		this.commands?.onEveryOneMinute();
 		this.moodle?.moodle(this.percentage, true);
 		triggerEvent(ZLBFEventsEnum.LACTATION_UPDATE, this.data);
 	}
@@ -125,6 +190,8 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 	onEveryHour() {
 		if (!this.isLactating) return;
+		const previousMultiplier = this.multiplier;
+		const previousExpiration = this.expiration;
 		this.multiplier = Math.max(0, this.multiplier - 0.1);
 		this.expiration = Math.max(0, this.expiration - 1);
 
@@ -132,6 +199,11 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		this.moodle?.moodle(this.percentage);
 
 		if (this.expiration === 0) this.toggle(false);
+		else
+			this.publishState({
+				multiplier: { mode: "delta", value: this.multiplier - previousMultiplier },
+				expiration: { mode: "delta", value: this.expiration - previousExpiration }
+			});
 	}
 
 	/**
@@ -149,6 +221,12 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 			};
 			this.moodle?.moodle(0);
 		}
+		this.publishState({
+			isActive: { mode: "replace", value: this.isLactating },
+			expiration: { mode: "replace", value: this.expiration },
+			milkAmount: status ? undefined : { mode: "replace", value: this.milkAmount },
+			multiplier: status ? undefined : { mode: "replace", value: this.multiplier }
+		});
 	}
 
 	/**
@@ -170,6 +248,11 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		}
 
 		this.remove(amount);
+		this.publishState({
+			milkAmount: { mode: "delta", value: -amount },
+			expiration: { mode: "replace", value: this.expiration },
+			multiplier: { mode: "replace", value: this.multiplier }
+		});
 	}
 
 	/**

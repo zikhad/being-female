@@ -6,6 +6,8 @@ export type AuthoritativeWombState = {
 	amount?: number;
 	/** Cumulative sperm volume received by the player. */
 	total?: number;
+	/** Whether the current cycle is protected by contraceptive medication. */
+	onContraceptive?: boolean;
 };
 
 /** Concrete reversible Womb state published after legacy local data is initialized. */
@@ -16,6 +18,8 @@ export type WombProgressState = {
 	amount: number;
 	/** Cumulative sperm volume received by the player. */
 	total: number;
+	/** Whether contraceptive medication is active for this cycle. */
+	onContraceptive?: boolean;
 };
 
 /** Creates an uninitialized Womb state that preserves legacy data during migration. */
