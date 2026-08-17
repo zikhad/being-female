@@ -21,6 +21,7 @@ import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { createDefaultWombState } from "@shared/domain/womb/WombState";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
 import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
+import { ZLBFActionBirth } from "@actions/ZLBFBirth";
 
 jest.mock("@actions/ZLBFBirth");
 jest.mock("@actions/ZLBFPregnancyStartAnimation");
@@ -623,6 +624,185 @@ describe("Pregnancy", () => {
 		});
 
 		expect(births.allocate).toHaveBeenCalledTimes(1);
+	});
+
+	describe("authoritative birth presentation recovery", () => {
+		const birthId = "mother:birth:1";
+		const laborSnapshot = (stateVersion: number) => ({
+			dataSchemaVersion: 5,
+			stateVersion,
+			domains: {
+				womb: createDefaultWombState(),
+				lactation: createDefaultLactationState(),
+				pregnancy: {
+					status: PregnancyStatus.PREGNANT,
+					current: 100,
+					progress: 1,
+					isInLabor: true
+				},
+				birth: { ...createDefaultBirthState(), pendingBirthId: birthId }
+			}
+		});
+
+		it("releases movement on cancel and retries the same ID on the next minute", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
+			const setBlockMovement = jest.fn();
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => ({}))
+			});
+
+			snapshots.apply(laborSnapshot(1));
+			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
+			expect(queue).toHaveBeenCalledTimes(1);
+
+			pregnancy.onBirthPresentationStopped(birthId);
+			expect(setBlockMovement).toHaveBeenLastCalledWith(false);
+
+			snapshots.apply(laborSnapshot(2));
+			expect(queue).toHaveBeenCalledTimes(1);
+
+			pregnancy.onEveryMinute();
+			expect(queue).toHaveBeenCalledTimes(2);
+			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
+			expect(setBlockMovement).toHaveBeenLastCalledWith(true);
+		});
+
+		it("submits completion once and does not requeue while awaiting acknowledgement", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			const setBlockMovement = jest.fn();
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => ({}))
+			});
+			snapshots.apply(laborSnapshot(1));
+
+			pregnancy.birth(birthId);
+			pregnancy.birth(birthId);
+			pregnancy.onEveryMinute();
+
+			expect(births.complete).toHaveBeenCalledTimes(1);
+			expect(births.complete).toHaveBeenCalledWith(birthId);
+			expect(setBlockMovement).toHaveBeenLastCalledWith(false);
+			expect(queue).toHaveBeenCalledTimes(1);
+		});
+
+		it("ignores a stale action whose ID does not match the current pending birth", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			const setBlockMovement = jest.fn();
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => ({}))
+			});
+			snapshots.apply(laborSnapshot(1));
+			setBlockMovement.mockClear();
+
+			pregnancy.birth("mother:birth:older");
+
+			expect(births.complete).not.toHaveBeenCalled();
+			expect(setBlockMovement).not.toHaveBeenCalled();
+		});
+
+		it("ignores late completion after the active presentation was canceled", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			const setBlockMovement = jest.fn();
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => ({}))
+			});
+			snapshots.apply(laborSnapshot(1));
+			pregnancy.onBirthPresentationStopped(birthId);
+			setBlockMovement.mockClear();
+
+			pregnancy.birth(birthId);
+
+			expect(births.complete).not.toHaveBeenCalled();
+			expect(setBlockMovement).not.toHaveBeenCalled();
+		});
+
+		it("ignores a stop callback from an action other than the active birth", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
+			const setBlockMovement = jest.fn();
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => ({}))
+			});
+			snapshots.apply(laborSnapshot(1));
+			setBlockMovement.mockClear();
+
+			pregnancy.onBirthPresentationStopped("mother:birth:older");
+
+			expect(setBlockMovement).not.toHaveBeenCalled();
+			pregnancy.onEveryMinute();
+			expect(ISTimedActionQueue.add).toHaveBeenCalledTimes(1);
+		});
+
+		it("queues a retained pending birth after player recreation", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const snapshots = new SnapshotStore();
+			snapshots.apply(laborSnapshot(1));
+			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
+			(pregnancy as any).onCreatePlayer(
+				mock<IsoPlayer>({
+					setBlockMovement: jest.fn(),
+					getModData: jest.fn(() => ({}))
+				})
+			);
+
+			expect(queue).toHaveBeenCalledTimes(1);
+			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
+		});
+
+		it("retries an interrupted legacy birth on the next minute", () => {
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const pregnancy = new Pregnancy();
+			const setBlockMovement = jest.fn();
+			const legacyModData = {};
+			(pregnancy as any).player = mock<IsoPlayer>({
+				setBlockMovement,
+				getModData: jest.fn(() => legacyModData)
+			});
+			let presentation = {
+				current: 99,
+				progress: 0.99,
+				isInLabor: false
+			};
+			const pregnancyState = jest
+				.spyOn(PregnancyState, "get")
+				.mockImplementation(() => presentation);
+			const duration = jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(100);
+			try {
+				pregnancy.onEveryMinute();
+				expect(queue).toHaveBeenCalledTimes(1);
+				pregnancy.onBirthPresentationStopped();
+				expect(setBlockMovement).toHaveBeenLastCalledWith(false);
+
+				presentation = { current: 100, progress: 1, isInLabor: true };
+				pregnancy.onEveryMinute();
+				expect(queue).toHaveBeenCalledTimes(2);
+				expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy);
+				expect(setBlockMovement).toHaveBeenLastCalledWith(true);
+			} finally {
+				pregnancyState.mockRestore();
+				duration.mockRestore();
+			}
+		});
 	});
 
 	describe("PREGNANCY_UPDATE Event", () => {

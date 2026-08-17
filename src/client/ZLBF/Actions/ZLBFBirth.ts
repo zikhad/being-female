@@ -5,10 +5,14 @@ import { ZLBFAnimations, ZLBFEventsEnum } from "@constants";
 
 export class ZLBFActionBirth extends ISBaseTimedAction {
 	private pregnancy: Pregnancy;
-	constructor(pregnancy: Pregnancy) {
+	private readonly birthId?: string;
+
+	/** Creates one client presentation for an optional server-issued birth operation. */
+	constructor(pregnancy: Pregnancy, birthId?: string) {
 		super(pregnancy.player);
 		super.derive("ZLBFActionBirth");
 		this.pregnancy = pregnancy;
+		this.birthId = birthId;
 		this.maxTime = 5500;
 		this.stopOnWalk = false;
 		this.stopOnRun = false;
@@ -34,13 +38,17 @@ export class ZLBFActionBirth extends ISBaseTimedAction {
 			duration: this.maxTime
 		} as AnimationUpdateConfig);
 	}
-	stop() {
+	/** Cleans up a canceled presentation without completing its durable birth operation. */
+	stop(): void {
+		super.stop();
 		triggerEvent(ZLBFEventsEnum.ANIMATION_STOP);
+		this.pregnancy.onBirthPresentationStopped(this.birthId);
 	}
 
-	perform() {
+	/** Completes the presentation and submits its server operation exactly once locally. */
+	perform(): void {
 		super.perform();
-		this.pregnancy.birth();
+		this.pregnancy.birth(this.birthId);
 		triggerEvent(ZLBFEventsEnum.ANIMATION_STOP);
 	}
 }
