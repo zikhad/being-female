@@ -25,11 +25,19 @@ import {
 import type { ZLBFSnapshot } from "@shared/ZLBFProtocol";
 import { BirthPublisher } from "@client/components/network/BirthPublisher";
 
+/** Mutually exclusive client presentation state for one local birth animation lifecycle. */
+type BirthPresentationState =
+	| { phase: "idle"; birthId?: undefined }
+	| { phase: "active"; birthId?: string }
+	| { phase: "interrupted"; birthId?: string }
+	| { phase: "submitted"; birthId: string };
+
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
 	private lastMinuteStamp?: number;
 	private lastAppliedStatus?: PregnancyStatus;
-	private startedBirthId?: string;
+	/** Current local birth presentation phase; durable authoritative state remains in snapshots. */
+	private birthPresentation: BirthPresentationState = { phase: "idle" };
 
 	/**
 	 * Get current pregnancy duration from sandbox options.
@@ -104,7 +112,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		this.lastAppliedStatus = pregnancy.status;
 		if (pregnancy.status === PregnancyStatus.NOT_PREGNANT) {
 			this.player?.setBlockMovement(false);
-			this.startedBirthId = undefined;
+			this.birthPresentation = { phase: "idle" };
 			this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
 			this.resetVariables();
 			return;
@@ -122,12 +130,56 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
 			this.births?.allocate();
 		}
+		this.queuePendingBirthPresentation(snapshot, false);
+	}
+
+	/**
+	 * Queues the authoritative pending birth when it has no active or submitted presentation.
+	 *
+	 * @param snapshot Latest authoritative snapshot containing the durable operation identity.
+	 * @param canResumeInterrupted Whether the minute lifecycle may resume a canceled presentation.
+	 */
+	private queuePendingBirthPresentation(
+		snapshot: ZLBFSnapshot,
+		canResumeInterrupted: boolean
+	): void {
 		const pendingBirthId = snapshot.domains.birth.pendingBirthId;
-		if (pregnancy.isInLabor && pendingBirthId && this.startedBirthId !== pendingBirthId) {
-			this.startedBirthId = pendingBirthId;
-			this.player?.setBlockMovement(true);
-			ISTimedActionQueue.add(new ZLBFActionBirth(this));
-		}
+		if (!snapshot.domains.pregnancy.isInLabor || !pendingBirthId) return;
+		const presentation = this.birthPresentation;
+		if (presentation.phase === "active") return;
+		if (presentation.phase === "submitted" && presentation.birthId === pendingBirthId)
+			return;
+		if (
+			presentation.phase === "interrupted" &&
+			presentation.birthId === pendingBirthId &&
+			!canResumeInterrupted
+		)
+			return;
+
+		this.birthPresentation = { phase: "active", birthId: pendingBirthId };
+		this.player?.setBlockMovement(true);
+		ISTimedActionQueue.add(new ZLBFActionBirth(this, pendingBirthId));
+	}
+
+	/**
+	 * Queues or resumes the legacy local birth presentation without a server operation ID.
+	 *
+	 * @param canResumeInterrupted Whether the minute lifecycle may resume a canceled action.
+	 * @param isInLabor Current local labor state, including a transition calculated this minute.
+	 */
+	private queueLegacyBirthPresentation(
+		canResumeInterrupted: boolean,
+		isInLabor: boolean
+	): void {
+		if (this.births) return;
+		if (!isInLabor) return;
+		const presentation = this.birthPresentation;
+		if (presentation.phase === "active" || presentation.phase === "submitted") return;
+		if (presentation.phase === "interrupted" && !canResumeInterrupted) return;
+
+		this.birthPresentation = { phase: "active" };
+		this.player?.setBlockMovement(true);
+		ISTimedActionQueue.add(new ZLBFActionBirth(this));
 	}
 
 	protected onCreatePlayer(player: IsoPlayer): void {
@@ -225,12 +277,17 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		const minuteStamp = getGameTime().getMinutesStamp();
 		const elapsed = Math.max(0, minuteStamp - (this.lastMinuteStamp ?? minuteStamp - 1));
 		this.lastMinuteStamp = minuteStamp;
-		if (!this.pregnancy) return;
+		const pregnancy = this.pregnancy;
+		if (!pregnancy) return;
 		if (this.commands && !this.snapshots?.snapshot) return;
+		const snapshot = this.snapshots?.snapshot;
+		if (snapshot) this.queuePendingBirthPresentation(snapshot, true);
+		else if (this.birthPresentation.phase === "interrupted")
+			this.queueLegacyBirthPresentation(true, pregnancy.isInLabor ?? false);
 		if (elapsed === 0) return;
 		const duration = this.duration;
-		const { current } = this.pregnancy;
-		const previousInLabor = this.pregnancy.isInLabor ?? false;
+		const { current } = pregnancy;
+		const previousInLabor = pregnancy.isInLabor ?? false;
 		if (current >= duration && previousInLabor) return;
 		const updated = Math.min(duration, current + elapsed);
 		const isInLabor = updated == duration;
@@ -246,8 +303,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			isInLabor
 		});
 		if (isInLabor && !previousInLabor && !this.births) {
-			this.player!.setBlockMovement(true);
-			ISTimedActionQueue.add(new ZLBFActionBirth(this));
+			this.queueLegacyBirthPresentation(false, true);
 		}
 		this.moodle?.moodle(this.pregnancy.progress, true);
 		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
@@ -289,16 +345,24 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	}
 
 	/**
-	 * Spawn the baby item, restore player movement and apply post-birth effects.
-	 * Also stops the pregnancy state.
+	 * Submits an authoritative birth completion or performs the legacy local fallback.
+	 *
+	 * @param birthId Server-issued identity carried by the completed presentation action.
 	 */
-	public birth() {
+	public birth(birthId?: string): void {
 		if (!this.player) return;
-		const birthId = this.snapshots?.snapshot?.domains.birth.pendingBirthId;
-		if (birthId && this.births) {
+		const pendingBirthId = this.snapshots?.snapshot?.domains.birth.pendingBirthId;
+		if (this.births) {
+			if (!birthId || birthId !== pendingBirthId) return;
+			const presentation = this.birthPresentation;
+			if (presentation.phase !== "active" || presentation.birthId !== birthId)
+				return;
+			this.birthPresentation = { phase: "submitted", birthId };
+			this.player.setBlockMovement(false);
 			this.births.complete(birthId);
 			return;
 		}
+		this.birthPresentation = { phase: "idle" };
 		this.player.getInventory().AddItem(ITEMS.BABY);
 		this.player.setBlockMovement(false);
 		this.applyStatEffect({
@@ -307,5 +371,18 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			maxValue: 0.75
 		});
 		this.stop();
+	}
+
+	/**
+	 * Releases canceled birth presentation state while retaining its authoritative operation.
+	 * The next minute lifecycle may queue the same birth ID after menu and action cleanup settle.
+	 *
+	 * @param birthId Server-issued identity carried by the canceled action, when authoritative.
+	 */
+	public onBirthPresentationStopped(birthId?: string): void {
+		const presentation = this.birthPresentation;
+		if (presentation.phase !== "active" || presentation.birthId !== birthId) return;
+		this.birthPresentation = { phase: "interrupted", birthId };
+		this.player?.setBlockMovement(false);
 	}
 }

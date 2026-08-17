@@ -19,6 +19,8 @@ Installed Build 42 vanilla server handlers establish the player-item grant path:
 
 Build 42 handcraft callback authority is verified. `OnTest` may execute in both client recipe evaluation and server validation, while `OnCreate` executes locally in single-player and on the authoritative server in multiplayer. Callbacks receive the crafting character explicitly and must not use `getPlayer()` as the actor. Fluid replication after authoritative mutation remains unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
 
+Build 42 does not expose a supported per-timed-action non-cancelable flag. Cancel Action treats any nonempty local player character-action stack as cancelable and calls `StopAllActionQueue()` without consulting walk/run/aim, progress-bar, or movement-blocking fields. Birth presentation must therefore be resumable around its persisted pending birth operation rather than treated as an uninterruptible transaction.
+
 Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
 
 Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
@@ -73,6 +75,17 @@ Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSper
 -   Vanilla uses `getFullName()` for persisted character attribution and explicitly combines descriptor forename and surname in character-facing UI. Vanilla server code confirms the related player identity methods are callable on the authenticated command player.
 -   `getFullName()` returns the fallback `Bob Smith` when the descriptor is absent. Birth completion must reject or explicitly handle a missing descriptor instead of persisting that fallback.
 
+### Build 42 Timed-Action Cancellation
+
+-   Installed Build 42 `media/lua/client/OptionScreens/MainScreen.lua` routes the configured Cancel Action key through `CancelAction()` to `IsoPlayer.StopAllActionQueue()`.
+-   Installed Build 42 `IsoPlayer.isDoingActionThatCanBeCancelled()` bytecode returns true whenever a living player's character-action stack is nonempty; it does not inspect the active action's fields.
+-   `stopOnWalk`, `stopOnRun`, and `stopOnAim` are consulted only by walking, running, and aiming interruption paths. `forceProgressBar` affects display only, and movement blocking is not consulted by Cancel Action.
+-   Current `ZLBFActionBirth.stop()` emits the animation-stop event but does not call superclass cleanup, release movement, or make its persisted pending birth eligible for presentation retry.
+-   `Pregnancy.startedBirthId` currently records that an operation was once presented rather than whether presentation is active. After cancellation it suppresses requeue while the authoritative operation remains pending.
+-   Cancellation must clean local presentation and schedule a safe retry. Only successful timed-action completion may submit the idempotent pending birth operation.
+-   ZLBF uses the next `EveryOneMinute` callback as the retry boundary. Snapshot notifications received between cancellation and that callback retain the interrupted marker and cannot immediately requeue the action while Cancel Action or its menu is still settling.
+-   Active presentation, interrupted presentation, and submitted completion are mutually exclusive client phases. The durable `pendingBirthId` remains server-owned; cancellation never completes it, while a submitted completion suppresses local replay until an authoritative snapshot resolves Pregnancy.
+
 ## Runtime And Version Applicability
 
 The concern applies to Build 42 multiplayer. UI and animation are client concerns; persistent transitions and externally visible inventory/fluid values require verified authority.
@@ -99,6 +112,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Configure the item completely before `AddItem` and `sendAddItemToContainer`; later field changes may require separate synchronization.
 -   Do not use inventory refresh, `transmitModData`, `sendItemStats`, or item transactions for initial creation.
 -   Retain a completed birth marker after Pregnancy reset. A missing baby must not recreate a completed operation because the item may have been transferred, dropped, or consumed.
+-   Treat birth animation cancellation as presentation interruption: run timed-action cleanup, release movement, retain the pending operation, and retry its same ID on the next in-game minute. Do not complete a birth from `stop()`.
 -   Persist ownership/provenance so ZLBF never removes or restores effects it did not introduce.
 
 ## Remaining Questions
@@ -106,7 +120,8 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
 -   Does `syncItemFields` after server-side `FluidContainer.addFluid` converge amount and primary fluid for both the crafting client and observers in hosted and dedicated multiplayer?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
--   How does labor recover after reconnect without duplicate birth?
+-   What death policy should resolve or preserve a persisted pending birth operation?
+-   How should a retained client singleton recover when a birth-completion response is lost after submission? Reconnect reconstructs presentation from the authoritative pending ID, but same-session completion retry belongs to a later network-resilience slice.
 
 ## In-Game Validation
 
@@ -127,3 +142,5 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-14: Verified Build 42 handcraft callback authority: `OnTest` participates in client and server viability evaluation, while `OnCreate` runs locally in SP and on the authoritative server in MP. Confirmed that callbacks receive the actor explicitly, `getPlayer()` is not a server actor lookup, and server `sendClientCommand(player, ...)` re-enters `OnClientCommand` locally. The current server-to-client-singleton require boundary is unsafe; fluid replication remains unverified.
 -   2026-08-17: Reproduced the actor/authority failures in `HandExpress` and `ClearSperm`; implemented callback-actor state access, complete Lactation persistence, authoritative Womb clearing, recipe snapshot acknowledgement, and server-context `syncItemFields`. Automated tests cover persistence and actor isolation; in-game fluid convergence remains unverified.
 -   2026-08-17: Added versioned complete Lactation publication. Client simulation coalesces changes and delta-rebases rejected state over authoritative recipe snapshots, so recipe milk consumption remains authoritative while concurrent production/expiration changes converge. Dedicated and hosted multiplayer runtime validation remains pending.
+-   2026-08-17: Verified that Build 42 has no supported per-timed-action non-cancelable flag. Cancel Action stops any active player character action independently of walk/run/aim, progress-bar, and movement-blocking settings. Identified the current `startedBirthId` and movement cleanup failure after canceled birth, and selected resumable pending-operation presentation as the recovery boundary.
+-   2026-08-17: Implemented resumable birth presentation with mutually exclusive active, interrupted, and completion-submitted phases. Cancellation performs base cleanup and releases movement; the next `EveryOneMinute` lifecycle retries the same authoritative birth ID without completing it. Legacy single-player birth uses the same interrupted retry boundary; same-session lost completion acknowledgement remains deferred to network resilience.
