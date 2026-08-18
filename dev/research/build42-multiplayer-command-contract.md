@@ -1,7 +1,7 @@
 # Build 42 Multiplayer Command Contract
 
 Status: partially verified  
-Last updated: 2026-08-11
+Last updated: 2026-08-18
 Project Zomboid build: 42.x  
 Scope: shared, multiplayer
 
@@ -51,6 +51,22 @@ An earlier ZLBF multiplayer experiment, not present on this branch, logged this 
 
 This is direct runtime evidence that ZLBF needs post-creation change detection or bounded retry and must not assume either lifecycle event alone is network-ready.
 
+### PipeWrench client/server boundary warnings
+
+The five `Cannot reference code from src/server from src/client` warnings produced by `@asledgehammer/tstl-pipewrench` 41.78.19 are false positives for the current server dependency graph. The plugin's `handleFile()` tests `fp.dir.indexOf("client")` as a boolean; JavaScript treats the absent result `-1` as truthy, so normal server output paths are classified as client scope. Its require-rewrite pass consequently warns on server-prefixed imports before stripping the prefix.
+
+The warnings correspond exactly to these server-to-server value imports:
+
+1. `src/server/ZLBF.ts` to `CommandHandler`.
+2. `src/server/ZLBFRecipes.ts` to `StateRepository`.
+3. `src/server/components/CommandHandler.ts` to `StateRepository`.
+4. `src/server/components/CommandHandler.ts` to `BirthOperationAllocator`.
+5. `src/server/components/state/StateRepository.ts` to `StateMigrator`.
+
+Generated Lua places every caller and target beneath `media/lua/server` and emits side-relative paths such as `require('components/CommandHandler')`. No generated client file requires these server modules. Type-only server imports are erased and do not contribute warnings.
+
+The present source placement is therefore correct. Server-only modules must remain in `src/server`; moving them into `src/shared` merely to silence a faulty diagnostic would weaken the runtime boundary. A project-local tooling update or patch may remove the noise later, but permanent edits inside `node_modules` are not appropriate.
+
 ## Runtime And Version Applicability
 
 Signatures are supported by local Build 42 evidence. Connection lifecycle, reconnect ordering, and single-player dispatch remain environment-sensitive. Never accept a username or online ID from a payload to select the affected player.
@@ -94,3 +110,4 @@ In single-player, hosted multiplayer, and a dedicated server with two clients:
 -   2026-08-04: Added hosted runtime evidence and a private Reference Mod comparison; removed stale references to multiplayer files absent from the current branch.
 -   2026-08-04: Recorded project-owner runtime confirmation of the Reference Mod's unified single-player and multiplayer behavior; retained ZLBF-specific lifecycle validation.
 -   2026-08-11: Recorded hosted bootstrap delivery and linked the server progression event research.
+-   2026-08-18: Confirmed that five PipeWrench client-to-server build warnings are tooling false positives caused by faulty output-scope detection in version 41.78.19. Generated Lua retains correct server placement and side-relative requires.
