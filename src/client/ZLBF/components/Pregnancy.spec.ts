@@ -35,6 +35,8 @@ describe("Pregnancy", () => {
 		setMaxWeightBase: jest.fn(),
 		getModData: jest.fn(() => modData)
 	});
+	const bind = (pregnancy: Pregnancy, boundPlayer: IsoPlayer): void =>
+		(pregnancy as any).onCreatePlayer(boundPlayer);
 
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -76,7 +78,7 @@ describe("Pregnancy", () => {
 					(pregnancy as any)[handler] = jest.fn();
 					(pregnancy as any).onCreatePlayer(player);
 				});
-				it(`should register ${event} listener during player creation`, () => {
+				it(`should register ${event} listener during component construction`, () => {
 					expect(addListener).toHaveBeenCalledWith(expect.any(Function));
 				});
 				it(`should call ${event} listener during player creation`, () => {
@@ -100,7 +102,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
 							current: 14 * 24 * 60 - 1,
@@ -131,7 +133,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -152,7 +154,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					// Set duration to be large, so current + 1 < duration is true
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(1000);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
@@ -175,7 +177,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -198,7 +200,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					const moodleMock = jest.fn();
 					(pregnancy as any).moodle = { moodle: moodleMock };
@@ -220,7 +222,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -244,7 +246,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -269,7 +271,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -294,7 +296,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(10);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 						mock<PregnancyData>({
@@ -317,7 +319,7 @@ describe("Pregnancy", () => {
 						getModData: jest.fn(() => mockModData)
 					});
 					const pregnancy = new Pregnancy();
-					(pregnancy as any).player = mockPlayer;
+					bind(pregnancy, mockPlayer);
 					// Set duration to 5, current to 5: current + 1 = 6 > 5
 					jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(5);
 					jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
@@ -555,9 +557,9 @@ describe("Pregnancy", () => {
 				const snapshots = new SnapshotStore();
 				const pregnancy = new Pregnancy(commands, snapshots);
 				const store: Record<string, unknown> = {};
-				(pregnancy as any).player = mock<IsoPlayer>({
+				bind(pregnancy, mock<IsoPlayer>({
 					getModData: jest.fn(() => store)
-				});
+				}));
 				const notPregnant = createDefaultPregnancyState();
 				const pregnant = { ...notPregnant, status: PregnancyStatus.PREGNANT };
 
@@ -603,9 +605,9 @@ describe("Pregnancy", () => {
 		const snapshots = new SnapshotStore();
 		const births = mock<BirthPublisher>({ allocate: jest.fn() });
 		const pregnancy = new Pregnancy(undefined, snapshots, births);
-		(pregnancy as any).player = mock<IsoPlayer>({
+		bind(pregnancy, mock<IsoPlayer>({
 			getModData: jest.fn().mockReturnValue({})
-		});
+		}));
 
 		snapshots.apply({
 			dataSchemaVersion: 3,
@@ -650,10 +652,10 @@ describe("Pregnancy", () => {
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
 			const setBlockMovement = jest.fn();
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 
 			snapshots.apply(laborSnapshot(1));
 			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
@@ -678,10 +680,10 @@ describe("Pregnancy", () => {
 			const births = mock<BirthPublisher>({ complete: jest.fn() });
 			const pregnancy = new Pregnancy(undefined, snapshots, births);
 			const setBlockMovement = jest.fn();
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			snapshots.apply(laborSnapshot(1));
 
 			pregnancy.birth(birthId);
@@ -700,10 +702,10 @@ describe("Pregnancy", () => {
 			const snapshots = new SnapshotStore();
 			const births = mock<BirthPublisher>({ complete: jest.fn() });
 			const pregnancy = new Pregnancy(undefined, snapshots, births);
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement: jest.fn(),
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			snapshots.apply(laborSnapshot(1));
 			pregnancy.birth(birthId);
 			snapshots.resetSession();
@@ -721,10 +723,10 @@ describe("Pregnancy", () => {
 			const births = mock<BirthPublisher>({ complete: jest.fn() });
 			const pregnancy = new Pregnancy(undefined, snapshots, births);
 			const setBlockMovement = jest.fn();
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			snapshots.apply(laborSnapshot(1));
 			setBlockMovement.mockClear();
 
@@ -740,10 +742,10 @@ describe("Pregnancy", () => {
 			const births = mock<BirthPublisher>({ complete: jest.fn() });
 			const pregnancy = new Pregnancy(undefined, snapshots, births);
 			const setBlockMovement = jest.fn();
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			snapshots.apply(laborSnapshot(1));
 			pregnancy.onBirthPresentationStopped(birthId);
 			setBlockMovement.mockClear();
@@ -759,10 +761,10 @@ describe("Pregnancy", () => {
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
 			const setBlockMovement = jest.fn();
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			snapshots.apply(laborSnapshot(1));
 			setBlockMovement.mockClear();
 
@@ -790,15 +792,228 @@ describe("Pregnancy", () => {
 			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
 		});
 
+		it("terminates only the dead bound player and waits for a fresh snapshot after recreation", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const queue = jest.spyOn(ISTimedActionQueue, "add");
+			const deathListeners: Array<(player: IsoPlayer) => void> = [];
+			(Events.onPlayerDeath.addListener as jest.Mock).mockImplementation(listener => {
+				deathListeners.push(listener);
+			});
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ allocate: jest.fn(), complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			const setDeadMovement = jest.fn();
+			const deadPlayer = mock<IsoPlayer>({
+				setBlockMovement: setDeadMovement,
+				getModData: jest.fn(() => ({}))
+			});
+			const otherPlayer = mock<IsoPlayer>();
+
+			(pregnancy as any).onCreatePlayer(deadPlayer);
+			snapshots.apply(laborSnapshot(1));
+			expect(queue).toHaveBeenCalledTimes(1);
+
+			deathListeners[0](otherPlayer);
+			pregnancy.onEveryMinute();
+			expect(queue).toHaveBeenCalledTimes(1);
+
+			deathListeners[0](deadPlayer);
+			expect(setDeadMovement).toHaveBeenLastCalledWith(false);
+			expect(births.resetSession).toHaveBeenCalledTimes(1);
+			snapshots.apply(laborSnapshot(2));
+			pregnancy.onEveryMinute();
+			expect(queue).toHaveBeenCalledTimes(1);
+			expect(births.allocate).not.toHaveBeenCalled();
+			expect(births.complete).not.toHaveBeenCalled();
+
+			const replacement = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			(pregnancy as any).onCreatePlayer(replacement);
+			expect(snapshots.snapshot).toBeUndefined();
+			expect(queue).toHaveBeenCalledTimes(1);
+
+			snapshots.apply(laborSnapshot(1));
+			expect(queue).toHaveBeenCalledTimes(2);
+			expect(ZLBFActionBirth).toHaveBeenLastCalledWith(pregnancy, birthId);
+		});
+
+		it("does not resubmit a completion after the bound player dies", () => {
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			let deathListener: ((player: IsoPlayer) => void) | undefined;
+			(Events.onPlayerDeath.addListener as jest.Mock).mockImplementation(listener => {
+				deathListener = listener;
+			});
+			const snapshots = new SnapshotStore();
+			const births = mock<BirthPublisher>({ complete: jest.fn() });
+			const pregnancy = new Pregnancy(undefined, snapshots, births);
+			const player = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			(pregnancy as any).onCreatePlayer(player);
+			snapshots.apply(laborSnapshot(1));
+			pregnancy.birth(birthId);
+			expect(births.complete).toHaveBeenCalledTimes(1);
+
+			deathListener!(player);
+			expect(births.resetSession).toHaveBeenCalledTimes(1);
+			snapshots.apply(laborSnapshot(2));
+			pregnancy.onEveryMinute();
+			pregnancy.birth(birthId);
+
+			expect(births.complete).toHaveBeenCalledTimes(1);
+		});
+
+		it("installs one lifecycle listener set and routes it to the replacement binding", () => {
+			const minuteListeners: Array<() => void> = [];
+			const hourListeners: Array<() => void> = [];
+			const dayListeners: Array<() => void> = [];
+			const deathListeners: Array<(player: IsoPlayer) => void> = [];
+			(Events.everyOneMinute.addListener as jest.Mock).mockImplementation(listener =>
+				minuteListeners.push(listener)
+			);
+			(Events.everyHours.addListener as jest.Mock).mockImplementation(listener =>
+				hourListeners.push(listener)
+			);
+			(Events.everyDays.addListener as jest.Mock).mockImplementation(listener =>
+				dayListeners.push(listener)
+			);
+			(Events.onPlayerDeath.addListener as jest.Mock).mockImplementation(listener =>
+				deathListeners.push(listener)
+			);
+			const custom = new Map<string, Array<(...args: any[]) => void>>();
+			(Events.EventEmitter as jest.Mock).mockImplementation((name: string) => ({
+				addListener: (listener: (...args: any[]) => void) => {
+					const listeners = custom.get(name) ?? [];
+					listeners.push(listener);
+					custom.set(name, listeners);
+				}
+			}));
+			const pregnancy = new Pregnancy();
+			const first = mock<IsoPlayer>({ getModData: jest.fn(() => ({})) });
+			const replacement = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			const minute = jest.spyOn(pregnancy, "onEveryMinute").mockImplementation(jest.fn());
+			const hour = jest.spyOn(pregnancy, "onEveryHour").mockImplementation(jest.fn());
+			const day = jest.spyOn(pregnancy, "onEveryDay").mockImplementation(jest.fn());
+			const start = jest.spyOn(pregnancy as any, "start").mockImplementation(jest.fn());
+			const stop = jest.spyOn(pregnancy as any, "stop").mockImplementation(jest.fn());
+			const labor = jest.spyOn(pregnancy as any, "onLabor").mockImplementation(jest.fn());
+
+			(pregnancy as any).onCreatePlayer(first);
+			(pregnancy as any).onCreatePlayer(replacement);
+
+			expect(minuteListeners).toHaveLength(1);
+			expect(hourListeners).toHaveLength(1);
+			expect(dayListeners).toHaveLength(1);
+			expect(deathListeners).toHaveLength(1);
+			expect(custom.get(ZLBFEventsEnum.PREGNANCY_START)).toHaveLength(1);
+			expect(custom.get(ZLBFEventsEnum.PREGNANCY_STOP)).toHaveLength(1);
+			expect(custom.get(ZLBFEventsEnum.PREGNANCY_LABOR)).toHaveLength(1);
+
+			minuteListeners[0]();
+			hourListeners[0]();
+			dayListeners[0]();
+			custom.get(ZLBFEventsEnum.PREGNANCY_START)![0]();
+			custom.get(ZLBFEventsEnum.PREGNANCY_STOP)![0]();
+			custom.get(ZLBFEventsEnum.PREGNANCY_LABOR)![0](2);
+			deathListeners[0](first);
+			expect(replacement.setBlockMovement).not.toHaveBeenCalled();
+			deathListeners[0](replacement);
+
+			expect(minute).toHaveBeenCalledTimes(1);
+			expect(hour).toHaveBeenCalledTimes(1);
+			expect(day).toHaveBeenCalledTimes(1);
+			expect(start).toHaveBeenCalledTimes(1);
+			expect(stop).toHaveBeenCalledTimes(1);
+			expect(labor).toHaveBeenCalledTimes(1);
+			expect(replacement.setBlockMovement).toHaveBeenCalledWith(false);
+		});
+
+		it("suppresses non-birth Pregnancy effects and debug mutations after death", () => {
+			let deathListener: ((player: IsoPlayer) => void) | undefined;
+			(Events.onPlayerDeath.addListener as jest.Mock).mockImplementation(listener => {
+				deathListener = listener;
+			});
+			const commands = mock<PregnancyPublisher>();
+			const pregnancy = new Pregnancy(commands);
+			const AddItem = jest.fn();
+			const player = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getInventory: jest.fn().mockReturnValue({ AddItem }),
+				getModData: jest.fn(() => ({}))
+			});
+			const bodyEffect = jest
+				.spyOn(pregnancy as any, "applyBodyEffect")
+				.mockImplementation(jest.fn());
+			(pregnancy as any).onCreatePlayer(player);
+			deathListener!(player);
+
+			pregnancy.onEveryHour();
+			pregnancy.onEveryDay();
+			(pregnancy as any).onLabor(1);
+			pregnancy.Debug.start();
+			pregnancy.Debug.stop();
+			pregnancy.Debug.advance(10);
+			pregnancy.Debug.advanceToLabor();
+			pregnancy.birth();
+
+			expect(bodyEffect).not.toHaveBeenCalled();
+			expect(commands.setState).not.toHaveBeenCalled();
+			expect(commands.publishState).not.toHaveBeenCalled();
+			expect(AddItem).not.toHaveBeenCalled();
+		});
+
+		it("does not inherit conception transition history after replacement binding", () => {
+			let deathListener: ((player: IsoPlayer) => void) | undefined;
+			(Events.onPlayerDeath.addListener as jest.Mock).mockImplementation(listener => {
+				deathListener = listener;
+			});
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			jest.spyOn(Player.prototype as any, "removeTrait").mockImplementation(jest.fn());
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(undefined, snapshots, mock<BirthPublisher>());
+			const playStart = jest
+				.spyOn(pregnancy as any, "playStartAnimation")
+				.mockImplementation(jest.fn());
+			const first = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			(pregnancy as any).onCreatePlayer(first);
+			snapshots.apply({
+				...laborSnapshot(1),
+				domains: {
+					...laborSnapshot(1).domains,
+					pregnancy: createDefaultPregnancyState(),
+					birth: createDefaultBirthState()
+				}
+			});
+			deathListener!(first);
+
+			const replacement = mock<IsoPlayer>({
+				setBlockMovement: jest.fn(),
+				getModData: jest.fn(() => ({}))
+			});
+			(pregnancy as any).onCreatePlayer(replacement);
+			snapshots.apply(laborSnapshot(1));
+
+			expect(playStart).not.toHaveBeenCalled();
+		});
+
 		it("retries an interrupted legacy birth on the next minute", () => {
 			const queue = jest.spyOn(ISTimedActionQueue, "add");
 			const pregnancy = new Pregnancy();
 			const setBlockMovement = jest.fn();
 			const legacyModData = {};
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				setBlockMovement,
 				getModData: jest.fn(() => legacyModData)
-			});
+			}));
 			let presentation = {
 				current: 99,
 				progress: 0.99,
@@ -896,9 +1111,9 @@ describe("Pregnancy", () => {
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(commands, snapshots);
 			const store: Record<string, unknown> = {};
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				getModData: jest.fn(() => store)
-			});
+			}));
 			(pregnancy as any).lastMinuteStamp = 10;
 			snapshots.apply({
 				dataSchemaVersion: 2,
@@ -939,9 +1154,9 @@ describe("Pregnancy", () => {
 			});
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(commands, snapshots);
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				getModData: jest.fn(() => ({}))
-			});
+			}));
 			(pregnancy as any).lastMinuteStamp = 10;
 			snapshots.apply({
 				dataSchemaVersion: 4,
@@ -969,7 +1184,7 @@ describe("Pregnancy", () => {
 			const pregnancy = new Pregnancy(undefined, snapshots);
 			const store: Record<string, unknown> = {};
 			const localPlayer = mock<IsoPlayer>({ getModData: jest.fn(() => store) });
-			(pregnancy as any).player = localPlayer;
+			bind(pregnancy, localPlayer);
 			const data = { current: 12, progress: 0.25, isInLabor: false };
 			jest.spyOn(PregnancyState, "get").mockReturnValue(null);
 			snapshots.apply({
@@ -1005,9 +1220,9 @@ describe("Pregnancy", () => {
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(commands, snapshots);
 			const store: Record<string, unknown> = {};
-			(pregnancy as any).player = mock<IsoPlayer>({
+			bind(pregnancy, mock<IsoPlayer>({
 				getModData: jest.fn(() => store)
-			});
+			}));
 
 			snapshots.apply({
 				dataSchemaVersion: 2,
@@ -1030,6 +1245,7 @@ describe("Pregnancy", () => {
 		it("routes start and stop through the authoritative Pregnancy publisher", () => {
 			const commands = mock<PregnancyPublisher>({ setState: jest.fn() });
 			const pregnancy = new Pregnancy(commands, new SnapshotStore());
+			bind(pregnancy, mock<IsoPlayer>({ getModData: jest.fn(() => ({})) }));
 
 			pregnancy.Debug.start();
 			expect(commands.setState).toHaveBeenCalledWith({
@@ -1045,6 +1261,7 @@ describe("Pregnancy", () => {
 			const commands = mock<PregnancyPublisher>({ setState: jest.fn() });
 			const snapshots = new SnapshotStore();
 			const pregnancy = new Pregnancy(commands, snapshots);
+			bind(pregnancy, mock<IsoPlayer>({ getModData: jest.fn(() => ({})) }));
 			jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(14 * 24 * 60);
 			snapshots.apply({
 				dataSchemaVersion: 2,

@@ -30,6 +30,7 @@ describe("CommandHandler", () => {
 
 	beforeEach(() => {
 		sendMock.mockReset();
+		(instanceItem as jest.Mock).mockReset();
 		(
 			globalThis as unknown as { sendAddItemToContainer: jest.Mock }
 		).sendAddItemToContainer.mockReset();
@@ -518,6 +519,53 @@ describe("CommandHandler", () => {
 		);
 	});
 
+	it("rejects birth allocation for a dead character without changing pending state", () => {
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 5,
+				stateVersion: 6,
+				domains: {
+					...domains(),
+					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 100,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			}
+		};
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			isDead: jest.fn().mockReturnValue(true)
+		});
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "birth-dead",
+				revision: 1,
+				data: {}
+			}
+		);
+
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+			birthSequence: 1,
+			pendingBirthId: "Dihgg:birth:1"
+		});
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+		);
+	});
+
 	it("creates a durable baby and completes the authoritative birth", () => {
 		(globalThis as { SandboxVars?: { ZLBF?: ZLBFSandboxOptions } }).SandboxVars = {
 			ZLBF: { PregnancyRecovery: 11 }
@@ -625,6 +673,60 @@ describe("CommandHandler", () => {
 			ZLBF_NETWORK_MODULE,
 			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
 			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+		);
+	});
+
+	it("rejects dead-character completion without creating a baby or changing state", () => {
+		const AddItem = jest.fn();
+		const store = {
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				dataSchemaVersion: 5,
+				stateVersion: 8,
+				domains: {
+					...domains(),
+					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
+					pregnancy: {
+						status: PregnancyStatus.PREGNANT,
+						current: 100,
+						progress: 1,
+						isInLabor: true
+					}
+				}
+			}
+		};
+		const player = mockedPlayer({
+			getModData: jest.fn().mockReturnValue(store),
+			getInventory: jest.fn().mockReturnValue({ AddItem }),
+			isDead: jest.fn().mockReturnValue(true)
+		});
+
+		new CommandHandler().onClientCommand(
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			player,
+			{
+				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "complete-dead",
+				revision: 1,
+				data: { birthId: "Dihgg:birth:1" }
+			}
+		);
+
+		expect(instanceItem).not.toHaveBeenCalled();
+		expect(AddItem).not.toHaveBeenCalled();
+		expect(
+			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
+		).not.toHaveBeenCalled();
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(8);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+			birthSequence: 1,
+			pendingBirthId: "Dihgg:birth:1"
+		});
+		expect(sendMock).toHaveBeenLastCalledWith(
+			player,
+			ZLBF_NETWORK_MODULE,
+			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
 		);
 	});
 

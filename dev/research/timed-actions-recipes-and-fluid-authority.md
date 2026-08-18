@@ -86,6 +86,16 @@ Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSper
 -   ZLBF uses the next `EveryOneMinute` callback as the retry boundary. Snapshot notifications received between cancellation and that callback retain the interrupted marker and cannot immediately requeue the action while Cancel Action or its menu is still settling.
 -   Active presentation, interrupted presentation, and submitted completion are mutually exclusive client phases. The durable `pendingBirthId` remains server-owned; cancellation never completes it, while a submitted completion suppresses local replay until an authoritative snapshot resolves Pregnancy.
 
+### Build 42 Player Death Lifecycle
+
+-   Reviewed Build 42 event declarations expose `OnPlayerDeath(IsoPlayer)` and `OnCreatePlayer(int, IsoPlayer)`. The death event supplies the exact character object, so a retained client singleton can compare object identity instead of guessing from username or player index.
+-   `OnPlayerDeath` is a client presentation boundary, not a durable server-state transaction. A server command may already have completed before the death event reaches local presentation, so an accepted completion remains authoritative.
+-   ZLBF uses character-scoped cancel-on-death. Server allocation and completion commands re-read `IsoPlayer.isDead()` and reject dead actors with `INVALID_REQUEST` plus the unchanged authoritative snapshot. Rejected completion does not create or synchronize an item and does not clear Pregnancy or its pending operation.
+-   Client Pregnancy marks the exact bound dead object terminal, releases movement, clears connection-scoped Pregnancy/birth correlations, and ignores later snapshots, timed effects, custom lifecycle events, debug mutations, and birth callbacks. Clearing the retained completion envelope also prevents the shared minute publisher from retrying for the corpse. One singleton listener set always compares death against the current binding, so repeated `OnCreatePlayer` events do not accumulate callbacks and deaths for other player objects are ignored.
+-   A subsequent `OnCreatePlayer` discards the dead object's retained snapshot before binding the new character, then waits for a fresh authoritative snapshot. This avoids replaying a pending presentation from the corpse while preserving normal single-player and permadeath character creation.
+-   No server death listener, protocol death field, or eager ModData cleanup is required for this policy. Persisted pending state may remain on the dead character record.
+-   Birth IDs are currently scoped by username plus a sequence stored in character ModData. A replacement character using the same username can restart its sequence and reuse an earlier `<username>:birth:<sequence>` ID. This is a separate cross-character provenance limitation and is not redesigned by the death-policy slice.
+
 ## Runtime And Version Applicability
 
 The concern applies to Build 42 multiplayer. UI and animation are client concerns; persistent transitions and externally visible inventory/fluid values require verified authority.
@@ -105,7 +115,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
 -   Do not let client birth completion reset Pregnancy or resume progression from reset data. A server operation must create the durable item and atomically record the completed lifecycle state.
 -   Persist a server-owned birth operation ID before animation begins and require animation completion to submit that ID through a dedicated command.
--   Allocate the birth ID as `<motherUsername>:birth:<sequence>`, where the server derives `motherUsername` from the authenticated player and advances a persisted, never-reused per-player sequence. Usernames are unique within the server and ZLBF items cannot transfer between servers, so this is the required uniqueness boundary.
+-   Allocate the birth ID as `<motherUsername>:birth:<sequence>`, where the server derives `motherUsername` from the authenticated player and advances a sequence persisted in that character's ModData. This is stable for one surviving character, but permadeath replacement under the same username may reuse an ID; cross-character uniqueness remains a separate limitation.
 -   Store the same birth ID in baby item ModData before adding/sending the item. On retry, reconcile pending state against a tagged baby before creating another.
 -   Store the item metadata under a `BabyData` domain structure containing `schemaVersion`, `birthId`, `motherUsername`, `motherName`, and `birthSequence`. Treat all captured identity fields as immutable historical data, including after the baby is transferred to another player.
 -   Derive `motherUsername` from the authenticated player's `getUsername()` for stable account identity. Capture `motherName` once from `getFullName()` for character-facing history; do not use `getDisplayName()`.
@@ -116,6 +126,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Retain and resend the exact completion envelope on `EveryOneMinute` until a correlated response arrives. An unsolicited snapshot resolves that retry only when `completedBirthId` exactly matches the submitted operation; merely lacking `pendingBirthId` does not prove completion.
 -   Treat `OnDisconnect` and `OnConnected` as idempotent connection-reset boundaries. They clear snapshots, correlations, queues, and optimistic publisher state without sending; the next minute bootstraps a fresh snapshot. If it still reports a submitted birth as pending, resubmit completion without replaying the animation.
 -   Server completion retries are idempotent after `completedBirthId` is persisted: they return the current snapshot without creating or synchronizing another item and without incrementing `stateVersion`.
+-   Reject birth allocation and completion whenever the authenticated command player is already dead. Keep the snapshot unchanged, and let client death presentation become terminal until a new player object binds and receives fresh authority.
 -   Persist ownership/provenance so ZLBF never removes or restores effects it did not introduce.
 
 ## Remaining Questions
@@ -123,7 +134,7 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
 -   Does `syncItemFields` after server-side `FluidContainer.addFluid` converge amount and primary fluid for both the crafting client and observers in hosted and dedicated multiplayer?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
--   What death policy should resolve or preserve a persisted pending birth operation?
+-   Should birth IDs gain a character-unique component so a username reused after permadeath cannot collide with historical baby provenance?
 -   How should a retained client singleton recover when a birth-completion response is lost after submission? Reconnect reconstructs presentation from the authoritative pending ID, but same-session completion retry belongs to a later network-resilience slice.
 
 ## In-Game Validation
@@ -148,3 +159,4 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-17: Verified that Build 42 has no supported per-timed-action non-cancelable flag. Cancel Action stops any active player character action independently of walk/run/aim, progress-bar, and movement-blocking settings. Identified the current `startedBirthId` and movement cleanup failure after canceled birth, and selected resumable pending-operation presentation as the recovery boundary.
 -   2026-08-17: Implemented resumable birth presentation with mutually exclusive active, interrupted, and completion-submitted phases. Cancellation performs base cleanup and releases movement; the next `EveryOneMinute` lifecycle retries the same authoritative birth ID without completing it. Legacy single-player birth uses the same interrupted retry boundary; same-session lost completion acknowledgement remains deferred to network resilience.
 -   2026-08-17: Added same-session exact-envelope completion retry, minute-deferred reconnect bootstrap, and submitted-phase reconciliation that never replays the animation. Crash atomicity between inventory insertion and persisted completion remains outside this slice.
+-   2026-08-17: Selected and implemented character-scoped cancel-on-death. Dead allocation/completion requests are rejected without mutation; the exact bound client character becomes presentation-terminal, and replacement characters wait for a fresh snapshot. Username-based birth-ID reuse across permadeath remains a separate provenance limitation.

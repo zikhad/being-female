@@ -32,10 +32,19 @@ type BirthPresentationState =
 	| { phase: "interrupted"; birthId?: string }
 	| { phase: "submitted"; birthId: string };
 
+/** Lifecycle identity of the local character currently owned by this retained component. */
+type CharacterBindingState =
+	| { phase: "unbound"; player?: undefined }
+	| { phase: "active"; player: IsoPlayer }
+	| { phase: "dead"; player: IsoPlayer };
+
+/** Coordinates local Pregnancy simulation and birth presentation for the currently bound player. */
 export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	private moodle?: Moodle;
 	private lastMinuteStamp?: number;
 	private lastAppliedStatus?: PregnancyStatus;
+	/** Current character lifecycle binding, independent from birth presentation state. */
+	private characterBinding: CharacterBindingState = { phase: "unbound" };
 	/** Current local birth presentation phase; durable authoritative state remains in snapshots. */
 	private birthPresentation: BirthPresentationState = { phase: "idle" };
 
@@ -50,15 +59,18 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	/** Debug controls routed through the authoritative server Pregnancy command. */
 	public Debug = {
 		start: () => {
+			if (!this.isActiveBinding()) return;
 			this.commands?.setState({
 				...createDefaultPregnancyState(),
 				status: PregnancyStatus.PREGNANT
 			});
 		},
 		stop: () => {
+			if (!this.isActiveBinding()) return;
 			this.commands?.setState(createDefaultPregnancyState());
 		},
 		advance: (minutes: number) => {
+			if (!this.isActiveBinding()) return;
 			const pregnancy = this.authoritativePregnancy;
 			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
 
@@ -73,6 +85,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			});
 		},
 		advanceToLabor: () => {
+			if (!this.isActiveBinding()) return;
 			const pregnancy = this.authoritativePregnancy;
 			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
 			const { current } = pregnancy;
@@ -89,6 +102,12 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	) {
 		super();
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
+		this.installListeners();
+	}
+
+	/** Returns whether the retained component currently owns one living bound player object. */
+	private isActiveBinding(): boolean {
+		return this.characterBinding.phase === "active" && this.characterBinding.player === this.player;
 	}
 
 	/** Returns the latest authoritative mirror, falling back to legacy local presentation state. */
@@ -105,8 +124,12 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		};
 	}
 
-	/** Applies acknowledged authoritative Pregnancy state to legacy client presentation state. */
+	/**
+	 * Applies acknowledged authoritative Pregnancy state to legacy client presentation state.
+	 * Snapshots received after the bound character dies are retained by networking but ignored here.
+	 */
 	private applyAuthoritativeSnapshot(snapshot: ZLBFSnapshot): void {
+		if (!this.isActiveBinding()) return;
 		const pregnancy = this.commands?.latestDesiredState ?? snapshot.domains.pregnancy;
 		const previousStatus = this.lastAppliedStatus;
 		this.lastAppliedStatus = pregnancy.status;
@@ -151,6 +174,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		snapshot: ZLBFSnapshot,
 		canResumeInterrupted: boolean
 	): void {
+		if (!this.isActiveBinding()) return;
 		const pendingBirthId = snapshot.domains.birth.pendingBirthId;
 		if (!snapshot.domains.pregnancy.isInLabor || !pendingBirthId) return;
 		const presentation = this.birthPresentation;
@@ -175,6 +199,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * @param isInLabor Current local labor state, including a transition calculated this minute.
 	 */
 	private queueLegacyBirthPresentation(canResumeInterrupted: boolean, isInLabor: boolean): void {
+		if (!this.isActiveBinding()) return;
 		if (this.births) return;
 		if (!isInLabor) return;
 		const presentation = this.birthPresentation;
@@ -186,7 +211,17 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		ISTimedActionQueue.add(new ZLBFActionBirth(this));
 	}
 
+	/**
+	 * Binds a newly created local character to the component's retained lifecycle listeners.
+	 * A prior dead character's retained snapshot is discarded before the replacement can render it.
+	 *
+	 * @param player Newly created local player object supplied by `OnCreatePlayer`.
+	 */
 	protected onCreatePlayer(player: IsoPlayer): void {
+		if (this.characterBinding.phase === "dead") this.snapshots?.resetSession();
+		this.characterBinding = { phase: "active", player };
+		this.birthPresentation = { phase: "idle" };
+		this.lastAppliedStatus = undefined;
 		super.onCreatePlayer(player);
 		this.lastMinuteStamp = getGameTime().getMinutesStamp();
 		PregnancyState.initialize(player);
@@ -199,10 +234,14 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		});
 		const snapshot = this.snapshots?.snapshot;
 		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
+	}
+
+	/** Installs singleton lifecycle callbacks once at this component's construction boundary. */
+	private installListeners(): void {
 		Events.everyOneMinute.addListener(() => this.onEveryMinute());
 		Events.everyHours.addListener(() => this.onEveryHour());
 		Events.everyDays.addListener(() => this.onEveryDay());
-
+		Events.onPlayerDeath.addListener(deadPlayer => this.onPlayerDeath(deadPlayer));
 		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_START).addListener(() => this.start());
 		new Events.EventEmitter(ZLBFEventsEnum.PREGNANCY_STOP).addListener(() => this.stop());
 		new Events.EventEmitter<(delta: number) => void>(
@@ -210,8 +249,26 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		).addListener(delta => this.onLabor(delta));
 	}
 
+	/**
+	 * Terminates presentation only when the death event belongs to the exact currently bound player.
+	 * Pending Pregnancy and birth requests are cleared locally so shared minute publishers cannot
+	 * retry an operation for the dead object.
+	 *
+	 * @param deadPlayer Player object supplied by Build 42's `OnPlayerDeath` event.
+	 */
+	private onPlayerDeath(deadPlayer: IsoPlayer): void {
+		if (!this.isActiveBinding() || deadPlayer !== this.characterBinding.player) return;
+		deadPlayer.setBlockMovement(false);
+		this.characterBinding = { phase: "dead", player: deadPlayer };
+		this.birthPresentation = { phase: "idle" };
+		this.commands?.resetSession();
+		this.births?.resetSession();
+		this.snapshots?.resetSession();
+	}
+
 	/** Returns Pregnancy presentation data using authoritative status when synchronized. */
 	public get pregnancy(): PregnancyData | null {
+		if (!this.isActiveBinding()) return null;
 		const authoritative = this.snapshots?.snapshot?.domains.pregnancy;
 		if (authoritative) {
 			if (authoritative.status === PregnancyStatus.NOT_PREGNANT) return null;
@@ -240,6 +297,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	/** Publishes a normal conception result or applies the legacy local fallback. */
 	private start() {
+		if (!this.isActiveBinding()) return;
 		if (this.commands) {
 			const desired = this.commands.latestDesiredState ?? this.authoritativePregnancy;
 			if (desired.status === PregnancyStatus.PREGNANT) return;
@@ -263,12 +321,14 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * stop Pregnancy (remove Player trait)
 	 */
 	private stop() {
+		if (!this.isActiveBinding()) return;
 		this.removeTrait(ZLBFTraitsEnum.PREGNANCY);
 		this.resetVariables();
 	}
 
 	/** Applies the incremental body effect associated with active labor. */
 	private onLabor(delta: number) {
+		if (!this.isActiveBinding()) return;
 		void delta;
 		this.applyBodyEffect(BodyPartType.Groin, { pain: 1, maxPain: 30 });
 	}
@@ -276,8 +336,10 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * Called every in-game minute to advance pregnancy progress.
 	 * - Updates pregnancy progress/time
 	 * - Triggers labor and birth action when reaching full duration
+	 * Dead bound characters are terminal and cannot publish, allocate, queue, or resubmit birth work.
 	 */
 	onEveryMinute(): void {
+		if (!this.isActiveBinding()) return;
 		const minuteStamp = getGameTime().getMinutesStamp();
 		const elapsed = Math.max(0, minuteStamp - (this.lastMinuteStamp ?? minuteStamp - 1));
 		this.lastMinuteStamp = minuteStamp;
@@ -319,6 +381,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * - Adjusts thirst and calories consumption based on progress
 	 */
 	onEveryHour(): void {
+		if (!this.isActiveBinding()) return;
 		if (!this.pregnancy) return;
 
 		const { progress } = this.pregnancy;
@@ -342,6 +405,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * For example, apply food sickness early in pregnancy.
 	 */
 	onEveryDay() {
+		if (!this.isActiveBinding()) return;
 		if (!this.pregnancy) return;
 		const { progress } = this.pregnancy;
 		if (progress < 0.05 || progress > 0.33) return;
@@ -350,11 +414,12 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	/**
 	 * Submits an authoritative birth completion or performs the legacy local fallback.
+	 * Completion callbacks arriving after the bound character dies are ignored.
 	 *
 	 * @param birthId Server-issued identity carried by the completed presentation action.
 	 */
 	public birth(birthId?: string): void {
-		if (!this.player) return;
+		if (!this.isActiveBinding() || !this.player) return;
 		const pendingBirthId = this.snapshots?.snapshot?.domains.birth.pendingBirthId;
 		if (this.births) {
 			if (!birthId || birthId !== pendingBirthId) return;
@@ -379,10 +444,12 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	/**
 	 * Releases canceled birth presentation state while retaining its authoritative operation.
 	 * The next minute lifecycle may queue the same birth ID after menu and action cleanup settle.
+	 * Stop callbacks arriving after death cannot make the presentation resumable again.
 	 *
 	 * @param birthId Server-issued identity carried by the canceled action, when authoritative.
 	 */
 	public onBirthPresentationStopped(birthId?: string): void {
+		if (!this.isActiveBinding()) return;
 		const presentation = this.birthPresentation;
 		if (presentation.phase !== "active" || presentation.birthId !== birthId) return;
 		this.birthPresentation = { phase: "interrupted", birthId };
