@@ -183,12 +183,17 @@ export class CommandHandler {
 		);
 	}
 
-	/** Validates and durably completes a pending birth operation on the server. */
+	/**
+	 * Validates and durably completes a pending birth operation on the server.
+	 * Dead characters receive an invalid response with their unchanged authoritative snapshot.
+	 */
 	private completeBirth(player: IsoPlayer, args: unknown): void {
 		if (!isZLBFCompleteBirthRequest(args)) return;
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === ZLBFSyncStatus.OK && player.isDead()) {
+			status = ZLBFSyncStatus.INVALID_REQUEST;
+		} else if (status === ZLBFSyncStatus.OK && loaded?.supported) {
 			const birth = loaded.state.domains.birth;
 			if (birth.completedBirthId === args.data.birthId) {
 				// An acknowledged operation may be retried after a lost response.
@@ -235,7 +240,10 @@ export class CommandHandler {
 		this.sendSnapshot(player, ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE, args, status, loaded);
 	}
 
-	/** Allocates a pending birth only after authoritative Pregnancy reaches labor. */
+	/**
+	 * Allocates a pending birth only for a living character whose authoritative Pregnancy reached
+	 * labor. Dead characters receive an invalid response with their unchanged snapshot.
+	 */
 	private allocateBirth(player: IsoPlayer, args: unknown): void {
 		if (!isZLBFAllocateBirthRequest(args)) {
 			print(
@@ -246,7 +254,9 @@ export class CommandHandler {
 
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === ZLBFSyncStatus.OK && player.isDead()) {
+			status = ZLBFSyncStatus.INVALID_REQUEST;
+		} else if (status === ZLBFSyncStatus.OK && loaded?.supported) {
 			const pregnancy = loaded.state.domains.pregnancy;
 			if (pregnancy.status !== PregnancyStatus.PREGNANT || !pregnancy.isInLabor) {
 				status = ZLBFSyncStatus.INVALID_REQUEST;
