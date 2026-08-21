@@ -396,11 +396,11 @@ describe("Womb", () => {
 					womb.onEveryDay();
 
 					expect(data.cycleDay).toBe(expected);
-						expect(commands.publishState).toHaveBeenCalledWith({
-							cycleDay: expected,
-							amount: 0.2,
-							total: 0.4,
-							onContraceptive: false
+					expect(commands.publishState).toHaveBeenCalledWith({
+						cycleDay: expected,
+						amount: 0.2,
+						total: 0.4,
+						onContraceptive: false
 					});
 				}
 			);
@@ -433,14 +433,15 @@ describe("Womb", () => {
 			womb.onCreatePlayer(mockedPlayer());
 
 			snapshots.apply({
-				dataSchemaVersion: 4,
+				schemaVersion: 1,
 				stateVersion: 2,
 				domains: {
 					...createDefaultDomains(),
 					womb: {
 						cycleDay: -11,
 						amount: 0.1,
-						total: 1.2
+						total: 1.2,
+						onContraceptive: false
 					}
 				}
 			});
@@ -463,14 +464,15 @@ describe("Womb", () => {
 			womb.publishState();
 
 			snapshots.apply({
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 3,
 				domains: {
 					...createDefaultDomains(),
 					womb: {
 						cycleDay: 4,
 						amount: 0.2,
-						total: 0.5
+						total: 0.5,
+						onContraceptive: false
 					}
 				}
 			});

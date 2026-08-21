@@ -19,26 +19,35 @@ import { StateRepository } from "@server/components/state/StateRepository";
 import type { LactationState } from "@shared/domain/lactation/LactationState";
 import type { ZLBFSyncStateResponse } from "@shared/ZLBFProtocol";
 import { RECIPE_BOTTLE_AMOUNT, ZLBFRecipeTests } from "@shared/ZLBFRecipeTests";
-import type { AuthoritativeState } from "@server/components/state/AuthoritativeState";
+import type {
+	AuthoritativeState,
+	SupportedStateLoadResult
+} from "@server/components/state/AuthoritativeState";
 
 declare let ZLBFRecipes: Recipe;
 
 const states = new StateRepository();
+
+/** Returns whether this recipe callback is executing on multiplayer server authority. */
+const isServerRecipeContext = (): boolean => typeof isServer === "function" && isServer();
 /**
  * Persists a focused recipe mutation and acknowledges the resulting snapshot in multiplayer.
  *
  * @param player Callback-supplied actor whose authoritative root is mutated.
+ * @param loaded Supported state loaded before any recipe side effect.
  * @param mutate Domain mutation applied only to a supported current authoritative state.
  * @returns Nothing; unsupported future state is preserved without acknowledgement.
  */
-const saveRecipeState = (player: IsoPlayer, mutate: (state: AuthoritativeState) => void): void => {
-	const loaded = states.load(player);
-	if (!loaded.supported) return;
+const saveRecipeState = (
+	player: IsoPlayer,
+	loaded: SupportedStateLoadResult,
+	mutate: (state: AuthoritativeState) => void
+): void => {
 	mutate(loaded.state);
 	loaded.state.stateVersion += 1;
 	loaded.stateVersion = loaded.state.stateVersion;
 	states.save(player, loaded.state);
-	if (typeof isServer !== "function" || !isServer()) return;
+	if (!isServerRecipeContext()) return;
 	const response: ZLBFSyncStateResponse = {
 		schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
 		requestId: `recipe-${loaded.stateVersion}`,
@@ -70,20 +79,25 @@ const useMilk = (state: LactationState, amount: number, multiplier: number): Lac
 
 /**
  * Resolves, writes, persists, and acknowledges one actor-scoped Lactation mutation.
- * Valid authoritative state takes precedence over legacy data, including an all-zero state.
+ * Single-player keeps its local gameplay backend; multiplayer server callbacks write only the
+ * authoritative root.
  *
  * @param player Callback-supplied actor whose Lactation state changes.
+ * @param loaded Supported state loaded before any recipe side effect.
  * @param mutate Pure transformation applied to the resolved complete state.
- * @returns Nothing; both compatibility ModData and authoritative state are updated when supported.
+ * @returns Nothing; local state is updated only in single-player contexts.
  */
 const saveLactation = (
 	player: IsoPlayer,
+	loaded: SupportedStateLoadResult,
 	mutate: (current: LactationState) => LactationState
 ): void => {
 	const actor = readRecipeActorState(player);
 	const next = mutate(resolveRecipeLactation(actor));
-	(player.getModData() as unknown as Record<string, unknown>).ZLBFLactation = next;
-	saveRecipeState(player, state => {
+	if (!isServerRecipeContext()) {
+		(player.getModData() as unknown as Record<string, unknown>).ZLBFLactation = next;
+	}
+	saveRecipeState(player, loaded, state => {
 		state.domains.lactation = next;
 	});
 };
@@ -95,95 +109,107 @@ const saveLactation = (
  * @returns Nothing; single-player and client contexts remain local no-ops.
  */
 const syncFluidItem = (item: InventoryItem): void => {
-	if (typeof isServer === "function" && isServer()) item.syncItemFields();
+	if (isServerRecipeContext()) item.syncItemFields();
 };
 
 /**
  * Preflights recipe side effects without overwriting a future state schema.
  *
  * @param player Callback actor whose authoritative root controls mutation support.
- * @returns Whether item and compatibility mutations may safely proceed.
+ * @returns Supported state, or undefined when the persisted schema cannot be mutated.
  */
-const supportsRecipeMutation = (player: IsoPlayer): boolean => states.load(player).supported;
+const loadRecipeState = (player: IsoPlayer): SupportedStateLoadResult | undefined => {
+	const loaded = states.load(player);
+	return loaded.supported ? loaded : undefined;
+};
 
 ZLBFRecipes = {
 	OnTest: ZLBFRecipeTests,
 	OnCreate: {
 		TakeContraceptive: (_items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
 			const actor = readRecipeActorState(character);
-			if (actor.womb) actor.womb.onContraceptive = true;
-			saveRecipeState(player, state => {
+			if (!isServerRecipeContext() && actor.womb) actor.womb.onContraceptive = true;
+			saveRecipeState(player, loaded, state => {
 				state.domains.womb = { ...state.domains.womb, onContraceptive: true };
 			});
 		},
 		TakeLactaid: (_items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
-			saveLactation(player, current =>
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
+			saveLactation(player, loaded, current =>
 				useMilk({ ...current, isActive: true }, 0, ZombRandFloat(0, 0.3))
 			);
 		},
 		HandExpress: (items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
 			const container = items.getInputItems(0).get(0) as InventoryItem;
 			const amount = new FluidContainerApi(container).fill(
 				Fluids.HUMAN_MILK,
 				RECIPE_BOTTLE_AMOUNT
 			);
 			syncFluidItem(container);
-			saveLactation(player, current =>
+			saveLactation(player, loaded, current =>
 				useMilk(current, amount * 2, ZombRandFloat(0.05, 0.1))
 			);
 		},
 		BreastPump: (items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
 			const container = items.getInputItems(1).get(0) as InventoryItem;
 			const amount = new FluidContainerApi(container).fill(
 				Fluids.HUMAN_MILK,
 				RECIPE_BOTTLE_AMOUNT
 			);
 			syncFluidItem(container);
-			saveLactation(player, current => useMilk(current, amount, ZombRandFloat(0.1, 0.2)));
+			saveLactation(player, loaded, current =>
+				useMilk(current, amount, ZombRandFloat(0.1, 0.2))
+			);
 		},
 		ClearSperm: (items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
 			const container = items.getInputItems(0).get(0) as InventoryItem;
 			new FluidContainerApi(container).clear();
 			syncFluidItem(container);
 			const actor = readRecipeActorState(character);
-			if (actor.womb) actor.womb.amount = 0;
-			saveRecipeState(player, state => {
+			if (!isServerRecipeContext() && actor.womb) actor.womb.amount = 0;
+			saveRecipeState(player, loaded, state => {
 				state.domains.womb = { ...state.domains.womb, amount: 0 };
 			});
 		},
 		PushCum: (items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
 			const actor = readRecipeActorState(character);
 			const current = actor.authoritative?.womb.amount ?? actor.womb?.amount ?? 0;
 			const container = items.getInputItems(0).get(0) as InventoryItem;
 			const filled = new FluidContainerApi(container).fill(Fluids.SEMEN, current);
 			syncFluidItem(container);
 			const remaining = current - Math.min(current, filled);
-			if (actor.womb) actor.womb.amount = remaining;
-			saveRecipeState(player, state => {
+			if (!isServerRecipeContext() && actor.womb) actor.womb.amount = remaining;
+			saveRecipeState(player, loaded, state => {
 				state.domains.womb = { ...state.domains.womb, amount: remaining };
 			});
 		},
 		BreastFeedBaby: (_items, character) => {
 			const player = character as IsoPlayer;
-			if (!supportsRecipeMutation(player)) return;
-			saveLactation(player, current =>
+			const loaded = loadRecipeState(player);
+			if (!loaded) return;
+			saveLactation(player, loaded, current =>
 				useMilk(current, RECIPE_BOTTLE_AMOUNT, ZombRandFloat(0.2, 0.5))
 			);
 		},
 		BottleFeedBaby: (items, character) => {
-			if (!supportsRecipeMutation(character as IsoPlayer)) return;
+			if (!loadRecipeState(character as IsoPlayer)) return;
 			const container = items.getInputItems(0).get(0) as InventoryItem;
 			new FluidContainerApi(container).clear(RECIPE_BOTTLE_AMOUNT);
 			syncFluidItem(container);

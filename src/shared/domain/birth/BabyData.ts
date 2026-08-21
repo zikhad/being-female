@@ -1,4 +1,4 @@
-import { object, positiveInteger, string } from "@shared/validation/Schema";
+import { object, oneOf, positiveInteger, string } from "@shared/validation/Schema";
 import type { PlayerIdentity } from "@shared/components/Player";
 
 /** Immutable ZLBF metadata attached to a baby item before inventory insertion. */
@@ -17,7 +17,7 @@ export type BabyData = {
 
 /** Runtime schema for baby item metadata read from untrusted item ModData. */
 export const babyDataSchema = object<BabyData>({
-	schemaVersion: positiveInteger,
+	schemaVersion: oneOf([1]),
 	birthId: string({ minimumLength: 1, maximumLength: 128 }),
 	motherUsername: string({ minimumLength: 1, maximumLength: 64 }),
 	motherName: string({ minimumLength: 1, maximumLength: 128 }),

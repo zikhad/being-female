@@ -1,10 +1,10 @@
-import { ZLBF_DATA_SCHEMA_VERSION, ZLBF_STATE_MOD_DATA_KEY } from "@constants";
+import { ZLBF_STATE_SCHEMA_VERSION, ZLBF_STATE_MOD_DATA_KEY } from "@constants";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { mockedPlayer } from "@test/mock";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
 const state = (stateVersion: number) => ({
-	dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+	schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
 	stateVersion,
 	domains: createDefaultDomains()
 });
@@ -35,26 +35,28 @@ describe("StateRepository", () => {
 		expect(result.stateVersion).toBe(4);
 	});
 
-	it("seeds a missing authoritative Lactation domain from validated legacy data", () => {
-		const legacy = { isActive: true, milkAmount: 0.6, expiration: 8, multiplier: 0.3 };
+	it("does not import local Lactation when the authoritative root is incomplete", () => {
+		const local = { isActive: true, milkAmount: 0.6, expiration: 8, multiplier: 0.3 };
 		const persisted = state(4) as unknown as { domains: Record<string, unknown> };
 		delete persisted.domains.lactation;
-		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted, ZLBFLactation: legacy };
+		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted, ZLBFLactation: local };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 		const result = new StateRepository().load(player);
 
-		expect(result.supported && result.state.domains.lactation).toEqual(legacy);
+		expect(result.supported && result.state.domains.lactation).toEqual(
+			createDefaultDomains().lactation
+		);
 	});
 
 	it("does not overwrite an unsupported future schema", () => {
-		const persisted = { dataSchemaVersion: 9, stateVersion: 3, domains: { future: true } };
+		const persisted = { schemaVersion: 9, stateVersion: 3, domains: { future: true } };
 		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 		const result = new StateRepository().load(player);
 
-		expect(result).toEqual({ supported: false, dataSchemaVersion: 9, stateVersion: 3 });
+		expect(result).toEqual({ supported: false, schemaVersion: 9, stateVersion: 3 });
 		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(persisted);
 	});
 

@@ -35,7 +35,7 @@ export type ZLBFSyncStateRequest = ZLBFEnvelopeMetadata & {
 /** Version metadata describing the server's authoritative ZLBF state. */
 export type ZLBFSnapshot = {
 	/** Version of the persisted domain-data shape. */
-	dataSchemaVersion: number;
+	schemaVersion: number;
 	/** Server-owned revision of the authoritative state. */
 	stateVersion: number;
 	/** Server-authoritative gameplay domains mirrored to the client. */
@@ -114,7 +114,7 @@ const syncStatus = oneOf<ZLBFSyncStatus>([
 ]);
 /** Runtime schema for authoritative snapshot metadata. */
 const snapshotSchema = object<ZLBFSnapshot>({
-	dataSchemaVersion: positiveInteger,
+	schemaVersion: positiveInteger,
 	stateVersion: nonNegativeInteger,
 	domains: object<AuthoritativeDomains>({
 		pregnancy: pregnancyStateSchema,

@@ -120,7 +120,7 @@ describe("Lactation", () => {
 			const authoritative = { ...desired, milkAmount: 0.3 };
 			publisher.publishState(desired, {});
 			const snapshot = {
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 2,
 				domains: { ...createDefaultDomains(), lactation: authoritative }
 			};
