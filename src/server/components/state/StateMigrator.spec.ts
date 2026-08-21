@@ -1,99 +1,99 @@
-import { ZLBF_DATA_SCHEMA_VERSION } from "@constants";
+import { ZLBF_STATE_SCHEMA_VERSION } from "@constants";
 import { StateMigrator } from "@server/components/state/StateMigrator";
 import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
-import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
 describe("StateMigrator", () => {
 	const migrator = new StateMigrator();
+	const current = (stateVersion = 0) => ({
+		schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+		stateVersion,
+		domains: createDefaultDomains()
+	});
 
 	it("creates a complete default state", () => {
-		expect(migrator.createDefault()).toEqual({
-			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-			stateVersion: 0,
-			domains: createDefaultDomains()
-		});
+		expect(migrator.createDefault()).toEqual(current());
 	});
 
 	it.each([undefined, null, "invalid", Number.NaN])(
-		"normalizes missing or malformed state %#",
+		"resets a missing or malformed root %#",
 		persisted => {
 			expect(migrator.migrate(persisted)).toEqual({
 				supported: true,
-				dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+				schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
 				stateVersion: 0,
-				state: {
-					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-					stateVersion: 0,
-					domains: createDefaultDomains()
-				}
+				state: current()
 			});
 		}
 	);
 
-	it("preserves a valid state version while normalizing the root", () => {
-		expect(
-			migrator.migrate({ dataSchemaVersion: 1, stateVersion: 7, domains: undefined })
-		).toEqual(
-			expect.objectContaining({
-				supported: true,
-				stateVersion: 7,
-				state: {
-					dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-					stateVersion: 7,
-					domains: createDefaultDomains()
-				}
-			})
-		);
+	it.each([
+		{ dataSchemaVersion: 5, stateVersion: 7, domains: createDefaultDomains() },
+		{ schemaVersion: 0, stateVersion: 7, domains: createDefaultDomains() },
+		{ schemaVersion: 1, stateVersion: 7, domains: undefined },
+		{ schemaVersion: 1, stateVersion: 7, domains: { pregnancy: {} } }
+	])("resets an old or incomplete root %#", persisted => {
+		expect(migrator.migrate(persisted)).toEqual({
+			supported: true,
+			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			stateVersion: 0,
+			state: current()
+		});
 	});
 
 	it("reports a future schema without downgrading its metadata", () => {
-		expect(migrator.migrate({ dataSchemaVersion: 99, stateVersion: 12 })).toEqual({
+		expect(migrator.migrate({ schemaVersion: 99, stateVersion: 12 })).toEqual({
 			supported: false,
-			dataSchemaVersion: 99,
+			schemaVersion: 99,
 			stateVersion: 12
 		});
 	});
 
-	it("preserves a valid current Pregnancy domain", () => {
-		const pregnancy = {
+	it("preserves a complete valid current root", () => {
+		const persisted = current(5);
+		persisted.domains.pregnancy = {
 			status: PregnancyStatus.PREGNANT,
 			current: 100,
 			progress: 0.5,
 			isInLabor: false
 		};
-		const result = migrator.migrate({
-			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-			stateVersion: 3,
-			domains: { pregnancy, birth: createDefaultBirthState() }
-		});
-
-		expect(result.supported && result.state.domains.pregnancy).toEqual(pregnancy);
-	});
-
-	it("preserves a valid current Womb domain", () => {
-		const womb = {
+		persisted.domains.womb = {
 			cycleDay: -7,
 			amount: 0.2,
-			total: 1.4
+			total: 1.4,
+			onContraceptive: true
 		};
-		const result = migrator.migrate({
-			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-			stateVersion: 4,
-			domains: { womb: { ...womb, future: true } }
-		});
 
-		expect(result.supported && result.state.domains.womb).toEqual(womb);
+		const result = migrator.migrate(persisted);
+
+		expect(result.supported && result.state).toEqual(persisted);
+		expect(result.supported && result.state).not.toBe(persisted);
 	});
 
-	it("preserves the complete current Lactation domain", () => {
-		const lactation = { isActive: true, milkAmount: 0.4, expiration: 12, multiplier: 0.2 };
-		const result = migrator.migrate({
-			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
-			stateVersion: 5,
-			domains: { lactation }
-		});
+	it("strips unknown root and domain fields from a valid current state", () => {
+		const persisted = current(3) as ReturnType<typeof current> & {
+			future?: boolean;
+		};
+		persisted.future = true;
+		(persisted.domains.womb as typeof persisted.domains.womb & { future?: boolean }).future =
+			true;
 
-		expect(result.supported && result.state.domains.lactation).toEqual(lactation);
+		const result = migrator.migrate(persisted);
+
+		expect(result.supported && result.state).toEqual(current(3));
+	});
+
+	it("resets a structurally valid root with inconsistent Pregnancy fields", () => {
+		const persisted = current(5);
+		persisted.domains.pregnancy = {
+			status: PregnancyStatus.NOT_PREGNANT,
+			current: 1,
+			progress: 0,
+			isInLabor: false
+		};
+
+		const result = migrator.migrate(persisted);
+
+		expect(result.supported && result.state).toEqual(current());
 	});
 });

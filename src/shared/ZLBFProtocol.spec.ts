@@ -7,8 +7,8 @@ import {
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
-const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
-	dataSchemaVersion,
+const snapshot = (schemaVersion: number, stateVersion: number) => ({
+	schemaVersion,
 	stateVersion,
 	domains: createDefaultDomains()
 });
@@ -44,7 +44,7 @@ describe("ZLBFProtocol validators", () => {
 			requestId: "request",
 			revision: 1,
 			status: ZLBFSyncStatus.OK,
-			data: { snapshot: { dataSchemaVersion: 1, stateVersion: Number.POSITIVE_INFINITY } }
+			data: { snapshot: { schemaVersion: 1, stateVersion: Number.POSITIVE_INFINITY } }
 		}
 	])("rejects malformed response %#", value => {
 		expect(isZLBFSyncStateResponse(value)).toBe(false);

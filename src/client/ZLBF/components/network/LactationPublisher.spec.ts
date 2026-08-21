@@ -30,7 +30,7 @@ describe("LactationPublisher", () => {
 	it("sends one versioned complete state and coalesces later simulation", () => {
 		const snapshots = new SnapshotStore();
 		snapshots.apply({
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 3,
 			domains: { ...createDefaultDomains(), lactation: state(0.4) }
 		});
@@ -60,7 +60,7 @@ describe("LactationPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 1,
 						domains: { ...createDefaultDomains(), lactation: state(0.5) }
 					}
@@ -73,7 +73,7 @@ describe("LactationPublisher", () => {
 	it("rebases simulation delta over authoritative recipe milk consumption", () => {
 		const snapshots = new SnapshotStore();
 		snapshots.apply({
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 1,
 			domains: { ...createDefaultDomains(), lactation: state(0.5) }
 		});
@@ -90,7 +90,7 @@ describe("LactationPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 2,
 						domains: { ...createDefaultDomains(), lactation: state(0.3) }
 					}
@@ -109,7 +109,7 @@ describe("LactationPublisher", () => {
 	it("applies only the queued delta after the pending state was accepted", () => {
 		const snapshots = new SnapshotStore();
 		snapshots.apply({
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 1,
 			domains: { ...createDefaultDomains(), lactation: state(0.5) }
 		});
@@ -126,7 +126,7 @@ describe("LactationPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 2,
 						domains: { ...createDefaultDomains(), lactation: state(0.6) }
 					}
@@ -151,7 +151,7 @@ describe("LactationPublisher", () => {
 				status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 99,
+						schemaVersion: 99,
 						stateVersion: 1,
 						domains: { ...createDefaultDomains(), lactation: state(0.4) }
 					}

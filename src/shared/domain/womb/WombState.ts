@@ -1,16 +1,16 @@
 /** Server-persisted reversible Womb state. */
 export type AuthoritativeWombState = {
 	/** Current cycle day; negative values represent postpartum recovery. */
-	cycleDay?: number;
+	cycleDay: number;
 	/** Current sperm volume retained by the player. */
-	amount?: number;
+	amount: number;
 	/** Cumulative sperm volume received by the player. */
-	total?: number;
+	total: number;
 	/** Whether the current cycle is protected by contraceptive medication. */
-	onContraceptive?: boolean;
+	onContraceptive: boolean;
 };
 
-/** Concrete reversible Womb state published after legacy local data is initialized. */
+/** Concrete reversible Womb state published after component-local data is initialized. */
 export type WombProgressState = {
 	/** Current menstrual cycle or postpartum recovery day. */
 	cycleDay: number;
@@ -22,5 +22,10 @@ export type WombProgressState = {
 	onContraceptive?: boolean;
 };
 
-/** Creates an uninitialized Womb state that preserves legacy data during migration. */
-export const createDefaultWombState = (): AuthoritativeWombState => ({});
+/** Creates the neutral complete Womb state for a fresh authoritative root. */
+export const createDefaultWombState = (): AuthoritativeWombState => ({
+	cycleDay: 1,
+	amount: 0,
+	total: 0,
+	onContraceptive: false
+});

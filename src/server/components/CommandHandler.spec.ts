@@ -88,7 +88,7 @@ describe("CommandHandler", () => {
 				revision: 7,
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 5, stateVersion: 0, domains: domains() }
+					snapshot: { schemaVersion: 1, stateVersion: 0, domains: domains() }
 				}
 			}
 		);
@@ -98,7 +98,7 @@ describe("CommandHandler", () => {
 		const handler = new CommandHandler();
 		const player = playerWithStore({
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 6,
 				domains: domains()
 			}
@@ -123,7 +123,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { dataSchemaVersion: 5, stateVersion: 6, domains: domains() }
+					snapshot: { schemaVersion: 1, stateVersion: 6, domains: domains() }
 				}
 			})
 		);
@@ -132,9 +132,10 @@ describe("CommandHandler", () => {
 	it("restores the server Pregnancy trait from persisted authoritative state on sync", () => {
 		const player = playerWithStore({
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 1,
 				domains: {
+					...domains(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -162,7 +163,7 @@ describe("CommandHandler", () => {
 	});
 
 	it("reports an unsupported future persisted schema without overwriting it", () => {
-		const persisted = { dataSchemaVersion: 6, stateVersion: 9, domains: { future: true } };
+		const persisted = { schemaVersion: 6, stateVersion: 9, domains: { future: true } };
 		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
 		const handler = new CommandHandler();
 		const player = playerWithStore(store);
@@ -186,7 +187,7 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
 				data: {
-					snapshot: { dataSchemaVersion: 6, stateVersion: 9, domains: domains() }
+					snapshot: { schemaVersion: 6, stateVersion: 9, domains: domains() }
 				}
 			})
 		);
@@ -234,9 +235,10 @@ describe("CommandHandler", () => {
 	it("persists normal Pregnancy progression without requiring debug mode", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 1,
 				domains: {
+					...domains(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -282,7 +284,7 @@ describe("CommandHandler", () => {
 		debugMock.mockReturnValue(true);
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -310,7 +312,7 @@ describe("CommandHandler", () => {
 	it("rejects Pregnancy mutation outside debug mode without changing state", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -348,7 +350,7 @@ describe("CommandHandler", () => {
 		debugMock.mockReturnValue(true);
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -382,7 +384,9 @@ describe("CommandHandler", () => {
 		);
 	});
 
-	it("reports unsupported schema using the supported response envelope", () => {
+	it.each([2, 99])(
+		"reports unsupported protocol schema %s using the current response envelope",
+		requestSchemaVersion => {
 		const handler = new CommandHandler();
 		const player = mockedPlayer();
 		handler.onClientCommand(
@@ -390,7 +394,7 @@ describe("CommandHandler", () => {
 			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: 99,
+				schemaVersion: requestSchemaVersion,
 				requestId: "snapshot-1",
 				revision: 1,
 				data: {}
@@ -407,14 +411,16 @@ describe("CommandHandler", () => {
 				status: ZLBFSyncStatus.UNSUPPORTED_SCHEMA
 			})
 		);
-	});
+		}
+	);
 
 	it("allocates and persists a username-scoped birth operation during labor", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 3,
+				schemaVersion: 1,
 				stateVersion: 5,
 				domains: {
+					...domains(),
 					birth: createDefaultBirthState(),
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
@@ -460,11 +466,11 @@ describe("CommandHandler", () => {
 	it("returns the pending birth idempotently without advancing state version", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 3,
+				schemaVersion: 1,
 				stateVersion: 6,
 				domains: {
+					...domains(),
 					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
-					womb: {},
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 100,
@@ -522,7 +528,7 @@ describe("CommandHandler", () => {
 	it("rejects birth allocation for a dead character without changing pending state", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 6,
 				domains: {
 					...domains(),
@@ -580,11 +586,11 @@ describe("CommandHandler", () => {
 		};
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 3,
+				schemaVersion: 1,
 				stateVersion: 8,
 				domains: {
+					...domains(),
 					birth: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" },
-					womb: {},
 					pregnancy: {
 						status: PregnancyStatus.PREGNANT,
 						current: 100,
@@ -630,7 +636,12 @@ describe("CommandHandler", () => {
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy).toEqual(
 			createDefaultPregnancyState()
 		);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({ cycleDay: -11 });
+		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
+			cycleDay: -11,
+			amount: 0,
+			total: 0,
+			onContraceptive: false
+		});
 	});
 
 	it("acknowledges duplicate birth completion without another item or state revision", () => {
@@ -638,7 +649,7 @@ describe("CommandHandler", () => {
 		const inventory = { AddItem };
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 9,
 				domains: {
 					...domains(),
@@ -680,7 +691,7 @@ describe("CommandHandler", () => {
 		const AddItem = jest.fn();
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 8,
 				domains: {
 					...domains(),
@@ -733,9 +744,12 @@ describe("CommandHandler", () => {
 	it("persists reversible Womb cycle progression", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 4,
+				schemaVersion: 1,
 				stateVersion: 3,
-				domains: { ...domains(), womb: { cycleDay: -7 } }
+				domains: {
+					...domains(),
+					womb: { cycleDay: -7, amount: 0, total: 0, onContraceptive: false }
+				}
 			}
 		};
 		const player = playerWithStore(store);
@@ -754,6 +768,7 @@ describe("CommandHandler", () => {
 						cycleDay: -6,
 						amount: 0.2,
 						total: 0.4,
+						onContraceptive: false,
 						future: true
 					}
 				}
@@ -764,7 +779,8 @@ describe("CommandHandler", () => {
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
 			cycleDay: -6,
 			amount: 0.2,
-			total: 0.4
+			total: 0.4,
+			onContraceptive: false
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
@@ -777,7 +793,7 @@ describe("CommandHandler", () => {
 	it("rejects stale contraceptive clearing but accepts the next versioned day change", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
-				dataSchemaVersion: 5,
+				schemaVersion: 1,
 				stateVersion: 4,
 				domains: {
 					...domains(),
@@ -811,7 +827,7 @@ describe("CommandHandler", () => {
 
 	it("persists complete Lactation only against the current authoritative version", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 5, stateVersion: 2, domains: domains() }
+			[ZLBF_STATE_MOD_DATA_KEY]: { schemaVersion: 1, stateVersion: 2, domains: domains() }
 		};
 		const player = playerWithStore(store);
 		const handler = new CommandHandler();

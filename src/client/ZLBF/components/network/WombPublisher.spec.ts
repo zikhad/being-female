@@ -16,7 +16,8 @@ describe("WombPublisher", () => {
 	const state = (cycleDay: number) => ({
 		cycleDay,
 		amount: 0.2,
-		total: 0.4
+		total: 0.4,
+		onContraceptive: false
 	});
 
 	beforeEach(() => sendMock.mockReset());
@@ -36,9 +37,9 @@ describe("WombPublisher", () => {
 		const publisher = new WombPublisher(snapshots);
 		publisher.publishState(state(-6));
 		const snapshot = {
-			dataSchemaVersion: 4,
+			schemaVersion: 1,
 			stateVersion: 2,
-			domains: { ...createDefaultDomains(), womb: { cycleDay: -6 } }
+			domains: { ...createDefaultDomains(), womb: state(-6) }
 		};
 		publisher.onServerCommand(
 			ZLBF_NETWORK_MODULE,
@@ -70,9 +71,9 @@ describe("WombPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 4,
+						schemaVersion: 1,
 						stateVersion: 2,
-						domains: { ...createDefaultDomains(), womb: { cycleDay: -6 } }
+						domains: { ...createDefaultDomains(), womb: state(-6) }
 					}
 				}
 			}
@@ -89,7 +90,7 @@ describe("WombPublisher", () => {
 
 	it("drops same-day queued contraceptive clearing when authoritative state is already true", () => {
 		const snapshots = new SnapshotStore();
-		snapshots.apply({ dataSchemaVersion: 5, stateVersion: 3, domains: createDefaultDomains() });
+		snapshots.apply({ schemaVersion: 1, stateVersion: 3, domains: createDefaultDomains() });
 		const publisher = new WombPublisher(snapshots);
 		publisher.publishState({ ...state(1), onContraceptive: false });
 		publisher.publishState({ ...state(1), onContraceptive: false });
@@ -103,7 +104,7 @@ describe("WombPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 4,
 						domains: {
 							...createDefaultDomains(),
@@ -121,7 +122,7 @@ describe("WombPublisher", () => {
 	it("rebases and retries a rejected pending day change without a queued update", () => {
 		const snapshots = new SnapshotStore();
 		snapshots.apply({
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 3,
 			domains: { ...createDefaultDomains(), womb: state(1) }
 		});
@@ -138,7 +139,7 @@ describe("WombPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 4,
 						domains: { ...createDefaultDomains(), womb: state(1) }
 					}
@@ -169,7 +170,7 @@ describe("WombPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 5,
+						schemaVersion: 1,
 						stateVersion: 1,
 						domains: { ...createDefaultDomains(), womb: state(2) }
 					}
@@ -191,7 +192,7 @@ describe("WombPublisher", () => {
 			status: ZLBFSyncStatus.OK,
 			data: {
 				snapshot: {
-					dataSchemaVersion: 4,
+					schemaVersion: 1,
 					stateVersion: 2,
 					domains: { ...createDefaultDomains(), womb: { cycleDay: -6 } }
 				}

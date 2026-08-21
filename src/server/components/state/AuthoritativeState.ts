@@ -3,7 +3,7 @@ import type { AuthoritativeDomains } from "@shared/ZLBFState";
 /** Root value stored under the ZLBF key in an authenticated player's ModData. */
 export type AuthoritativeState = {
 	/** Version of the persisted root and domain-data shape. */
-	dataSchemaVersion: number;
+	schemaVersion: number;
 	/** Server-owned revision incremented only after successful domain mutations. */
 	stateVersion: number;
 	/** Reserved container for authoritative gameplay domains introduced by later slices. */
@@ -15,7 +15,7 @@ export type SupportedStateLoadResult = {
 	/** Discriminator indicating that the state can be used by this mod version. */
 	supported: true;
 	/** Schema version reported to the requesting client. */
-	dataSchemaVersion: number;
+	schemaVersion: number;
 	/** Current server-owned state revision. */
 	stateVersion: number;
 	/** Complete normalized authoritative state. */
@@ -27,7 +27,7 @@ export type UnsupportedStateLoadResult = {
 	/** Discriminator indicating that the state cannot be used by this mod version. */
 	supported: false;
 	/** Future schema version found in ModData. */
-	dataSchemaVersion: number;
+	schemaVersion: number;
 	/** Persisted state revision, or zero when malformed. */
 	stateVersion: number;
 };

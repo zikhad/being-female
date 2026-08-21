@@ -519,7 +519,7 @@ describe("Pregnancy", () => {
 					})
 				);
 				snapshots.apply({
-					dataSchemaVersion: 2,
+					schemaVersion: 1,
 					stateVersion: 0,
 					domains: {
 						womb: createDefaultWombState(),
@@ -568,7 +568,7 @@ describe("Pregnancy", () => {
 				const pregnant = { ...notPregnant, status: PregnancyStatus.PREGNANT };
 
 				snapshots.apply({
-					dataSchemaVersion: 2,
+					schemaVersion: 1,
 					stateVersion: 1,
 					domains: {
 						pregnancy: notPregnant,
@@ -578,7 +578,7 @@ describe("Pregnancy", () => {
 					}
 				});
 				snapshots.apply({
-					dataSchemaVersion: 2,
+					schemaVersion: 1,
 					stateVersion: 2,
 					domains: {
 						pregnancy: pregnant,
@@ -588,7 +588,7 @@ describe("Pregnancy", () => {
 					}
 				});
 				snapshots.apply({
-					dataSchemaVersion: 2,
+					schemaVersion: 1,
 					stateVersion: 2,
 					domains: {
 						pregnancy: pregnant,
@@ -617,7 +617,7 @@ describe("Pregnancy", () => {
 		);
 
 		snapshots.apply({
-			dataSchemaVersion: 3,
+			schemaVersion: 1,
 			stateVersion: 2,
 			domains: {
 				womb: createDefaultWombState(),
@@ -638,7 +638,7 @@ describe("Pregnancy", () => {
 	describe("authoritative birth presentation recovery", () => {
 		const birthId = "mother:birth:1";
 		const laborSnapshot = (stateVersion: number) => ({
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion,
 			domains: {
 				womb: createDefaultWombState(),
@@ -1213,7 +1213,7 @@ describe("Pregnancy", () => {
 			);
 			(pregnancy as any).lastMinuteStamp = 10;
 			snapshots.apply({
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),
@@ -1259,7 +1259,7 @@ describe("Pregnancy", () => {
 			);
 			(pregnancy as any).lastMinuteStamp = 10;
 			snapshots.apply({
-				dataSchemaVersion: 4,
+				schemaVersion: 1,
 				stateVersion: 2,
 				domains: {
 					womb: createDefaultWombState(),
@@ -1288,7 +1288,7 @@ describe("Pregnancy", () => {
 			const data = { current: 12, progress: 0.25, isInLabor: false };
 			jest.spyOn(PregnancyState, "get").mockReturnValue(null);
 			snapshots.apply({
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),
@@ -1328,7 +1328,7 @@ describe("Pregnancy", () => {
 			);
 
 			snapshots.apply({
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 2,
 				domains: {
 					womb: createDefaultWombState(),
@@ -1367,7 +1367,7 @@ describe("Pregnancy", () => {
 			bind(pregnancy, mock<IsoPlayer>({ getModData: jest.fn(() => ({})) }));
 			jest.spyOn(PregnancyOptions, "duration", "get").mockReturnValue(14 * 24 * 60);
 			snapshots.apply({
-				dataSchemaVersion: 2,
+				schemaVersion: 1,
 				stateVersion: 1,
 				domains: {
 					womb: createDefaultWombState(),

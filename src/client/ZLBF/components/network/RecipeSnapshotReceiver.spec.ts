@@ -1,7 +1,7 @@
 import { RecipeSnapshotReceiver } from "@client/components/network/RecipeSnapshotReceiver";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import {
-	ZLBF_DATA_SCHEMA_VERSION,
+	ZLBF_STATE_SCHEMA_VERSION,
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
 	ZLBFNetworkCommand,
@@ -14,7 +14,7 @@ describe("RecipeSnapshotReceiver", () => {
 		const snapshots = new SnapshotStore();
 		const receiver = new RecipeSnapshotReceiver(snapshots);
 		const snapshot = {
-			dataSchemaVersion: ZLBF_DATA_SCHEMA_VERSION,
+			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
 			stateVersion: 2,
 			domains: createDefaultDomains()
 		};

@@ -59,9 +59,12 @@ Confidence: high that nested supported Lua tables in player ModData are serializ
 
 ## Implications For ZLBF
 
--   Store one server-owned player root such as `{ dataSchemaVersion, stateVersion, domains }`.
+-   Store one server-owned player root such as `{ schemaVersion, stateVersion, domains }`.
 -   Store only strings, finite numbers, booleans, and nested tables.
--   Normalize unknown or partial data into a newly constructed complete root and write it back on access.
+-   Accept only a complete current-schema root. Reset missing, older, or malformed roots to a fresh
+    current state; preserve unsupported future roots without rewriting them.
+-   Keep an explicit version-dispatch seam for future migrations instead of salvaging individual
+    domains implicitly.
 -   Keep wire protocol versions separate from persisted-data versions and migrations.
 -   Increment `stateVersion` only after a successful authoritative domain transition; read-only snapshot requests must not increment it.
 -   Keep connection epochs, pending requests, replay windows, and client revisions out of persistent domain state.
@@ -74,7 +77,8 @@ Confidence: high that nested supported Lua tables in player ModData are serializ
 -   Which exact server save and disconnect points persist a just-written player table?
 -   Can abnormal shutdown or immediate disconnect lose the latest mutation?
 -   What player ModData does `transmitModData` expose, to which peers, and in which direction?
--   How should legacy ZLBF client-only values be imported once without accepting ongoing client authority?
+-   No import is required for the unpublished authoritative format. The proven single-player local
+    ModData path remains a separate runtime backend and is not imported by the multiplayer server.
 
 ## In-Game Validation
 

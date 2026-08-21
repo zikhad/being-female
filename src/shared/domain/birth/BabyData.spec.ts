@@ -17,6 +17,13 @@ describe("BabyData", () => {
 	it.each([
 		undefined,
 		{},
+		{
+			schemaVersion: 2,
+			birthId: "Dihgg:birth:1",
+			motherUsername: "Dihgg",
+			motherName: "Jane Doe",
+			birthSequence: 1
+		},
 		{ schemaVersion: 1, birthId: "Dihgg:birth:0", motherUsername: "Dihgg", birthSequence: 0 },
 		{ schemaVersion: 1, birthId: "", motherUsername: "Dihgg", birthSequence: 1 }
 	])("rejects malformed metadata %#", value => {

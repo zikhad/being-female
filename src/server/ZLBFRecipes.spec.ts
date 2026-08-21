@@ -3,8 +3,9 @@ import type { CraftRecipeData } from "@server/types";
 import { isServer } from "@asledgehammer/pipewrench";
 import type { InventoryItem, IsoPlayer } from "@asledgehammer/pipewrench";
 import { ZLBFRecipes } from "@server/ZLBFRecipes";
-import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
+import { ZLBF_STATE_MOD_DATA_KEY, ZLBF_STATE_SCHEMA_VERSION } from "@constants";
 import { createDefaultDomains } from "@shared/ZLBFState";
+import { StateRepository } from "@server/components/state/StateRepository";
 
 jest.mock("@asledgehammer/pipewrench", () => ({
 	ZombRandFloat: jest.fn(() => 0.05),
@@ -12,15 +13,24 @@ jest.mock("@asledgehammer/pipewrench", () => ({
 	sendServerCommand: jest.fn()
 }));
 
-/** Creates one actor with isolated legacy and authoritative ModData. */
+/** Creates one actor with isolated component-local and authoritative ModData. */
 const actor = (milkAmount = 0.4, wombAmount = 0.2, cycleDay = 1) => {
 	const domains = createDefaultDomains();
 	domains.lactation = { isActive: true, milkAmount, expiration: 12, multiplier: 0.2 };
-	domains.womb = { cycleDay, amount: wombAmount, total: wombAmount };
+	domains.womb = {
+		cycleDay,
+		amount: wombAmount,
+		total: wombAmount,
+		onContraceptive: false
+	};
 	const modData: Record<string, unknown> = {
 		ZLBFWomb: { amount: wombAmount, total: wombAmount, cycleDay, onContraceptive: false },
 		ZLBFLactation: domains.lactation,
-		[ZLBF_STATE_MOD_DATA_KEY]: { dataSchemaVersion: 5, stateVersion: 2, domains }
+		[ZLBF_STATE_MOD_DATA_KEY]: {
+			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			stateVersion: 2,
+			domains
+		}
 	};
 	const player = mock<IsoPlayer>({
 		isFemale: jest.fn(() => true),
@@ -72,6 +82,7 @@ describe("ZLBFRecipes actor authority", () => {
 	});
 
 	it("persists HandExpress milk use while preserving all Lactation fields", () => {
+		const load = jest.spyOn(StateRepository.prototype, "load");
 		const { player, modData } = actor(0.4);
 		const { items, addFluid } = recipeInput();
 		ZLBFRecipes.OnCreate.HandExpress(items, player);
@@ -87,9 +98,11 @@ describe("ZLBFRecipes actor authority", () => {
 			expiration: 12,
 			multiplier: 0.05
 		});
+		expect(load).toHaveBeenCalledTimes(1);
+		load.mockRestore();
 	});
 
-	it("keeps an authoritative zero Lactation state instead of reviving nonzero legacy milk", () => {
+	it("keeps authoritative zero Lactation instead of reviving component-local milk", () => {
 		jest.mocked(isServer).mockReturnValue(true);
 		const { player, modData, domains } = actor(0);
 		domains.lactation = { isActive: false, milkAmount: 0, expiration: 0, multiplier: 0 };
@@ -110,7 +123,12 @@ describe("ZLBFRecipes actor authority", () => {
 			domains: ReturnType<typeof createDefaultDomains>;
 		};
 		expect(removeFluid).toHaveBeenCalledWith();
-		expect(root.domains.womb).toEqual({ cycleDay: 1, amount: 0, total: 0.2 });
+		expect(root.domains.womb).toEqual({
+			cycleDay: 1,
+			amount: 0,
+			total: 0.2,
+			onContraceptive: false
+		});
 	});
 
 	it("persists contraceptive state for authoritative client convergence", () => {
@@ -146,9 +164,9 @@ describe("ZLBFRecipes actor authority", () => {
 		}
 	);
 
-	it("does not mutate item or legacy state when persisted schema is unsupported", () => {
+	it("does not mutate item or component-local state when persisted schema is unsupported", () => {
 		const { player, modData } = actor();
-		modData[ZLBF_STATE_MOD_DATA_KEY] = { dataSchemaVersion: 99, stateVersion: 1 };
+		modData[ZLBF_STATE_MOD_DATA_KEY] = { schemaVersion: 99, stateVersion: 1 };
 		const wombBefore = { ...(modData.ZLBFWomb as Record<string, unknown>) };
 		const lactationBefore = { ...(modData.ZLBFLactation as Record<string, unknown>) };
 		const { items, addFluid, removeFluid } = recipeInput();

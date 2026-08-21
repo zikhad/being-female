@@ -5,7 +5,7 @@ import {
 	instanceItem
 } from "@asledgehammer/pipewrench";
 import {
-	ZLBF_DATA_SCHEMA_VERSION,
+	ZLBF_STATE_SCHEMA_VERSION,
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
 	ITEMS,
@@ -362,7 +362,7 @@ export class CommandHandler {
 	/** Creates client-visible snapshot data without exposing mutable server storage. */
 	private snapshot(state?: StateLoadResult): ZLBFSnapshot {
 		return {
-			dataSchemaVersion: state?.dataSchemaVersion ?? ZLBF_DATA_SCHEMA_VERSION,
+			schemaVersion: state?.schemaVersion ?? ZLBF_STATE_SCHEMA_VERSION,
 			stateVersion: state?.stateVersion ?? 0,
 			domains: {
 				pregnancy: state?.supported

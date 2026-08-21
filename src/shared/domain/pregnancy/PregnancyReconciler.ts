@@ -47,8 +47,13 @@ export class PregnancyReconciler {
 		};
 	}
 
-	/** Checks cross-field Pregnancy invariants not expressible by primitive schemas. */
-	private isConsistent(state: AuthoritativePregnancyState): boolean {
+	/**
+	 * Checks cross-field Pregnancy invariants not expressible by primitive schemas.
+	 *
+	 * @param state Complete Pregnancy state validated structurally by the caller.
+	 * @returns Whether the status, progress, elapsed time, and labor fields are consistent.
+	 */
+	public isConsistent(state: AuthoritativePregnancyState): boolean {
 		if (state.status === PregnancyStatus.NOT_PREGNANT) {
 			return state.current === 0 && state.progress === 0 && !state.isInLabor;
 		}
