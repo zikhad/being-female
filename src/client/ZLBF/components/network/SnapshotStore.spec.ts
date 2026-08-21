@@ -7,7 +7,7 @@ describe("SnapshotStore", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn(snapshot => expect(store.snapshot).toBe(snapshot));
 		const snapshot = {
-			dataSchemaVersion: 2,
+			schemaVersion: 1,
 			stateVersion: 1,
 			domains: createDefaultDomains()
 		};
@@ -21,9 +21,9 @@ describe("SnapshotStore", () => {
 	it("ignores an older snapshot delivered after newer state", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn();
-		const newer = { dataSchemaVersion: 4, stateVersion: 4, domains: createDefaultDomains() };
+		const newer = { schemaVersion: 1, stateVersion: 4, domains: createDefaultDomains() };
 		const older = {
-			dataSchemaVersion: 4,
+			schemaVersion: 1,
 			stateVersion: 3,
 			domains: {
 				...createDefaultDomains(),
@@ -43,9 +43,9 @@ describe("SnapshotStore", () => {
 	it("ignores a conflicting snapshot with the same server version", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn();
-		const accepted = { dataSchemaVersion: 5, stateVersion: 4, domains: createDefaultDomains() };
+		const accepted = { schemaVersion: 1, stateVersion: 4, domains: createDefaultDomains() };
 		const stale = {
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 4,
 			domains: {
 				...createDefaultDomains(),
@@ -65,7 +65,7 @@ describe("SnapshotStore", () => {
 	it("treats a true equal-version duplicate as a no-op", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn();
-		const snapshot = { dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() };
+		const snapshot = { schemaVersion: 1, stateVersion: 1, domains: createDefaultDomains() };
 		store.subscribe(listener);
 		store.apply(snapshot);
 		listener.mockClear();
@@ -78,7 +78,7 @@ describe("SnapshotStore", () => {
 	it("explicitly re-notifies listeners of the retained current snapshot", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn();
-		const snapshot = { dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() };
+		const snapshot = { schemaVersion: 1, stateVersion: 1, domains: createDefaultDomains() };
 		store.apply(snapshot);
 		store.subscribe(listener);
 		store.notifyCurrent();
@@ -89,11 +89,11 @@ describe("SnapshotStore", () => {
 		const store = new SnapshotStore();
 		const listener = jest.fn();
 		store.subscribe(listener);
-		store.apply({ dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() });
+		store.apply({ schemaVersion: 1, stateVersion: 1, domains: createDefaultDomains() });
 
 		store.resetSession();
 		expect(store.snapshot).toBeUndefined();
-		store.apply({ dataSchemaVersion: 5, stateVersion: 1, domains: createDefaultDomains() });
+		store.apply({ schemaVersion: 1, stateVersion: 1, domains: createDefaultDomains() });
 		expect(listener).toHaveBeenCalledTimes(2);
 	});
 });

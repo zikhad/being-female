@@ -10,7 +10,7 @@ export type LactationState = {
 	multiplier: number;
 };
 
-/** Creates the neutral Lactation state used when no legacy state exists. */
+/** Creates the neutral Lactation state for a fresh authoritative root. */
 export const createDefaultLactationState = (): LactationState => ({
 	isActive: false,
 	milkAmount: 0,

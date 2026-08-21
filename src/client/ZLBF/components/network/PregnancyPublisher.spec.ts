@@ -57,7 +57,7 @@ describe("PregnancyPublisher", () => {
 				status: ZLBFSyncStatus.OK,
 				data: {
 					snapshot: {
-						dataSchemaVersion: 2,
+						schemaVersion: 1,
 						stateVersion: 1,
 						domains: {
 							...createDefaultDomains(),
@@ -103,7 +103,7 @@ describe("PregnancyPublisher", () => {
 		const publisher = new PregnancyPublisher(snapshots);
 		publisher.setState(createDefaultPregnancyState());
 		const snapshot = {
-			dataSchemaVersion: 2,
+			schemaVersion: 1,
 			stateVersion: 1,
 			domains: createDefaultDomains()
 		};

@@ -10,10 +10,10 @@ const total = number({ minimum: 0 });
 
 /** Runtime schema for persisted and replicated Womb state. */
 export const wombStateSchema = object<AuthoritativeWombState>({
-	cycleDay: optional(cycleDay),
-	amount: optional(amount),
-	total: optional(total),
-	onContraceptive: optional(boolean)
+	cycleDay,
+	amount,
+	total,
+	onContraceptive: boolean
 });
 
 /** Runtime schema for concrete client-published reversible Womb state. */

@@ -11,8 +11,8 @@ import { SyncPublisher } from "@client/components/network/SyncPublisher";
 import { createDefaultPregnancyState } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
-const snapshot = (dataSchemaVersion: number, stateVersion: number) => ({
-	dataSchemaVersion,
+const snapshot = (schemaVersion: number, stateVersion: number) => ({
+	schemaVersion,
 	stateVersion,
 	domains: createDefaultDomains()
 });

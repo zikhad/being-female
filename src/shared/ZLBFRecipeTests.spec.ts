@@ -12,7 +12,7 @@ jest.mock("@asledgehammer/pipewrench", () => ({ isServer: jest.fn(() => true) })
 const actor = () => {
 	const domains = createDefaultDomains();
 	domains.lactation = { isActive: true, milkAmount: 0.4, expiration: 12, multiplier: 0 };
-	domains.womb = { cycleDay: 1, amount: 0.2, total: 0.2 };
+	domains.womb = { cycleDay: 1, amount: 0.2, total: 0.2, onContraceptive: false };
 	const data: Record<string, unknown> = {
 		ZLBFWomb: { cycleDay: 1, amount: 0.2, total: 0.2, onContraceptive: false },
 		ZLBFLactation: domains.lactation,

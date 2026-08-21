@@ -47,7 +47,7 @@ describe("BirthPublisher", () => {
 		const publisher = new BirthPublisher(snapshots);
 		publisher.allocate();
 		const snapshot = {
-			dataSchemaVersion: 3,
+			schemaVersion: 1,
 			stateVersion: 2,
 			domains: {
 				womb: createDefaultWombState(),
@@ -75,7 +75,7 @@ describe("BirthPublisher", () => {
 	it("does not allocate when the snapshot already has a pending birth", () => {
 		const snapshots = new SnapshotStore();
 		snapshots.apply({
-			dataSchemaVersion: 3,
+			schemaVersion: 1,
 			stateVersion: 1,
 			domains: {
 				womb: createDefaultWombState(),
@@ -111,7 +111,7 @@ describe("BirthPublisher", () => {
 			status: ZLBFSyncStatus.OK,
 			data: {
 				snapshot: {
-					dataSchemaVersion: 3,
+					schemaVersion: 1,
 					stateVersion: 2,
 					domains: {
 						womb: createDefaultWombState(),
@@ -234,7 +234,7 @@ const completionResponse = (
 	status,
 	data: {
 		snapshot: {
-			dataSchemaVersion: 5,
+			schemaVersion: 1,
 			stateVersion: 2,
 			domains: {
 				womb: createDefaultWombState(),

@@ -65,9 +65,9 @@ export enum ZLBFAnimations {
 /** Project Zomboid command module used by all ZLBF network messages. */
 export const ZLBF_NETWORK_MODULE = "ZLBF";
 /** Current version of the ZLBF request/response envelope. */
-export const ZLBF_PROTOCOL_SCHEMA_VERSION = 2;
-/** Current version of the authoritative ZLBF domain-data shape. */
-export const ZLBF_DATA_SCHEMA_VERSION = 5;
+export const ZLBF_PROTOCOL_SCHEMA_VERSION = 3;
+/** Current version of the persisted authoritative ZLBF state shape. */
+export const ZLBF_STATE_SCHEMA_VERSION = 1;
 /** Player ModData key containing the server-owned authoritative root. */
 export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.AuthoritativeState";
 

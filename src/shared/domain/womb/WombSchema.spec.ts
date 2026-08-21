@@ -1,9 +1,15 @@
 import { wombProgressStateSchema, wombStateSchema } from "@shared/domain/womb/WombSchema";
 
 describe("WombSchema", () => {
-	it.each([{}, { cycleDay: -56 }, { cycleDay: 0 }, { cycleDay: 28 }])(
-		"accepts persisted Womb state %#",
-		value => expect(wombStateSchema(value)).toBe(true)
+	it.each([-56, 0, 28])("accepts complete persisted Womb state %#", cycleDay => {
+		expect(wombStateSchema({ cycleDay, amount: 0, total: 0, onContraceptive: false })).toBe(
+			true
+		);
+	});
+
+	it.each([{}, { cycleDay: 0 }, { cycleDay: 0, amount: 0, total: 0 }])(
+		"rejects incomplete persisted Womb state %#",
+		value => expect(wombStateSchema(value)).toBe(false)
 	);
 
 	it.each([{ cycleDay: -57 }, { cycleDay: 29 }, { cycleDay: 1.5 }, { cycleDay: "1" }])(
