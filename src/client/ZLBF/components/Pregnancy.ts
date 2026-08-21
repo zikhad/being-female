@@ -60,14 +60,22 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	public Debug = {
 		start: () => {
 			if (!this.isActiveBinding()) return;
-			this.commands?.setState({
-				...createDefaultPregnancyState(),
-				status: PregnancyStatus.PREGNANT
-			});
+			if (this.commands) {
+				this.commands.setState({
+					...createDefaultPregnancyState(),
+					status: PregnancyStatus.PREGNANT
+				});
+				return;
+			}
+			this.start();
 		},
 		stop: () => {
 			if (!this.isActiveBinding()) return;
-			this.commands?.setState(createDefaultPregnancyState());
+			if (this.commands) {
+				this.commands.setState(createDefaultPregnancyState());
+				return;
+			}
+			this.stop();
 		},
 		advance: (minutes: number) => {
 			if (!this.isActiveBinding()) return;
@@ -77,12 +85,17 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			const { current } = pregnancy;
 			const duration = this.duration;
 			const updated = Math.min(duration, current + minutes);
-			this.commands?.setState({
+			const next = {
 				status: PregnancyStatus.PREGNANT,
 				current: updated,
 				progress: updated / duration,
 				isInLabor: updated == duration
-			});
+			};
+			if (this.commands) {
+				this.commands.setState(next);
+				return;
+			}
+			this.applyLocalPregnancyState(next);
 		},
 		advanceToLabor: () => {
 			if (!this.isActiveBinding()) return;
@@ -293,6 +306,25 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			isInLabor: false
 		});
 		this.moodle?.moodle(0);
+	}
+
+	/**
+	 * Applies one complete single-player Pregnancy state and emits its local presentation effects.
+	 *
+	 * @param state Complete Pregnancy value produced by a local debug or simulation transition.
+	 */
+	private applyLocalPregnancyState(state: AuthoritativePregnancyState): void {
+		const previousInLabor = this.pregnancy?.isInLabor ?? false;
+		PregnancyState.set(this.player, {
+			current: state.current,
+			progress: state.progress,
+			isInLabor: state.isInLabor
+		});
+		this.moodle?.moodle(state.progress, true);
+		triggerEvent(ZLBFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
+		if (state.isInLabor && !previousInLabor) {
+			this.queueLegacyBirthPresentation(false, true);
+		}
 	}
 
 	/** Publishes a normal conception result or applies the legacy local fallback. */

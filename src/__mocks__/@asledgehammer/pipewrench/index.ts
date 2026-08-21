@@ -13,6 +13,7 @@ export const instanceItem = jest.fn();
 export const ZombRandFloat = (a: number, b?: number) => a;
 export const ZombRand = (a: number, b?: number) => a;
 export const isDebugEnabled = jest.fn();
+export const isClient = jest.fn(() => true);
 
 export const BodyPartType = {
 	Groin: "Groin",
