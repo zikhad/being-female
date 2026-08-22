@@ -9,6 +9,7 @@ export const getSpecificPlayer = jest.fn();
 export const sendClientCommand = jest.fn();
 export const sendServerCommand = jest.fn();
 export const instanceItem = jest.fn();
+export const getRandomUUID = jest.fn(() => "test-character-id");
 
 export const ZombRandFloat = (a: number, b?: number) => a;
 export const ZombRand = (a: number, b?: number) => a;

@@ -4,15 +4,50 @@ import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
 import { createDefaultDomains } from "@shared/ZLBFState";
 
 describe("StateMigrator", () => {
-	const migrator = new StateMigrator();
+	const createCharacterId = jest.fn(() => "character-current");
+	const migrator = new StateMigrator(undefined, createCharacterId);
 	const current = (stateVersion = 0) => ({
 		schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+		characterId: "character-current",
 		stateVersion,
 		domains: createDefaultDomains()
 	});
 
 	it("creates a complete default state", () => {
 		expect(migrator.createDefault()).toEqual(current());
+	});
+
+	it("assigns different character identities to separate fresh roots", () => {
+		const factory = jest
+			.fn<ReturnType<() => string>, Parameters<() => string>>()
+			.mockReturnValueOnce("character-one")
+			.mockReturnValueOnce("character-two");
+		const isolatedMigrator = new StateMigrator(undefined, factory);
+
+		expect(isolatedMigrator.createDefault().characterId).toBe("character-one");
+		expect(isolatedMigrator.createDefault().characterId).toBe("character-two");
+		expect(factory).toHaveBeenCalledTimes(2);
+	});
+
+	it("migrates a valid schema-v1 state once without changing domains or lifecycle IDs", () => {
+		const domains = createDefaultDomains();
+		domains.birth = {
+			birthSequence: 4,
+			pendingBirthId: "legacy-user:birth:4",
+			completedBirthId: "legacy-user:birth:3"
+		};
+		const persisted = { schemaVersion: 1, stateVersion: 9, domains };
+		createCharacterId.mockClear();
+
+		const result = migrator.migrate(persisted);
+
+		expect(result.supported && result.state).toEqual({
+			schemaVersion: 2,
+			characterId: "character-current",
+			stateVersion: 9,
+			domains
+		});
+		expect(createCharacterId).toHaveBeenCalledTimes(1);
 	});
 
 	it.each([undefined, null, "invalid", Number.NaN])(
@@ -31,7 +66,8 @@ describe("StateMigrator", () => {
 		{ dataSchemaVersion: 5, stateVersion: 7, domains: createDefaultDomains() },
 		{ schemaVersion: 0, stateVersion: 7, domains: createDefaultDomains() },
 		{ schemaVersion: 1, stateVersion: 7, domains: undefined },
-		{ schemaVersion: 1, stateVersion: 7, domains: { pregnancy: {} } }
+		{ schemaVersion: 1, stateVersion: 7, domains: { pregnancy: {} } },
+		{ schemaVersion: 2, characterId: "", stateVersion: 7, domains: createDefaultDomains() }
 	])("resets an old or incomplete root %#", persisted => {
 		expect(migrator.migrate(persisted)).toEqual({
 			supported: true,

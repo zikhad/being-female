@@ -2,7 +2,7 @@
 
 Status: partially verified
 
-Last updated: 2026-08-05
+Last updated: 2026-08-21
 
 Project Zomboid build: 42.12 / 42.x
 
@@ -59,10 +59,14 @@ Confidence: high that nested supported Lua tables in player ModData are serializ
 
 ## Implications For ZLBF
 
--   Store one server-owned player root such as `{ schemaVersion, stateVersion, domains }`.
+-   Store one server-owned player root such as `{ schemaVersion, characterId, stateVersion, domains }`.
+-   Generate `characterId` once on the server with `getRandomUUID()` when a character root is
+    created. Keep it private to persistence; client snapshots need only gameplay domains.
 -   Store only strings, finite numbers, booleans, and nested tables.
--   Accept only a complete current-schema root. Reset missing, older, or malformed roots to a fresh
-    current state; preserve unsupported future roots without rewriting them.
+-   Accept only a complete current-schema root. Schema v2 requires a bounded nonempty
+    `characterId`; malformed roots reset fresh, while unsupported future roots remain untouched.
+-   Migrate a complete schema-v1 root explicitly to v2 by preserving `stateVersion`, every domain,
+    and pending/completed birth IDs exactly while assigning one new server-generated character ID.
 -   Keep an explicit version-dispatch seam for future migrations instead of salvaging individual
     domains implicitly.
 -   Keep wire protocol versions separate from persisted-data versions and migrations.
@@ -89,7 +93,8 @@ Persist a diagnostic ZLBF root containing schema and state versions, a nested ob
 3. On a dedicated server, repeat across reconnect and graceful restart with two players holding distinct values.
 4. Modify only the client player's same key without transmission and confirm the server and subsequent snapshot remain unchanged.
 5. Modify only server ModData without `transmitModData`; confirm restart persistence and that the client learns the value only through the response.
-6. Seed partial or older data and confirm one load normalizes and persists the current schema.
+6. Seed complete schema-v1 data and confirm one load preserves its gameplay and birth lifecycle
+   while assigning an identity; seed partial data and confirm it resets to a fresh schema-v2 root.
 7. Mutate immediately before disconnect and reconnect to test save timing.
 
 ## History
@@ -97,3 +102,5 @@ Persist a diagnostic ZLBF root containing schema and state versions, a nested ob
 -   2026-08-04: Initial investigation; persistence and replication remain unverified.
 -   2026-08-04: Added Reference Mod server-store, normalization, migration-boundary, and ownership patterns; persistence/replication status remains investigating.
 -   2026-08-05: Confirmed recursive nested-table serialization in the Build 42.12 player save path; recorded Reference Mod runtime evidence and narrowed the remaining uncertainty to save timing, disconnect durability, and legacy migration.
+-   2026-08-21: Defined schema-v2 character identity: server-only `getRandomUUID()` allocation,
+    strict current validation, explicit state-preserving v1 migration, and no wire-protocol change.

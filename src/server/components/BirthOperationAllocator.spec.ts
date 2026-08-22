@@ -5,10 +5,10 @@ describe("BirthOperationAllocator", () => {
 	const allocator = new BirthOperationAllocator();
 
 	it("allocates the next persisted per-player sequence", () => {
-		expect(allocator.allocate(createDefaultBirthState(), "Dihgg")).toEqual({
+		expect(allocator.allocate(createDefaultBirthState(), "character-uuid")).toEqual({
 			changed: true,
-			birthId: "Dihgg:birth:1",
-			state: { birthSequence: 1, pendingBirthId: "Dihgg:birth:1" }
+			birthId: "character-uuid:birth:1",
+			state: { birthSequence: 1, pendingBirthId: "character-uuid:birth:1" }
 		});
 	});
 
