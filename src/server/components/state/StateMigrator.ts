@@ -14,10 +14,7 @@ import { createDefaultDomains } from "@shared/ZLBFState";
 import { nonNegativeInteger, positiveInteger, record } from "@shared/validation/Schema";
 import { characterIdSchema } from "@shared/domain/CharacterIdentity";
 
-/** Persisted schema-v1 root accepted only by the explicit v1-to-v2 migration. */
-type AuthoritativeStateV1 = Omit<AuthoritativeState, "characterId">;
-
-/** Produces a server-owned identity for one newly initialized or migrated character root. */
+/** Produces a server-owned identity for one newly initialized character root. */
 export type CharacterIdFactory = () => string;
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
@@ -40,8 +37,7 @@ export class StateMigrator {
 
 	/**
 	 * Converts an unknown persisted value into the current authoritative shape.
-	 * Missing and malformed roots reset fresh, valid schema v1 roots migrate explicitly, and
-	 * future roots remain untouched.
+	 * Missing, older, and malformed roots reset fresh, while future roots remain untouched.
 	 *
 	 * @param persisted Raw value read from player ModData.
 	 * @returns Supported current state or metadata for an unsupported future schema.
@@ -61,35 +57,31 @@ export class StateMigrator {
 					: 0
 			};
 		}
-		if (persistedSchemaVersion !== ZLBF_STATE_SCHEMA_VERSION) {
-			return this.migrateOlder(persistedSchemaVersion, persisted);
-		}
+		if (persistedSchemaVersion !== ZLBF_STATE_SCHEMA_VERSION)
+			return this.migrateOlder(persisted);
 		if (!this.isCurrentState(persisted)) return this.supported(this.createDefault());
 		return this.supported(this.canonicalize(persisted));
 	}
 
 	/**
-	 * Migrates a complete schema-v1 root to v2 while preserving its revision and domains exactly.
-	 * Undeclared historical schemas and malformed schema-v1 roots reset to a fresh v2 root.
+	 * Dispatches migrations from released schemas older than the current schema.
 	 *
-	 * @param schemaVersion Historical schema marker read from the persisted root.
-	 * @param persisted Historical root to validate and migrate when its schema is declared.
-	 * @returns A migrated schema-v1 state or a fresh current-schema state.
+	 * Add explicit, sequential migration steps here when a future release raises
+	 * {@link ZLBF_STATE_SCHEMA_VERSION}. Each step must return a newly canonicalized root,
+	 * preserve character identity, revision, and pending operations unless the migration
+	 * explicitly documents otherwise, and never handle an unsupported future schema.
+	 *
+	 * @param persisted Older or unversioned root that cannot be loaded as the current schema.
+	 * @returns Fresh state because the initial public schema has no released predecessor.
 	 */
-	private migrateOlder(
-		schemaVersion: unknown,
-		persisted: Record<string, unknown>
-	): StateLoadResult {
-		if (schemaVersion === 1 && this.isVersionOneState(persisted)) {
-			return this.supported(
-				this.canonicalize({
-					...persisted,
-					schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
-					characterId: this.createCharacterId()
-				})
-			);
+	private migrateOlder(persisted: Record<string, unknown>): SupportedStateLoadResult {
+		// Add released migration steps to this dispatch, for example:
+		switch (persisted.schemaVersion) {
+			//     case 1:
+			//         return this.migrateV1ToV2(persisted);
+			default:
+				return this.supported(this.createDefault());
 		}
-		return this.supported(this.createDefault());
 	}
 
 	/** Validates the complete current root, including cross-field Pregnancy invariants. */
@@ -98,12 +90,7 @@ export class StateMigrator {
 		return this.hasValidStateAndDomains(value);
 	}
 
-	/** Validates a schema-v1 root before assigning its new server-generated character identity. */
-	private isVersionOneState(value: Record<string, unknown>): value is AuthoritativeStateV1 {
-		return this.hasValidStateAndDomains(value);
-	}
-
-	/** Validates fields shared by persisted schema v1 and v2 roots. */
+	/** Validates the revision and complete domain collection of a current root. */
 	private hasValidStateAndDomains(value: Record<string, unknown>): boolean {
 		if (!nonNegativeInteger(value.stateVersion) || !record(value.domains)) return false;
 		const domains = value.domains;

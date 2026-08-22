@@ -23,7 +23,7 @@ Build 42 does not expose a supported per-timed-action non-cancelable flag. Cance
 
 Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
 
-Desired-state reconciliation does not make irreversible operations exact-once. ZLBF therefore persists a pending birth operation, uses character-scoped `<characterId>:birth:<sequence>` IDs, records `motherCharacterId` in BabyData v2, creates the baby on the server, and persists a completed marker. Presentation is resumable after cancellation, completion submission is retried with the same envelope, and duplicate completion is idempotent. The remaining crash window between inventory insertion and completed-state persistence is not proven atomic.
+Desired-state reconciliation does not make irreversible operations exact-once. ZLBF therefore persists a pending birth operation, uses character-scoped `<characterId>:birth:<sequence>` IDs, records `motherCharacterId` in BabyData v1, creates the baby on the server, and persists a completed marker. Presentation is resumable after cancellation, completion submission is retried with the same envelope, and duplicate completion is idempotent. The remaining crash window between inventory insertion and completed-state persistence is not proven atomic.
 
 Historical hosted testing confirmed that the former client-created birth path was not durable: its baby could not be transferred or equipped, disappeared after reconnect, and local Pregnancy reset could be republished as a rollback. That failure is superseded by the current server allocation/completion lifecycle. Subsequent hosted/co-op testing confirmed a durable, transferable baby, one baby after cancellation/retry, recovery-state persistence, and reconnect-safe completion.
 
@@ -91,7 +91,7 @@ Hosted Build 42 multiplayer reproduction confirmed that recipes must treat the c
 -   Client Pregnancy marks the exact bound dead object terminal, releases movement, clears connection-scoped Pregnancy/birth correlations, and ignores later snapshots, timed effects, custom lifecycle events, debug mutations, and birth callbacks. Clearing the retained completion envelope also prevents the shared minute publisher from retrying for the corpse. One singleton listener set always compares death against the current binding, so repeated `OnCreatePlayer` events do not accumulate callbacks and deaths for other player objects are ignored.
 -   A subsequent `OnCreatePlayer` discards the dead object's retained snapshot before binding the new character, then waits for a fresh authoritative snapshot. This avoids replaying a pending presentation from the corpse while preserving normal single-player and permadeath character creation.
 -   No server death listener, protocol death field, or eager ModData cleanup is required for this policy. Persisted pending state may remain on the dead character record.
--   The historical username-scoped birth-ID limitation was superseded by schema-v2 server-generated `characterId`. New operations use `<characterId>:birth:<sequence>`; migrated pending username-based IDs remain intact so they can complete idempotently.
+-   The historical username-scoped birth-ID limitation was superseded by the required server-generated `characterId` in the clean schema-v1 root. New operations use `<characterId>:birth:<sequence>`.
 
 ## Runtime And Version Applicability
 
@@ -115,9 +115,8 @@ Confidence: high for the implemented idempotent birth lifecycle, server inventor
     server-side for the authoritative character root. Keep username and character name as immutable
     descriptive metadata, not operation identity.
 -   Store the same birth ID in baby item ModData before adding/sending the item. On retry, reconcile pending state against a tagged baby before creating another.
--   Store BabyData schema v2 with the exact allocated `birthId`, `motherCharacterId`,
-    `motherUsername`, `motherName`, and `birthSequence`. Never reconstruct the ID during completion:
-    a schema-v1 pending operation may intentionally retain its historical username-based ID.
+-   Store BabyData schema v1 with the exact allocated `birthId`, `motherCharacterId`,
+    `motherUsername`, `motherName`, and `birthSequence`. Never reconstruct the ID during completion.
 -   Derive `motherUsername` from the authenticated player's `getUsername()` for stable account identity. Capture `motherName` once from `getFullName()` for character-facing history; do not use `getDisplayName()`.
 -   Configure the item completely before `AddItem` and `sendAddItemToContainer`; later field changes may require separate synchronization.
 -   Do not use inventory refresh, `transmitModData`, `sendItemStats`, or item transactions for initial creation.
@@ -138,7 +137,7 @@ Confidence: high for the implemented idempotent birth lifecycle, server inventor
 
 ## In-Game Validation
 
-Repeat the validated hosted/co-op birth and recipe flows as regression coverage, then run them on a dedicated server with two clients. Use distinct account and character names and verify character-scoped birth IDs, `motherName`, BabyData v2, transfer/equip, reconnect/restart persistence, cancellation retry, and duplicate completion. Deliberately drop or delay acknowledgements where instrumentation permits. Execute each fluid recipe as a remote client and compare the server, crafting actor, and observer states.
+Repeat the validated hosted/co-op birth and recipe flows as regression coverage, then run them on a dedicated server with two clients. Use distinct account and character names and verify character-scoped birth IDs, `motherName`, BabyData v1, transfer/equip, reconnect/restart persistence, cancellation retry, and duplicate completion. Deliberately drop or delay acknowledgements where instrumentation permits. Execute each fluid recipe as a remote client and compare the server, crafting actor, and observer states.
 
 ## History
 
@@ -163,3 +162,5 @@ Repeat the validated hosted/co-op birth and recipe flows as regression coverage,
     `<characterId>:birth:<sequence>` and BabyData v2 records `motherCharacterId`; migrated pending
     username-based operations retain and complete with their exact historical ID.
 -   2026-08-22: Recorded successful SP and hosted/co-op validation of authoritative recipes, Womb and Lactation fluid mutations for the acting player, resumable/retried birth, reconnect, recovery state, and the schema-v2 character-identity migration. Dedicated-server, observer-fluid, focused BabyData-v2 inspection, packet-loss, and crash-atomicity checks remain open.
+-   2026-08-22: Superseded the unreleased state-v2 and BabyData-v2 numbering with clean schema-v1
+    baselines that already require character identity; earlier development data intentionally resets.
