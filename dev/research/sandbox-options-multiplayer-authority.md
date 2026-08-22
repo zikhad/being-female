@@ -1,7 +1,7 @@
 # Sandbox-Option Multiplayer Authority
 
 Status: partially verified  
-Last updated: 2026-08-14  
+Last updated: 2026-08-22
 Project Zomboid build: 42.x  
 Scope: client, server, single-player, multiplayer
 
@@ -13,7 +13,7 @@ How does Build 42 load and expose mod-defined sandbox options across execution c
 
 Build 42 registers enabled mods' `sandbox-options.txt` declarations in `SandboxOptions.instance`. Hosted and dedicated servers load the selected server configuration and publish it into their own Lua environment as `SandboxVars` before gameplay events and client commands. A server `OnClientCommand` handler can therefore read `SandboxVars.ZLBF.PregnancyRecovery` authoritatively.
 
-Multiplayer clients receive a serialized copy of the server options and populate their own `SandboxVars`. The current client accessor normally observes the server-selected value, but its table is still local client state and is not an authority boundary. Irreversible server transitions must read configuration from the server and must not accept it in client payloads.
+Multiplayer clients receive a serialized copy of the server options and populate their own `SandboxVars`. The client accessor normally observes the server-selected value, but its table is still local client state and is not an authority boundary. ZLBF birth completion now reads and validates Pregnancy recovery duration in the authoritative server transition; SP reads its local game configuration. User testing confirmed recovery persistence in SP and hosted/co-op MP. Live changes and dedicated-server behavior remain unverified.
 
 ## Evidence
 
@@ -43,7 +43,7 @@ The evidence comes from the installed Build 42 game jar and media inspected on 2
 
 ## Confidence
 
-Confidence: high for server availability and authority; medium-high for live administrative-update timing.
+Confidence: high for server availability, the authority rule, and tested SP/hosted-co-op recovery behavior; medium for dedicated-server behavior; undetermined for live administrative-update timing.
 
 Registration, startup ordering, Lua-table publication, client propagation, and vanilla server usage are directly supported. Live option changes were not dynamically tested relative to a simultaneous mod command.
 
@@ -69,3 +69,4 @@ Set Pregnancy recovery to 11. In single-player, hosted multiplayer, and dedicate
 ## History
 
 -   2026-08-14: Established the Build 42 server-owned custom sandbox-option loading and multiplayer propagation contract from installed bytecode and vanilla server usage; runtime mode and live-update probes remain pending.
+-   2026-08-22: Recorded successful SP and hosted/co-op birth-recovery validation using the configured authoritative duration. Dedicated-server and live-option-change probes remain pending.

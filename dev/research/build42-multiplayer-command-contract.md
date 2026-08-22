@@ -1,7 +1,7 @@
 # Build 42 Multiplayer Command Contract
 
 Status: partially verified  
-Last updated: 2026-08-18
+Last updated: 2026-08-22
 Project Zomboid build: 42.x  
 Scope: shared, multiplayer
 
@@ -13,9 +13,9 @@ Which Build 42 command signatures and ordering assumptions can the ZLBF multipla
 
 The `OnClientCommand`, `OnServerCommand`, `sendClientCommand`, and targeted `sendServerCommand` shapes agree across installed PipeWrench declarations, inspected vanilla Build 42 code, and the deployed Reference Mod. The player supplied by `OnClientCommand` must be treated as the authenticated command subject.
 
-The current reconnect rule that resets persisted ordering whenever `revision === 1` is replay-unsafe. A delayed or replayed packet can reset ordering. Side-effecting commands require a connection/session epoch or domain idempotency boundary. A read-only snapshot request does not require persisted replay ordering.
+The Reference Mod reconnect rule that resets persisted ordering whenever `revision === 1` is replay-unsafe. ZLBF does not use that rule: it correlates replies to pending requests, resets connection-scoped client state on connection boundaries, and gives irreversible birth operations persisted idempotency identifiers.
 
-The Reference Mod's project owner confirms that its unified server-authoritative path works as intended in actual single-player and multiplayer use. This establishes that Build 42 can support the four-argument command flow in both modes. ZLBF's own path remains unverified because an earlier immediate-bootstrap experiment used different lifecycle timing and dropped a command.
+The Reference Mod's project owner confirms that its unified server-authoritative path works as intended in actual single-player and multiplayer use. ZLBF now deliberately uses different runtime backends: single-player preserves direct local gameplay state, while hosted/co-op multiplayer uses validated client commands, targeted responses, and acknowledged snapshots. Both paths were user-validated on 2026-08-22. Dedicated-server delivery remains unverified.
 
 ## Evidence
 
@@ -43,13 +43,13 @@ See [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.
 
 ### Historical ZLBF runtime experiment
 
-An earlier ZLBF multiplayer experiment, not present on this branch, logged this hosted-session order:
+An earlier ZLBF multiplayer experiment logged this hosted-session order:
 
 1. `OnConnected` fired before `getPlayer()` returned a player.
 2. `OnCreatePlayer` later supplied the player and called `sendClientCommand`.
 3. The server did not receive that immediate ZLBF command, although unrelated vanilla commands reached `OnClientCommand`.
 
-This is direct runtime evidence that ZLBF needs post-creation change detection or bounded retry and must not assume either lifecycle event alone is network-ready.
+This remains useful historical evidence that immediate creation-time bootstrap was unreliable. It is superseded in the current implementation by minute-deferred bootstrap and connection-state reset; hosted/co-op validation confirms that path delivers commands.
 
 ### PipeWrench client/server boundary warnings
 
@@ -69,30 +69,29 @@ The present source placement is therefore correct. Server-only modules must rema
 
 ## Runtime And Version Applicability
 
-Signatures are supported by local Build 42 evidence. Connection lifecycle, reconnect ordering, and single-player dispatch remain environment-sensitive. Never accept a username or online ID from a payload to select the affected player.
+Signatures are supported by local Build 42 evidence. Hosted/co-op connection lifecycle and reconnect behavior have been exercised; dedicated-server lifecycle and packet-loss behavior remain environment-sensitive. Never accept a username or online ID from a payload to select the affected player.
 
 ## Confidence
 
-Confidence: high for signatures, generated-context separation, the Reference Mod's unified SP/MP path, and the replay flaw; medium that the Reference Mod's post-creation periodic publishing pattern transfers to ZLBF; low for ZLBF-specific lifecycle timing and reconnect behavior pending in-game validation.
+Confidence: high for signatures, generated-context separation, hosted/co-op command delivery, the explicit SP-local runtime split, and the replay flaw; medium for reconnect resilience beyond normal tested flows; low for dedicated-server and packet-loss behavior.
 
 ## Implications For ZLBF
 
 -   Validate incoming tables and finite integer schema/revision values before dereferencing them.
 -   Do not reuse revision-one reset logic for side-effecting commands.
--   Define a session epoch or idempotency scheme before Pregnancy mutation commands.
+-   Keep connection-scoped revisions out of persisted state and retain persisted idempotency IDs for irreversible birth operations.
 -   Make schema errors readable under the supported response envelope or treat them as log-only.
--   Bootstrap on verified creation/reconnect events rather than polling forever.
+-   Retain the minute-deferred bootstrap after creation/reconnect rather than returning to immediate lifecycle sends.
 -   Track last observed, last sent, and last acknowledged state separately so dropped packets remain retryable.
 -   Correlate replies to an outstanding request and reject future, late, duplicate, or unsolicited revisions.
 -   Validate raw tables and domain payloads before loading persisted state.
 
 ## Remaining Questions
 
--   Does ZLBF's chosen publisher timing deliver `sendClientCommand` reliably in single-player, as the Reference Mod's later periodic publisher does?
--   Which event or bounded retry schedule is reliably late enough for bootstrap and reconnect?
--   What server-observable lifecycle can establish a session epoch?
+-   Does the chosen publisher timing behave identically on a dedicated server with remote clients?
+-   What bounded timeout policy should recover a response lost without a disconnect?
 -   Can a response arrive before client domain initialization?
--   Hosted multiplayer delivery from the deferred `EveryOneMinute` bootstrap has been user-validated; single-player and dedicated delivery still require instrumentation. See [EveryOneMinute server progression](every-one-minute-server-progression.md) for tick semantics.
+-   Hosted/co-op delivery from the deferred `EveryOneMinute` bootstrap and the separate SP-local path have been user-validated; dedicated delivery still requires instrumentation. See [EveryOneMinute server progression](every-one-minute-server-progression.md) for tick semantics.
 
 ## In-Game Validation
 
@@ -111,3 +110,4 @@ In single-player, hosted multiplayer, and a dedicated server with two clients:
 -   2026-08-04: Recorded project-owner runtime confirmation of the Reference Mod's unified single-player and multiplayer behavior; retained ZLBF-specific lifecycle validation.
 -   2026-08-11: Recorded hosted bootstrap delivery and linked the server progression event research.
 -   2026-08-18: Confirmed that five PipeWrench client-to-server build warnings are tooling false positives caused by faulty output-scope detection in version 41.78.19. Generated Lua retains correct server placement and side-relative requires.
+-   2026-08-22: Recorded successful SP-local and hosted/co-op command/snapshot validation. Marked the earlier immediate-bootstrap failure historical and retained dedicated-server and packet-loss validation as open.
