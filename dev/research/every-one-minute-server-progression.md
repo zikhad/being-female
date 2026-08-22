@@ -1,7 +1,7 @@
 # EveryOneMinute Progression Authority
 
 Status: partially verified  
-Last updated: 2026-08-11  
+Last updated: 2026-08-22
 Project Zomboid build: 42.x (local installed build)  
 Scope: client, server, single-player, multiplayer
 
@@ -15,9 +15,9 @@ Build 42 triggers `EveryOneMinute` from `GameTime.update(boolean)` whenever the 
 
 The callback is a wake-up signal, not elapsed-time truth. It has no player or delta argument and fires at most once per game update, so a multi-minute jump can collapse into one callback. Any progression implementation must calculate elapsed time from minute-stamp deltas instead of incrementing once per callback.
 
-ZLBF registers `EveryOneMinute` only from client code. `SyncPublisher` uses its first eligible tick for bootstrap, while `Pregnancy` calculates a minute-stamp delta, advances local presentation, and publishes its latest desired state for server persistence. No server Pregnancy progression listener exists.
+ZLBF registers `EveryOneMinute` only from client code. In hosted/co-op multiplayer, the first eligible tick bootstraps a snapshot and Pregnancy, Womb, and Lactation publish their latest desired state for validated server persistence. In single-player, the same gameplay components use direct local state and do not wait for a command response. No server domain-progression listener exists.
 
-ZLBF has chosen client-simulated, server-persisted progression for reversible domain values where anti-cheat is not required. Pregnancy, cycle/Womb, and Lactation progression should continue to simulate on the owning client and publish validated desired state after ticks. The server remains the persistence and convergence boundary. A server listener and online-player enumeration remain a viable alternative, but are not the planned architecture.
+ZLBF uses client-simulated, server-persisted progression for reversible multiplayer domain values where anti-cheat is not required. Pregnancy, cycle/Womb, and Lactation simulate on the owning client and publish validated desired state after ticks; the server is the multiplayer persistence and convergence boundary. The separate SP path applies changes locally. User testing confirmed both paths on 2026-08-22. A server listener and online-player enumeration remain an unselected alternative.
 
 ## Evidence
 
@@ -49,11 +49,11 @@ ZLBF has chosen client-simulated, server-persisted progression for reversible do
 
 ## Runtime And Version Applicability
 
-The Java and vanilla Lua observations apply to the locally installed Build 42 game inspected on 2026-08-11. Hosted and dedicated behavior is strongly supported by loader location and vanilla usage but has not yet been instrumented by ZLBF in all contexts. No Build 41 behavior is claimed.
+The Java and vanilla Lua observations apply to the locally installed Build 42 game inspected on 2026-08-11. ZLBF's SP and hosted/co-op behavior has since been exercised successfully. Dedicated behavior is strongly supported by loader location and vanilla usage but has not been instrumented by ZLBF. No Build 41 behavior is claimed.
 
 ## Confidence
 
-Confidence: high for current ZLBF listener locations, Java minute-stamp behavior, callback collapse, the `getOnlinePlayers()` iteration pattern, and the client-simulated/online-only product decision; medium-high for event availability across all Build 42 execution modes; undetermined for administrative time changes.
+Confidence: high for current listener locations, Java minute-stamp behavior, callback collapse, online-only client simulation, and tested SP/hosted-co-op progression; medium for dedicated-server behavior and retry under lost responses; undetermined for administrative time changes.
 
 ## Implications For ZLBF
 
@@ -63,7 +63,7 @@ Confidence: high for current ZLBF listener locations, Java minute-stamp behavior
 -   Publishers must retain the latest unsent desired state while a request is pending instead of dropping intervening ticks.
 -   Apply this pattern to Pregnancy, cycle/Womb, and Lactation values that are reversible and do not mutate external game-owned resources.
 -   Do not require a server minute listener, `getOnlinePlayers()` enumeration, session baselines, or unsolicited server snapshot pushes for reversible progression.
--   Keep irreversible birth outside this slice until a persisted exactly-once lifecycle marker exists.
+-   Keep irreversible birth on its implemented persisted pending/completed operation boundary; presentation cancellation and lost acknowledgement must never turn minute progression into a second allocation.
 -   Keep item creation, destructive inventory/fluid transfers, and other irreversible effects as explicit server-validated operations even though progression itself is client-simulated.
 
 ## Remaining Questions
@@ -81,3 +81,4 @@ In a temporary research build, log client execution context, current/previous mi
 -   2026-08-11: Chose online-only Pregnancy progression; reconnect establishes a new session baseline without catch-up.
 -   2026-08-11: Chose client-simulated, server-persisted progression for reversible Pregnancy, Womb/cycle, and Lactation values; retained server simulation as an unselected alternative.
 -   2026-08-11: Implemented the first Pregnancy progression publisher with minute-stamp deltas, latest-state coalescing, validated persistence, and correlated acknowledgement.
+-   2026-08-22: Recorded successful SP-local and hosted/co-op progression validation across Pregnancy, Womb, and Lactation. Dedicated-server, packet-loss, and administrative-time-jump behavior remains open.

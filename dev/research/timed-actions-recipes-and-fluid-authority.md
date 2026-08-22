@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: partially verified  
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -11,34 +11,31 @@ Which pregnancy, recipe, inventory, and fluid effects require server authority, 
 
 ## Conclusion
 
-Pregnancy status and elapsed progression are now server-persisted from client-published desired state, while simulation, labor side effects, and birth remain client-owned. Birth and several recipe/fluid paths still combine presentation with persistent mutation. Exact-once birth requires a persisted server lifecycle marker or idempotency key. Animation and UI should remain client-side and react to accepted transitions.
+Pregnancy, Womb, and Lactation progression are client-simulated. In multiplayer their desired states are validated and persisted by the server; in single-player the proven local backend applies them directly. Animation and UI remain client presentation. Recipes execute locally in SP and mutate the authenticated callback actor's authoritative state and game-owned resources on the server in MP.
 
 The public `ZLBFIntercourse` event remains the integration boundary for debug controls and other mods. Womb performs sperm, contraceptive, fertility, and random-conception logic locally; only a successful `ZLBFPregnancyStart` result publishes the normal persisted Pregnancy transition. Duplicate start results are idempotent while the desired or acknowledged state is already pregnant.
 
 Installed Build 42 vanilla server handlers establish the player-item grant path: create and configure the item, mutate the authenticated server player's inventory with `AddItem`, then call `sendAddItemToContainer` to target the owning client. The network helper is a no-op outside `GameServer`, so single-player needs only the local inventory mutation. Vanilla basic grant paths do not require inventory refresh, `transmitModData`, `sendItemStats`, or an item transaction. Normal persistence is supported by the player inventory save chain, but crash-atomic coordination with player ModData is not exposed.
 
-Build 42 handcraft callback authority is verified. `OnTest` may execute in both client recipe evaluation and server validation, while `OnCreate` executes locally in single-player and on the authoritative server in multiplayer. Callbacks receive the crafting character explicitly and must not use `getPlayer()` as the actor. Fluid replication after authoritative mutation remains unverified. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
+Build 42 handcraft callback authority is verified. `OnTest` may execute in both client recipe evaluation and server validation, while `OnCreate` executes locally in single-player and on the authoritative server in multiplayer. Callbacks receive the crafting character explicitly and must not use `getPlayer()` as the actor. The acting player's fluid result is verified in hosted/co-op testing, but observer-side and dedicated-server replication are not. Commands must validate inventory ownership, identity, quantities, and capacity rather than accepting arbitrary client-selected objects.
 
 Build 42 does not expose a supported per-timed-action non-cancelable flag. Cancel Action treats any nonempty local player character-action stack as cancelable and calls `StopAllActionQueue()` without consulting walk/run/aim, progress-bar, or movement-blocking fields. Birth presentation must therefore be resumable around its persisted pending birth operation rather than treated as an uninterruptible transaction.
 
 Reference Mod demonstrates a safe pattern for reversible effects: the client publishes desired state and the server validates, reconciles, persists, and acknowledges it. ZLBF does not require anti-cheat validation for its private progression values, so Pregnancy, cycle/Womb, and Lactation simulation may remain client-owned while the server owns durable state and convergence. Server-observable facts and external game-owned resources must still be re-read and validated on the server.
 
-Desired-state reconciliation does not make irreversible operations exact-once. Birth, baby creation, and destructive inventory/fluid transfers still require persisted lifecycle or operation identifiers and server-side validation.
+Desired-state reconciliation does not make irreversible operations exact-once. ZLBF therefore persists a pending birth operation, uses character-scoped `<characterId>:birth:<sequence>` IDs, records `motherCharacterId` in BabyData v1, creates the baby on the server, and persists a completed marker. Presentation is resumable after cancellation, completion submission is retried with the same envelope, and duplicate completion is idempotent. The remaining crash window between inventory insertion and completed-state persistence is not proven atomic.
 
-Hosted multiplayer testing confirmed that the current client birth path is not durable. The birth animation completes and `Inventory.AddItem` creates a visible baby, but that client-created item cannot be transferred or equipped and disappears after reconnect. The local birth reset also races the authoritative mirror: `birth()` resets legacy Pregnancy data while the snapshot remains pregnant, so the next client minute tick advances from zero and publishes that reset as valid desired state. The server then persists an apparent rollback to the beginning of Pregnancy.
+Historical hosted testing confirmed that the former client-created birth path was not durable: its baby could not be transferred or equipped, disappeared after reconnect, and local Pregnancy reset could be republished as a rollback. That failure is superseded by the current server allocation/completion lifecycle. Subsequent hosted/co-op testing confirmed a durable, transferable baby, one baby after cancellation/retry, recovery-state persistence, and reconnect-safe completion.
 
-Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSperm` and `HandExpress` must treat the callback-supplied character as the actor. `ClearSperm` now persists `Womb.amount = 0` into the server-owned root and returns an authoritative snapshot. `HandExpress` now updates the actor's complete Lactation domain, mutates the server-kept fluid item, calls `syncItemFields` in server context, and acknowledges the resulting snapshot. This implementation evidence does not by itself verify observer-side fluid convergence.
+Hosted Build 42 multiplayer reproduction confirmed that recipes must treat the callback-supplied character as the actor. Womb and Lactation recipes now persist their domain changes into the server-owned root, mutate the server-kept fluid item where applicable, call `syncItemFields` in server context, and acknowledge the resulting snapshot. User testing confirmed expected SP and hosted/co-op actor/container behavior. Observer-side and dedicated-server fluid convergence remain unverified.
 
 ## Evidence
 
--   `src/client/ZLBF/Actions/ZLBFBirth.ts` directly creates the baby and stops pregnancy from a client timed action.
--   Hosted Build 42 multiplayer observation: the client-created baby was visible but non-transferable/non-equippable and disappeared on reconnect.
--   `Pregnancy.birth()` calls local `stop()`, but the authoritative snapshot remains pregnant; the next `onEveryMinute()` reads reset compatibility data and publishes near-zero Pregnancy progress, explaining the observed persisted rollback after reconnect.
+-   Historical source and hosted observation showed the former client timed action creating a non-durable baby and locally resetting Pregnancy. This directly explained the observed rollback and is superseded by the implemented authoritative lifecycle.
 -   `src/client/ZLBF/components/Pregnancy.ts` advances Pregnancy presentation and labor locally while publishing reversible progress for server persistence.
 -   `src/client/ZLBF/components/Womb.ts` listens for `ZLBFIntercourse`, computes conception, and emits `ZLBFPregnancyStart`; `Pregnancy.ts` publishes that successful lifecycle transition instead of directly mutating local state.
 -   See [EveryOneMinute server progression](every-one-minute-server-progression.md): collapsed minute jumps require timestamp-delta reconciliation, but ZLBF selected client publication instead of server player iteration for reversible progression.
--   `src/server/ZLBFRecipes.ts` imports client singleton state while callbacks mutate player state and fluid inventory.
--   `src/shared/components/FluidContainerApi.ts` appears to remove a requested amount and then all remaining fluid in `clear(amount)`; investigate separately.
+-   Current `src/server/ZLBFRecipes.ts` is independent of client singleton state and uses the callback actor. `FluidContainerApi.clear(amount)` returns after removing only the requested amount.
 -   Reference Mod `src/shared/components/PlushieReconciler.ts` calculates deterministic desired-state deltas without game mutation.
 -   Reference Mod `src/server/components/domain command handler.ts` validates live attachments and persists only traits actually added/suppressed by the mod.
 
@@ -63,7 +60,7 @@ Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSper
 -   `OnTest` participates in recipe viability evaluation and must be safe in both client and server Lua contexts. A server-only registration gives remote clients no local rejection and must not be the sole source of menu feedback.
 -   `LuaManager.GlobalObject.getPlayer()` returns `IsoPlayer.getInstance()` and is not an authenticated-server actor lookup.
 -   The player overload of `sendClientCommand` synchronously triggers `OnClientCommand` when called in `GameServer` context; it does not send a request from the server to a client. Server recipe code must call its domain handler directly with the supplied crafting character.
--   Current generated `media/lua/server/ZLBFRecipes.lua` requires `ZLBF/ZLBF`, while that singleton entrypoint is generated under `media/lua/client`. This cross-context dependency is unsafe for hosted and dedicated servers even if it appears functional in single-player.
+-   Historical generated `media/lua/server/ZLBFRecipes.lua` required a client singleton. This unsafe cross-context dependency was removed by the 2026-08-17 recipe-authority fix.
 -   The 2026-08-17 repository fix removes that client singleton dependency. Recipe eligibility reads only callback-actor ModData, and authoritative mutations load and save the callback actor's server-owned state.
 -   `FluidContainerApi.clear(amount)` previously removed the requested quantity and then immediately removed all remaining fluid. The corrected branch returns after the requested removal.
 
@@ -80,8 +77,8 @@ Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSper
 -   Installed Build 42 `media/lua/client/OptionScreens/MainScreen.lua` routes the configured Cancel Action key through `CancelAction()` to `IsoPlayer.StopAllActionQueue()`.
 -   Installed Build 42 `IsoPlayer.isDoingActionThatCanBeCancelled()` bytecode returns true whenever a living player's character-action stack is nonempty; it does not inspect the active action's fields.
 -   `stopOnWalk`, `stopOnRun`, and `stopOnAim` are consulted only by walking, running, and aiming interruption paths. `forceProgressBar` affects display only, and movement blocking is not consulted by Cancel Action.
--   Current `ZLBFActionBirth.stop()` emits the animation-stop event but does not call superclass cleanup, release movement, or make its persisted pending birth eligible for presentation retry.
--   `Pregnancy.startedBirthId` currently records that an operation was once presented rather than whether presentation is active. After cancellation it suppresses requeue while the authoritative operation remains pending.
+-   Historical `ZLBFActionBirth.stop()` omitted superclass cleanup and left movement and retry state stuck. The resumable presentation implementation supersedes that failure.
+-   Historical `Pregnancy.startedBirthId` recorded only that an operation had once been presented and suppressed requeue after cancellation. The current explicit presentation phases supersede it.
 -   Cancellation must clean local presentation and schedule a safe retry. Only successful timed-action completion may submit the idempotent pending birth operation.
 -   ZLBF uses the next `EveryOneMinute` callback as the retry boundary. Snapshot notifications received between cancellation and that callback retain the interrupted marker and cannot immediately requeue the action while Cancel Action or its menu is still settling.
 -   Active presentation, interrupted presentation, and submitted completion are mutually exclusive client phases. The durable `pendingBirthId` remains server-owned; cancellation never completes it, while a submitted completion suppresses local replay until an authoritative snapshot resolves Pregnancy.
@@ -94,24 +91,23 @@ Hosted Build 42 multiplayer reproduction on 2026-08-17 confirmed that `ClearSper
 -   Client Pregnancy marks the exact bound dead object terminal, releases movement, clears connection-scoped Pregnancy/birth correlations, and ignores later snapshots, timed effects, custom lifecycle events, debug mutations, and birth callbacks. Clearing the retained completion envelope also prevents the shared minute publisher from retrying for the corpse. One singleton listener set always compares death against the current binding, so repeated `OnCreatePlayer` events do not accumulate callbacks and deaths for other player objects are ignored.
 -   A subsequent `OnCreatePlayer` discards the dead object's retained snapshot before binding the new character, then waits for a fresh authoritative snapshot. This avoids replaying a pending presentation from the corpse while preserving normal single-player and permadeath character creation.
 -   No server death listener, protocol death field, or eager ModData cleanup is required for this policy. Persisted pending state may remain on the dead character record.
--   Birth IDs are currently scoped by username plus a sequence stored in character ModData. A replacement character using the same username can restart its sequence and reuse an earlier `<username>:birth:<sequence>` ID. This is a separate cross-character provenance limitation and is not redesigned by the death-policy slice.
+-   The historical username-scoped birth-ID limitation was superseded by the required server-generated `characterId` in the clean schema-v1 root. New operations use `<characterId>:birth:<sequence>`.
 
 ## Runtime And Version Applicability
 
-The concern applies to Build 42 multiplayer. UI and animation are client concerns; persistent transitions and externally visible inventory/fluid values require verified authority.
+The concern applies to Build 42. SP uses local mutation; hosted/co-op MP uses client presentation plus server persistence and external-resource authority. Dedicated-server and observer-side behavior still require direct validation.
 
 ## Confidence
 
-Confidence: high that birth needs idempotent server authority and that multiplayer server grants require `AddItem` plus `sendAddItemToContainer`; medium-high for normal reconnect/restart persistence; low for crash-atomic inventory/ModData coordination and fluid replication pending runtime tests.
+Confidence: high for the implemented idempotent birth lifecycle, server inventory grant path, authoritative recipe actor boundary, and tested SP/hosted-co-op behavior; medium-high for normal reconnect and graceful restart; low for crash atomicity, dedicated-server behavior, and observer fluid replication.
 
 ## Implications For ZLBF
 
--   Add a persisted lifecycle marker/idempotency key before Pregnancy migration.
+-   Preserve the persisted pending/completed birth lifecycle and exact operation ID across retries and migrations.
 -   Keep reversible Pregnancy, cycle/Womb, and Lactation simulation on the owning client and publish desired state for validated server persistence.
 -   Coalesce progression while a request is pending and apply acknowledged snapshots for convergence.
 -   Validate inventory ownership and quantities server-side.
--   Separate shared, side-effect-free recipe eligibility from server-authoritative `OnCreate` mutation before Womb or Lactation recipe migration. Use the supplied crafting character as the actor; never import client singleton state or call `getPlayer()` from authoritative callbacks. Fluid replication still requires runtime validation.
--   Treat `FluidContainerApi.clear(amount)` as a separate bug investigation.
+-   Keep shared, side-effect-free recipe eligibility separate from authoritative MP `OnCreate` mutation. Use the supplied crafting character as the actor; never import client singleton state or call `getPlayer()` from authoritative callbacks. Observer fluid replication still requires runtime validation.
 -   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
 -   Do not let client birth completion reset Pregnancy or resume progression from reset data. A server operation must create the durable item and atomically record the completed lifecycle state.
 -   Persist a server-owned birth operation ID before animation begins and require animation completion to submit that ID through a dedicated command.
@@ -119,9 +115,8 @@ Confidence: high that birth needs idempotent server authority and that multiplay
     server-side for the authoritative character root. Keep username and character name as immutable
     descriptive metadata, not operation identity.
 -   Store the same birth ID in baby item ModData before adding/sending the item. On retry, reconcile pending state against a tagged baby before creating another.
--   Store BabyData schema v2 with the exact allocated `birthId`, `motherCharacterId`,
-    `motherUsername`, `motherName`, and `birthSequence`. Never reconstruct the ID during completion:
-    a schema-v1 pending operation may intentionally retain its historical username-based ID.
+-   Store BabyData schema v1 with the exact allocated `birthId`, `motherCharacterId`,
+    `motherUsername`, `motherName`, and `birthSequence`. Never reconstruct the ID during completion.
 -   Derive `motherUsername` from the authenticated player's `getUsername()` for stable account identity. Capture `motherName` once from `getFullName()` for character-facing history; do not use `getDisplayName()`.
 -   Configure the item completely before `AddItem` and `sendAddItemToContainer`; later field changes may require separate synchronization.
 -   Do not use inventory refresh, `transmitModData`, `sendItemStats`, or item transactions for initial creation.
@@ -138,11 +133,11 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
 -   Does `syncItemFields` after server-side `FluidContainer.addFluid` converge amount and primary fluid for both the crafting client and observers in hosted and dedicated multiplayer?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
--   How should a retained client singleton recover when a birth-completion response is lost after submission? Reconnect reconstructs presentation from the authoritative pending ID, but same-session completion retry belongs to a later network-resilience slice.
+-   Does the implemented same-session exact-envelope retry remain correct under deliberately dropped, delayed, and reordered responses?
 
 ## In-Game Validation
 
-Create a diagnostic server birth operation with a visible/logged birth ID. In hosted and dedicated multiplayer, use different account and character names and log `getUsername()`, `getFullName()`, descriptor forename/surname, and `getDisplayName()`; verify `motherName` uses the full character name even when display-name server options change. Verify the baby can be equipped and transferred, retains its item and birth IDs across reconnect/restart, and remains singular after duplicate completion requests. Test a disconnect before acknowledgement and a seeded pending operation with an already-tagged baby. Execute each fluid recipe separately as host and remote client, logging callback context and comparing server, actor, and observer state.
+Repeat the validated hosted/co-op birth and recipe flows as regression coverage, then run them on a dedicated server with two clients. Use distinct account and character names and verify character-scoped birth IDs, `motherName`, BabyData v1, transfer/equip, reconnect/restart persistence, cancellation retry, and duplicate completion. Deliberately drop or delay acknowledgements where instrumentation permits. Execute each fluid recipe as a remote client and compare the server, crafting actor, and observer states.
 
 ## History
 
@@ -166,3 +161,6 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-21: Selected server-generated per-character UUID identity. New births use
     `<characterId>:birth:<sequence>` and BabyData v2 records `motherCharacterId`; migrated pending
     username-based operations retain and complete with their exact historical ID.
+-   2026-08-22: Recorded successful SP and hosted/co-op validation of authoritative recipes, Womb and Lactation fluid mutations for the acting player, resumable/retried birth, reconnect, recovery state, and the schema-v2 character-identity migration. Dedicated-server, observer-fluid, focused BabyData-v2 inspection, packet-loss, and crash-atomicity checks remain open.
+-   2026-08-22: Superseded the unreleased state-v2 and BabyData-v2 numbering with clean schema-v1
+    baselines that already require character identity; earlier development data intentionally resets.

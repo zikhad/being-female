@@ -32,7 +32,7 @@ export type CreateBabyDataInput = {
 
 /** Runtime schema for baby item metadata read from untrusted item ModData. */
 export const babyDataSchema = object<BabyData>({
-	schemaVersion: oneOf([2]),
+	schemaVersion: oneOf([1]),
 	birthId: string({ minimumLength: 1, maximumLength: 128 }),
 	motherCharacterId: characterIdSchema,
 	motherUsername: string({ minimumLength: 1, maximumLength: 64 }),
@@ -47,7 +47,7 @@ export const babyDataSchema = object<BabyData>({
  * @returns Metadata to attach before the item enters an inventory.
  */
 export const createBabyData = (input: CreateBabyDataInput): BabyData => ({
-	schemaVersion: 2,
+	schemaVersion: 1,
 	birthId: input.birthId,
 	motherCharacterId: input.motherCharacterId,
 	motherUsername: input.mother.username,

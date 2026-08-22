@@ -104,6 +104,7 @@ describe("CommandHandler", () => {
 		const player = playerWithStore({
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 6,
 				domains: domains()
 			}
@@ -142,6 +143,7 @@ describe("CommandHandler", () => {
 		const player = playerWithStore({
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 1,
 				domains: {
 					...domains(),
@@ -245,6 +247,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 1,
 				domains: {
 					...domains(),
@@ -294,6 +297,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -322,6 +326,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -360,6 +365,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 4,
 				domains: domains()
 			}
@@ -396,30 +402,30 @@ describe("CommandHandler", () => {
 	it.each([2, 99])(
 		"reports unsupported protocol schema %s using the current response envelope",
 		requestSchemaVersion => {
-		const handler = new CommandHandler();
-		const player = mockedPlayer();
-		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
-			player,
-			{
-				schemaVersion: requestSchemaVersion,
-				requestId: "snapshot-1",
-				revision: 1,
-				data: {}
-			}
-		);
-		expect(sendMock).toHaveBeenCalledWith(
-			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
-			expect.objectContaining({
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
-				requestId: "snapshot-1",
-				revision: 1,
-				status: ZLBFSyncStatus.UNSUPPORTED_SCHEMA
-			})
-		);
+			const handler = new CommandHandler();
+			const player = mockedPlayer();
+			handler.onClientCommand(
+				ZLBF_NETWORK_MODULE,
+				ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+				player,
+				{
+					schemaVersion: requestSchemaVersion,
+					requestId: "snapshot-1",
+					revision: 1,
+					data: {}
+				}
+			);
+			expect(sendMock).toHaveBeenCalledWith(
+				player,
+				ZLBF_NETWORK_MODULE,
+				ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+				expect.objectContaining({
+					schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+					requestId: "snapshot-1",
+					revision: 1,
+					status: ZLBFSyncStatus.UNSUPPORTED_SCHEMA
+				})
+			);
 		}
 	);
 
@@ -427,6 +433,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 5,
 				domains: {
 					...domains(),
@@ -476,6 +483,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 6,
 				domains: {
 					...domains(),
@@ -538,6 +546,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 6,
 				domains: {
 					...domains(),
@@ -596,6 +605,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 8,
 				domains: {
 					...domains(),
@@ -632,7 +642,7 @@ describe("CommandHandler", () => {
 
 		expect(AddItem).toHaveBeenCalledWith(baby);
 		expect(itemModData.ZLBF).toEqual({
-			schemaVersion: 2,
+			schemaVersion: 1,
 			birthId: "Dihgg:birth:1",
 			motherCharacterId: "test-character-id",
 			motherUsername: "Dihgg",
@@ -660,6 +670,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 9,
 				domains: {
 					...domains(),
@@ -702,6 +713,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 8,
 				domains: {
 					...domains(),
@@ -755,6 +767,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 3,
 				domains: {
 					...domains(),
@@ -804,6 +817,7 @@ describe("CommandHandler", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
+				characterId: "test-character-id",
 				stateVersion: 4,
 				domains: {
 					...domains(),
@@ -837,7 +851,12 @@ describe("CommandHandler", () => {
 
 	it("persists complete Lactation only against the current authoritative version", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: { schemaVersion: 1, stateVersion: 2, domains: domains() }
+			[ZLBF_STATE_MOD_DATA_KEY]: {
+				schemaVersion: 1,
+				characterId: "test-character-id",
+				stateVersion: 2,
+				domains: domains()
+			}
 		};
 		const player = playerWithStore(store);
 		const handler = new CommandHandler();

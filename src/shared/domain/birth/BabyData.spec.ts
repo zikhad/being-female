@@ -2,7 +2,7 @@ import { babyDataSchema, createBabyData } from "@shared/domain/birth/BabyData";
 
 describe("BabyData", () => {
 	const valid = {
-		schemaVersion: 2,
+		schemaVersion: 1,
 		birthId: "character-uuid:birth:1",
 		motherCharacterId: "character-uuid",
 		motherUsername: "Dihgg",
@@ -19,7 +19,7 @@ describe("BabyData", () => {
 		});
 
 		expect(data).toEqual({
-			schemaVersion: 2,
+			schemaVersion: 1,
 			birthId: "legacy-operation-id",
 			motherCharacterId: "character-uuid",
 			motherUsername: "Dihgg",
@@ -32,7 +32,7 @@ describe("BabyData", () => {
 	it.each([
 		undefined,
 		{},
-		{ ...valid, schemaVersion: 1 },
+		{ ...valid, schemaVersion: 2 },
 		{ ...valid, birthSequence: 0 },
 		{ ...valid, birthId: "" }
 	])("rejects malformed metadata %#", value => {
