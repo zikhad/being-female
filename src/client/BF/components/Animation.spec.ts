@@ -149,7 +149,9 @@ describe("Animation", () => {
 				expect(Animation.wombImage).toMatch(/fertilization/);
 				expect(Animation.wombImage).not.toMatch(/-v/);
 
-				const wombPregnant = makeWomb({ pregnancy: { progress: 0.6 } as PregnancyData });
+				const wombPregnant = makeWomb({
+					pregnancyData: { progress: 0.6 } as PregnancyData
+				});
 				const animationPregnant = new Animation(wombPregnant);
 
 				animationPregnant.onAnimationStart(ANIMATIONS.FERTILIZATION);
@@ -180,7 +182,7 @@ describe("Animation", () => {
 
 		it("should leave animation undefined when no variant matches current flags", () => {
 			const womb = makeWomb(
-				{ pregnancy: { progress: 0.6 } as PregnancyData },
+				{ pregnancyData: { progress: 0.6 } as PregnancyData },
 				{ hasCondom: true }
 			);
 			const animationInstance = new Animation(womb);
@@ -277,7 +279,7 @@ describe("Animation", () => {
 
 		it("should not call getTexture when no animation variant is selected", () => {
 			const womb = makeWomb(
-				{ pregnancy: { progress: 0.6 } as PregnancyData },
+				{ pregnancyData: { progress: 0.6 } as PregnancyData },
 				{ hasCondom: true }
 			);
 			const animationInstance = new Animation(womb);
@@ -405,7 +407,7 @@ describe("Animation", () => {
 		});
 
 		it("should set normal idle frame 0 when amount is zero", () => {
-			const womb = makeWomb({ amount: 0, capacity: 1, pregnancy: null });
+			const womb = makeWomb({ amount: 0, capacity: 1, pregnancyData: null });
 			const animationInstance = new Animation(womb);
 
 			animationInstance.onImage();
@@ -415,7 +417,7 @@ describe("Animation", () => {
 
 		it("should set conception idle image when pregnancy progress is at or below 0.05", () => {
 			const womb = makeWomb({
-				pregnancy: { progress: 0.05 } as PregnancyData,
+				pregnancyData: { progress: 0.05 } as PregnancyData,
 				amount: 0,
 				capacity: 1
 			});
@@ -438,7 +440,7 @@ describe("Animation", () => {
 		])(
 			"should set pregnant image to $expectedIndex whe progress is $progress",
 			({ progress, expectedIndex }) => {
-				const womb = makeWomb({ pregnancy: { progress } as PregnancyData });
+				const womb = makeWomb({ pregnancyData: { progress } as PregnancyData });
 				const animationInstance = new Animation(womb);
 
 				animationInstance.onImage();

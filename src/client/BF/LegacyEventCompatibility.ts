@@ -29,6 +29,14 @@ const LEGACY_NOTIFICATION_EVENTS: Record<BFNotificationEvent, string> = {
 	[BFEventsEnum.PREGNANCY_LABOR]: "ZLBFPregnancyLabor"
 };
 
+/** Legacy notification names registered before BF attempts dual emission. */
+const LEGACY_NOTIFICATION_EVENT_NAMES: readonly string[] = [
+	"ZLBFPregnancyUpdate",
+	"ZLBFLactationUpdate",
+	"ZLBFWombUpdate",
+	"ZLBFPregnancyLabor"
+];
+
 /** Guards the module-level compatibility installation against duplicate listeners. */
 let installed = false;
 
@@ -44,6 +52,10 @@ export const installLegacyEventCompatibility = (): void => {
 		new Events.EventEmitter<(...payload: unknown[]) => void>(legacyEvent).addListener(
 			(...payload: unknown[]) => triggerEvent(bfEvent, ...payload)
 		);
+	}
+
+	for (const legacyEvent of LEGACY_NOTIFICATION_EVENT_NAMES) {
+		new Events.EventEmitter(legacyEvent);
 	}
 };
 

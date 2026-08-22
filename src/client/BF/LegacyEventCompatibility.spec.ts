@@ -38,7 +38,13 @@ describe("LegacyEventCompatibility", () => {
 		installLegacyEventCompatibility();
 		installLegacyEventCompatibility();
 
-		expect(Events.EventEmitter).toHaveBeenCalledTimes(8);
+		expect(Events.EventEmitter).toHaveBeenCalledTimes(12);
+		expect((Events.EventEmitter as jest.Mock).mock.calls.slice(8)).toEqual([
+			["ZLBFPregnancyUpdate"],
+			["ZLBFLactationUpdate"],
+			["ZLBFWombUpdate"],
+			["ZLBFPregnancyLabor"]
+		]);
 		expect([...mockListeners.keys()]).toEqual([
 			"ZLBFIntercourse",
 			"ZLBFMenstrualEffects",

@@ -203,9 +203,9 @@ describe("WombTab", () => {
 			const player = mockedPlayer();
 			mockHasTrait.mockReturnValue(false);
 
-			const pregnancy = mock<Womb["pregnancy"]>();
+			const pregnancy = mock<Womb["pregnancyData"]>();
 			(pregnancy as any).progress = 0.4;
-			(womb as any).pregnancy = pregnancy;
+			(womb as any).pregnancyData = pregnancy;
 
 			tab.update(ui as any, { womb, player, pregnancy: { pregnancy } as any });
 

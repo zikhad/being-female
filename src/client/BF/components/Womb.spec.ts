@@ -549,7 +549,7 @@ describe("Womb", () => {
 			const womb = new Womb();
 			womb.onPregnancyUpdate({ progress: 0, current: 0 });
 
-			expect((womb as any).pregnancy).toBeNull();
+			expect((womb as any).pregnancyData).toBeNull();
 		});
 
 		it("should return early when onPregnancyUpdate is called with no pregnancy", () => {
@@ -678,7 +678,7 @@ describe("Womb", () => {
 			it("returns fertilized image in early pregnancy", () => {
 				const womb = new Womb();
 				jest.spyOn(womb, "phase", "get").mockReturnValue(CyclePhaseEnum.PREGNANT);
-				jest.spyOn(womb, "pregnancy", "get").mockReturnValue({
+				jest.spyOn(womb, "pregnancyData", "get").mockReturnValue({
 					progress: 0.04,
 					current: 0
 				});
@@ -689,7 +689,7 @@ describe("Womb", () => {
 			it("returns pregnant image after pregnancy threshold", () => {
 				const womb = new Womb();
 				jest.spyOn(womb, "phase", "get").mockReturnValue(CyclePhaseEnum.PREGNANT);
-				jest.spyOn(womb, "pregnancy", "get").mockReturnValue({
+				jest.spyOn(womb, "pregnancyData", "get").mockReturnValue({
 					progress: 0.05,
 					current: 0
 				});

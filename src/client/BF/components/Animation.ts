@@ -281,7 +281,7 @@ export class Animation {
 	 * - `"normal"` when there is no active pregnancy.
 	 */
 	private get pregnancyStatus() {
-		const { pregnancy } = this.womb;
+		const pregnancy = this.womb.pregnancyData;
 		if (!pregnancy) return "normal";
 		if (pregnancy.progress > 0.05) return "pregnant";
 		return "conception";
@@ -294,7 +294,8 @@ export class Animation {
 	 * - When no pregnancy, maps sperm fill percentage to frames 1–17 (0 if empty).
 	 */
 	private get imageIndex() {
-		const { pregnancy, amount, capacity } = this.womb;
+		const { amount, capacity } = this.womb;
+		const pregnancy = this.womb.pregnancyData;
 		if (pregnancy && pregnancy.progress > 0.05) {
 			const percentage = (pregnancy.progress > 0.9 ? 1 : pregnancy.progress) * 100;
 			return percentageToNumber(percentage, 6);
