@@ -67,9 +67,9 @@ export const ZLBF_NETWORK_MODULE = "ZLBF";
 /** Current version of the ZLBF request/response envelope. */
 export const ZLBF_PROTOCOL_SCHEMA_VERSION = 3;
 /** Current version of the persisted authoritative ZLBF state shape. */
-export const ZLBF_STATE_SCHEMA_VERSION = 2;
+export const ZLBF_STATE_SCHEMA_VERSION = 1;
 /** Player ModData key containing the server-owned authoritative root. */
-export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.AuthoritativeState";
+export const ZLBF_STATE_MOD_DATA_KEY = "ZLBF.State";
 
 /** Commands supported by the initial ZLBF state-synchronization transport. */
 export enum ZLBFNetworkCommand {

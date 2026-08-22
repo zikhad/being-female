@@ -2,7 +2,6 @@ import { ZLBF_STATE_SCHEMA_VERSION, ZLBF_STATE_MOD_DATA_KEY } from "@constants";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { mockedPlayer } from "@test/mock";
 import { createDefaultDomains } from "@shared/ZLBFState";
-import { StateMigrator } from "@server/components/state/StateMigrator";
 
 const state = (stateVersion: number) => ({
 	schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
@@ -37,27 +36,22 @@ describe("StateRepository", () => {
 		expect(result.stateVersion).toBe(4);
 	});
 
-	it("persists a v1 migration once and reuses its character identity on later loads", () => {
-		const createCharacterId = jest.fn(() => "migrated-character-id");
-		const repository = new StateRepository(new StateMigrator(undefined, createCharacterId));
-		const store: Record<string, unknown> = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
-				schemaVersion: 1,
-				stateVersion: 7,
-				domains: createDefaultDomains()
-			}
+	it("ignores the retired development namespace when initializing the clean baseline", () => {
+		const retired = {
+			schemaVersion: 2,
+			characterId: "retired-character-id",
+			stateVersion: 7,
+			domains: createDefaultDomains()
 		};
+		const store: Record<string, unknown> = { "ZLBF.AuthoritativeState": retired };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
-		const first = repository.load(player);
-		const second = repository.load(player);
+		const result = new StateRepository().load(player);
 
-		if (!first.supported || !second.supported) throw new Error("expected supported states");
-		expect(first.state.characterId).toBe("migrated-character-id");
-		expect(first.state.schemaVersion).toBe(2);
-		expect(first.state.stateVersion).toBe(7);
-		expect(second.state.characterId).toBe("migrated-character-id");
-		expect(createCharacterId).toHaveBeenCalledTimes(1);
+		if (!result.supported) throw new Error("expected supported state");
+		expect(result.state).toEqual(state(0));
+		expect(store["ZLBF.AuthoritativeState"]).toBe(retired);
+		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(result.state);
 	});
 
 	it("does not import local Lactation when the authoritative root is incomplete", () => {
