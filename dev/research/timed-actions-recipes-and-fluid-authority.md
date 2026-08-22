@@ -1,7 +1,7 @@
 # Timed Actions, Recipes, And Fluid Authority
 
 Status: partially verified  
-Last updated: 2026-08-17
+Last updated: 2026-08-21
 Project Zomboid build: 42.x  
 Scope: client, server, multiplayer
 
@@ -115,9 +115,13 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Use pure desired-state reconciliation for reversible effects, but use explicit intent plus idempotency for irreversible actions.
 -   Do not let client birth completion reset Pregnancy or resume progression from reset data. A server operation must create the durable item and atomically record the completed lifecycle state.
 -   Persist a server-owned birth operation ID before animation begins and require animation completion to submit that ID through a dedicated command.
--   Allocate the birth ID as `<motherUsername>:birth:<sequence>`, where the server derives `motherUsername` from the authenticated player and advances a sequence persisted in that character's ModData. This is stable for one surviving character, but permadeath replacement under the same username may reuse an ID; cross-character uniqueness remains a separate limitation.
+-   Allocate the birth ID as `<characterId>:birth:<sequence>`, where `characterId` is generated once
+    server-side for the authoritative character root. Keep username and character name as immutable
+    descriptive metadata, not operation identity.
 -   Store the same birth ID in baby item ModData before adding/sending the item. On retry, reconcile pending state against a tagged baby before creating another.
--   Store the item metadata under a `BabyData` domain structure containing `schemaVersion`, `birthId`, `motherUsername`, `motherName`, and `birthSequence`. Treat all captured identity fields as immutable historical data, including after the baby is transferred to another player.
+-   Store BabyData schema v2 with the exact allocated `birthId`, `motherCharacterId`,
+    `motherUsername`, `motherName`, and `birthSequence`. Never reconstruct the ID during completion:
+    a schema-v1 pending operation may intentionally retain its historical username-based ID.
 -   Derive `motherUsername` from the authenticated player's `getUsername()` for stable account identity. Capture `motherName` once from `getFullName()` for character-facing history; do not use `getDisplayName()`.
 -   Configure the item completely before `AddItem` and `sendAddItemToContainer`; later field changes may require separate synchronization.
 -   Do not use inventory refresh, `transmitModData`, `sendItemStats`, or item transactions for initial creation.
@@ -134,7 +138,6 @@ Confidence: high that birth needs idempotent server authority and that multiplay
 -   Which Build 42 fluid mutations synchronize automatically after server-authoritative recipe completion?
 -   Does `syncItemFields` after server-side `FluidContainer.addFluid` converge amount and primary fluid for both the crafting client and observers in hosted and dedicated multiplayer?
 -   How large is the crash window between inventory mutation and authoritative player-ModData persistence?
--   Should birth IDs gain a character-unique component so a username reused after permadeath cannot collide with historical baby provenance?
 -   How should a retained client singleton recover when a birth-completion response is lost after submission? Reconnect reconstructs presentation from the authoritative pending ID, but same-session completion retry belongs to a later network-resilience slice.
 
 ## In-Game Validation
@@ -160,3 +163,6 @@ Create a diagnostic server birth operation with a visible/logged birth ID. In ho
 -   2026-08-17: Implemented resumable birth presentation with mutually exclusive active, interrupted, and completion-submitted phases. Cancellation performs base cleanup and releases movement; the next `EveryOneMinute` lifecycle retries the same authoritative birth ID without completing it. Legacy single-player birth uses the same interrupted retry boundary; same-session lost completion acknowledgement remains deferred to network resilience.
 -   2026-08-17: Added same-session exact-envelope completion retry, minute-deferred reconnect bootstrap, and submitted-phase reconciliation that never replays the animation. Crash atomicity between inventory insertion and persisted completion remains outside this slice.
 -   2026-08-17: Selected and implemented character-scoped cancel-on-death. Dead allocation/completion requests are rejected without mutation; the exact bound client character becomes presentation-terminal, and replacement characters wait for a fresh snapshot. Username-based birth-ID reuse across permadeath remains a separate provenance limitation.
+-   2026-08-21: Selected server-generated per-character UUID identity. New births use
+    `<characterId>:birth:<sequence>` and BabyData v2 records `motherCharacterId`; migrated pending
+    username-based operations retain and complete with their exact historical ID.

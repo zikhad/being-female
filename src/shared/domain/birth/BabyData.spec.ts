@@ -1,12 +1,27 @@
 import { babyDataSchema, createBabyData } from "@shared/domain/birth/BabyData";
 
 describe("BabyData", () => {
+	const valid = {
+		schemaVersion: 2,
+		birthId: "character-uuid:birth:1",
+		motherCharacterId: "character-uuid",
+		motherUsername: "Dihgg",
+		motherName: "Jane Doe",
+		birthSequence: 1
+	};
+
 	it("creates valid immutable identity metadata from server-owned inputs", () => {
-		const data = createBabyData({ username: "Dihgg", name: "Jane Doe" }, 3);
+		const data = createBabyData({
+			birthId: "legacy-operation-id",
+			motherCharacterId: "character-uuid",
+			mother: { username: "Dihgg", name: "Jane Doe" },
+			birthSequence: 3
+		});
 
 		expect(data).toEqual({
-			schemaVersion: 1,
-			birthId: "Dihgg:birth:3",
+			schemaVersion: 2,
+			birthId: "legacy-operation-id",
+			motherCharacterId: "character-uuid",
 			motherUsername: "Dihgg",
 			motherName: "Jane Doe",
 			birthSequence: 3
@@ -17,16 +32,18 @@ describe("BabyData", () => {
 	it.each([
 		undefined,
 		{},
-		{
-			schemaVersion: 2,
-			birthId: "Dihgg:birth:1",
-			motherUsername: "Dihgg",
-			motherName: "Jane Doe",
-			birthSequence: 1
-		},
-		{ schemaVersion: 1, birthId: "Dihgg:birth:0", motherUsername: "Dihgg", birthSequence: 0 },
-		{ schemaVersion: 1, birthId: "", motherUsername: "Dihgg", birthSequence: 1 }
+		{ ...valid, schemaVersion: 1 },
+		{ ...valid, birthSequence: 0 },
+		{ ...valid, birthId: "" }
 	])("rejects malformed metadata %#", value => {
 		expect(babyDataSchema(value)).toBe(false);
+	});
+
+	it.each([
+		["missing", undefined],
+		["empty", ""],
+		["longer than 64 characters", "x".repeat(65)]
+	])("rejects a %s motherCharacterId", (_case, motherCharacterId) => {
+		expect(babyDataSchema({ ...valid, motherCharacterId })).toBe(false);
 	});
 });

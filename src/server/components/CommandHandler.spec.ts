@@ -2,6 +2,7 @@ import { instanceItem, isDebugEnabled, sendServerCommand } from "@asledgehammer/
 import {
 	ZLBF_NETWORK_MODULE,
 	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	ZLBF_STATE_SCHEMA_VERSION,
 	ZLBF_STATE_MOD_DATA_KEY,
 	ZLBFTraitsEnum,
 	ZLBFNetworkCommand,
@@ -88,7 +89,11 @@ describe("CommandHandler", () => {
 				revision: 7,
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { schemaVersion: 1, stateVersion: 0, domains: domains() }
+					snapshot: {
+						schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+						stateVersion: 0,
+						domains: domains()
+					}
 				}
 			}
 		);
@@ -123,7 +128,11 @@ describe("CommandHandler", () => {
 			expect.objectContaining({
 				status: ZLBFSyncStatus.OK,
 				data: {
-					snapshot: { schemaVersion: 1, stateVersion: 6, domains: domains() }
+					snapshot: {
+						schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+						stateVersion: 6,
+						domains: domains()
+					}
 				}
 			})
 		);
@@ -414,7 +423,7 @@ describe("CommandHandler", () => {
 		}
 	);
 
-	it("allocates and persists a username-scoped birth operation during labor", () => {
+	it("allocates and persists a character-scoped birth operation during labor", () => {
 		const store = {
 			[ZLBF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
@@ -453,7 +462,7 @@ describe("CommandHandler", () => {
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
 		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,
-			pendingBirthId: "Dihgg:birth:1"
+			pendingBirthId: "test-character-id:birth:1"
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
@@ -623,8 +632,9 @@ describe("CommandHandler", () => {
 
 		expect(AddItem).toHaveBeenCalledWith(baby);
 		expect(itemModData.ZLBF).toEqual({
-			schemaVersion: 1,
+			schemaVersion: 2,
 			birthId: "Dihgg:birth:1",
+			motherCharacterId: "test-character-id",
 			motherUsername: "Dihgg",
 			motherName: "Jane Doe",
 			birthSequence: 1

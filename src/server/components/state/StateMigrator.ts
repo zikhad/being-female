@@ -1,4 +1,5 @@
 import { ZLBF_STATE_SCHEMA_VERSION } from "@constants";
+import { getRandomUUID } from "@asledgehammer/pipewrench";
 import {
 	AuthoritativeState,
 	StateLoadResult,
@@ -11,16 +12,27 @@ import { PregnancyReconciler } from "@shared/domain/pregnancy/PregnancyReconcile
 import { wombStateSchema } from "@shared/domain/womb/WombSchema";
 import { createDefaultDomains } from "@shared/ZLBFState";
 import { nonNegativeInteger, positiveInteger, record } from "@shared/validation/Schema";
+import { characterIdSchema } from "@shared/domain/CharacterIdentity";
+
+/** Persisted schema-v1 root accepted only by the explicit v1-to-v2 migration. */
+type AuthoritativeStateV1 = Omit<AuthoritativeState, "characterId">;
+
+/** Produces a server-owned identity for one newly initialized or migrated character root. */
+export type CharacterIdFactory = () => string;
 
 /** Normalizes persisted ZLBF state and protects future schemas from accidental downgrade. */
 export class StateMigrator {
 	/** Creates a migrator with the Pregnancy invariant policy used for persisted domains. */
-	constructor(private readonly pregnancy = new PregnancyReconciler()) {}
+	constructor(
+		private readonly pregnancy = new PregnancyReconciler(),
+		private readonly createCharacterId: CharacterIdFactory = getRandomUUID
+	) {}
 
 	/** Creates a complete default authoritative root for a player without current valid state. */
 	public createDefault(): AuthoritativeState {
 		return {
 			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			characterId: this.createCharacterId(),
 			stateVersion: 0,
 			domains: createDefaultDomains()
 		};
@@ -28,7 +40,8 @@ export class StateMigrator {
 
 	/**
 	 * Converts an unknown persisted value into the current authoritative shape.
-	 * Missing, old, and malformed roots reset fresh. Future roots remain untouched.
+	 * Missing and malformed roots reset fresh, valid schema v1 roots migrate explicitly, and
+	 * future roots remain untouched.
 	 *
 	 * @param persisted Raw value read from player ModData.
 	 * @returns Supported current state or metadata for an unsupported future schema.
@@ -56,24 +69,42 @@ export class StateMigrator {
 	}
 
 	/**
-	 * Dispatches supported historical schemas to explicit future migrations.
-	 * The clean unpublished schema has no predecessors, so every older root resets fresh.
+	 * Migrates a complete schema-v1 root to v2 while preserving its revision and domains exactly.
+	 * Undeclared historical schemas and malformed schema-v1 roots reset to a fresh v2 root.
 	 *
 	 * @param schemaVersion Historical schema marker read from the persisted root.
-	 * @param persisted Historical root reserved for a future version-specific migrator.
-	 * @returns A fresh current-schema state until a declared migration is introduced.
+	 * @param persisted Historical root to validate and migrate when its schema is declared.
+	 * @returns A migrated schema-v1 state or a fresh current-schema state.
 	 */
 	private migrateOlder(
 		schemaVersion: unknown,
 		persisted: Record<string, unknown>
 	): StateLoadResult {
-		void schemaVersion;
-		void persisted;
+		if (schemaVersion === 1 && this.isVersionOneState(persisted)) {
+			return this.supported(
+				this.canonicalize({
+					...persisted,
+					schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+					characterId: this.createCharacterId()
+				})
+			);
+		}
 		return this.supported(this.createDefault());
 	}
 
 	/** Validates the complete current root, including cross-field Pregnancy invariants. */
 	private isCurrentState(value: Record<string, unknown>): value is AuthoritativeState {
+		if (!characterIdSchema(value.characterId)) return false;
+		return this.hasValidStateAndDomains(value);
+	}
+
+	/** Validates a schema-v1 root before assigning its new server-generated character identity. */
+	private isVersionOneState(value: Record<string, unknown>): value is AuthoritativeStateV1 {
+		return this.hasValidStateAndDomains(value);
+	}
+
+	/** Validates fields shared by persisted schema v1 and v2 roots. */
+	private hasValidStateAndDomains(value: Record<string, unknown>): boolean {
 		if (!nonNegativeInteger(value.stateVersion) || !record(value.domains)) return false;
 		const domains = value.domains;
 		if (
@@ -95,6 +126,7 @@ export class StateMigrator {
 		const lactation = state.domains.lactation;
 		return {
 			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			characterId: state.characterId,
 			stateVersion: state.stateVersion,
 			domains: {
 				pregnancy: {

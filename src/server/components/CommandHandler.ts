@@ -208,7 +208,12 @@ export class CommandHandler {
 					if (!baby) {
 						status = ZLBFSyncStatus.INVALID_REQUEST;
 					} else {
-						const babyData = createBabyData(mother, birth.birthSequence);
+						const babyData = createBabyData({
+							birthId: args.data.birthId,
+							motherCharacterId: loaded.state.characterId,
+							mother,
+							birthSequence: birth.birthSequence
+						});
 						(baby.getModData() as unknown as Record<string, unknown>).ZLBF = babyData;
 						const inventory = player.getInventory();
 						inventory.AddItem(baby);
@@ -263,7 +268,7 @@ export class CommandHandler {
 			} else {
 				const allocation = this.births.allocate(
 					loaded.state.domains.birth,
-					player.getUsername()
+					loaded.state.characterId
 				);
 				if (allocation.changed) {
 					loaded.state.domains.birth = allocation.state;
