@@ -71,7 +71,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 				this.publishState();
 			},
 			nextPhase: () => {
-				if (this.pregnancy) return;
+				if (this.pregnancyData) return;
 				if (this.cycleDay < 1) {
 					this.cycleDay = 1;
 				} else if (this.cycleDay < 6) {
@@ -153,7 +153,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			case CyclePhaseEnum.RECOVERY:
 				return "recovery";
 			case CyclePhaseEnum.PREGNANT:
-				if ((this.pregnancy?.progress ?? 0) >= 0.05) {
+				if ((this.pregnancyData?.progress ?? 0) >= 0.05) {
 					return "pregnant";
 				}
 				return "fertilized";
@@ -242,7 +242,8 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		);
 	}
 
-	public get pregnancy(): PregnancyData | null {
+	/** Returns the local player's stored pregnancy data without sharing a Lua descriptor name. */
+	public get pregnancyData(): PregnancyData | null {
 		return PregnancyState.get(this.player);
 	}
 
@@ -262,7 +263,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			this.amount = Math.min(this.capacity, this.amount + amount);
 			this.total += amount;
 			this.publishState();
-			if (!this.pregnancy) this.impregnate();
+			if (!this.pregnancyData) this.impregnate();
 		}
 	}
 
@@ -282,7 +283,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 * @param data - Pregnancy data.
 	 */
 	onPregnancyUpdate(data: PregnancyData) {
-		if (!this.pregnancy) return;
+		if (!this.pregnancyData) return;
 
 		this.cycleDay = -this.options.recovery;
 		if (data.progress > 0.5 && this.amount > 0) {
@@ -342,7 +343,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 */
 	private computeFertility() {
 		const isInfetile = this.hasTrait(BFTraitsEnum.INFERTILE);
-		if (!this.data || isInfetile || this.contraceptive || this.pregnancy) {
+		if (!this.data || isInfetile || this.contraceptive || this.pregnancyData) {
 			return 0;
 		}
 
@@ -357,7 +358,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 * @param day - The current cycle day.
 	 */
 	private getCyclePhase(day: number): CyclePhase {
-		if (this.pregnancy) return CyclePhaseEnum.PREGNANT;
+		if (this.pregnancyData) return CyclePhaseEnum.PREGNANT;
 		if (day < 1) return CyclePhaseEnum.RECOVERY;
 		if (day < 6) return CyclePhaseEnum.MENSTRUATION;
 		if (day < 13) return CyclePhaseEnum.FOLLICULAR;
