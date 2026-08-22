@@ -1,13 +1,13 @@
 {
-    "Sandbox_ZLBF": "(ZLBF) Being Female",
-    "Sandbox_ZLBF_Pregnancy_Duration": "Pregnancy Duration",
-    "Sandbox_ZLBF_Pregnancy_Duration_tooltip": "How many days the pregnancy will last",
-    "Sandbox_ZLBF_Pregnancy_Recovery": "Pregnancy Recovery Time",
-    "Sandbox_ZLBF_Pregnancy_Recovery_tooltip": "How many days before menstrual cycle restart?",
-    "Sandbox_ZLBF_Womb_Max_Capacity": "Womb Capacity (L)",
-    "Sandbox_ZLBF_Womb_Max_Capacity_tooltip": "The maximum amount of sperm that Womb can hold",
-    "Sandbox_ZLBF_Milk_Capacity": "Milk Capacity (L)",
-    "Sandbox_ZLBF_Milk_Capacity_tooltip": "The maximum amount of Milk that breasts can hold in ml",
-    "Sandbox_ZLBF_Milk_Expiration": "Milk Expiration",
-    "Sandbox_ZLBF_Milk_Expiration_tooltip": "The number of days for lactation to expire if not used"
+	"Sandbox_BF": "(BF) Being Female",
+	"Sandbox_BF_Pregnancy_Duration": "Pregnancy Duration",
+	"Sandbox_BF_Pregnancy_Duration_tooltip": "How many days the pregnancy will last",
+	"Sandbox_BF_Pregnancy_Recovery": "Pregnancy Recovery Time",
+	"Sandbox_BF_Pregnancy_Recovery_tooltip": "How many days before menstrual cycle restart?",
+	"Sandbox_BF_Womb_Max_Capacity": "Womb Capacity (L)",
+	"Sandbox_BF_Womb_Max_Capacity_tooltip": "The maximum amount of sperm that Womb can hold",
+	"Sandbox_BF_Milk_Capacity": "Milk Capacity (L)",
+	"Sandbox_BF_Milk_Capacity_tooltip": "The maximum amount of Milk that breasts can hold in ml",
+	"Sandbox_BF_Milk_Expiration": "Milk Expiration",
+	"Sandbox_BF_Milk_Expiration_tooltip": "The number of days for lactation to expire if not used"
 }

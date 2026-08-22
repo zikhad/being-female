@@ -11,9 +11,9 @@ How does Build 42 load and expose mod-defined sandbox options across execution c
 
 ## Conclusion
 
-Build 42 registers enabled mods' `sandbox-options.txt` declarations in `SandboxOptions.instance`. Hosted and dedicated servers load the selected server configuration and publish it into their own Lua environment as `SandboxVars` before gameplay events and client commands. A server `OnClientCommand` handler can therefore read `SandboxVars.ZLBF.PregnancyRecovery` authoritatively.
+Build 42 registers enabled mods' `sandbox-options.txt` declarations in `SandboxOptions.instance`. Hosted and dedicated servers load the selected server configuration and publish it into their own Lua environment as `SandboxVars` before gameplay events and client commands. A server `OnClientCommand` handler can therefore read `SandboxVars.BF.PregnancyRecovery` authoritatively.
 
-Multiplayer clients receive a serialized copy of the server options and populate their own `SandboxVars`. The client accessor normally observes the server-selected value, but its table is still local client state and is not an authority boundary. ZLBF birth completion now reads and validates Pregnancy recovery duration in the authoritative server transition; SP reads its local game configuration. User testing confirmed recovery persistence in SP and hosted/co-op MP. Live changes and dedicated-server behavior remain unverified.
+Multiplayer clients receive a serialized copy of the server options and populate their own `SandboxVars`. The client accessor normally observes the server-selected value, but its table is still local client state and is not an authority boundary. BF birth completion now reads and validates Pregnancy recovery duration in the authoritative server transition; SP reads its local game configuration. User testing confirmed recovery persistence in SP and hosted/co-op MP. Live changes and dedicated-server behavior remain unverified.
 
 ## Evidence
 
@@ -29,8 +29,8 @@ Multiplayer clients receive a serialized copy of the server options and populate
 
 ### Types or declarations
 
--   `src/media/sandbox-options.txt` registers `ZLBF.PregnancyRecovery` as an integer from zero through 56 with default seven.
--   `src/externals/zomboid.d.ts` describes the nested `SandboxVars.ZLBF` values used by the current client accessor.
+-   `src/media/sandbox-options.txt` registers `BF.PregnancyRecovery` as an integer from zero through 56 with default seven.
+-   `src/externals/zomboid.d.ts` describes the nested `SandboxVars.BF` values used by the current client accessor.
 -   PipeWrench exposes `getSandboxOptions()`, but direct nested `SandboxVars` access most closely matches the custom-option registration and generated table shape.
 
 ### Third-party patterns
@@ -47,11 +47,11 @@ Confidence: high for server availability, the authority rule, and tested SP/host
 
 Registration, startup ordering, Lua-table publication, client propagation, and vanilla server usage are directly supported. Live option changes were not dynamically tested relative to a simultaneous mod command.
 
-## Implications For ZLBF
+## Implications For BF
 
--   Do not import the client-only `src/client/ZLBF/SandboxOptions.ts` from server code.
+-   Do not import the client-only `src/client/BF/SandboxOptions.ts` from server code.
 -   Move reusable definitions/access logic into `src/shared`, or create a narrow server accessor.
--   Read `SandboxVars.ZLBF.PregnancyRecovery` when handling birth completion rather than caching it at module load, so later accepted administrative changes can affect subsequent births.
+-   Read `SandboxVars.BF.PregnancyRecovery` when handling birth completion rather than caching it at module load, so later accepted administrative changes can affect subsequent births.
 -   Validate the mutable global value as an integer within the declared zero-to-56 range and fall back to seven with a server log when it is missing or invalid.
 -   Never accept recovery duration from a client command payload.
 -   Persist Womb recovery in the same authoritative transition that completes birth and resets Pregnancy.
@@ -59,12 +59,12 @@ Registration, startup ordering, Lua-table publication, client propagation, and v
 
 ## Remaining Questions
 
--   Does a live administrative change become visible to the very next ZLBF command in every hosted and dedicated-server lifecycle?
--   How should ZLBF surface a client/server mod-version mismatch that changes the custom option schema?
+-   Does a live administrative change become visible to the very next BF command in every hosted and dedicated-server lifecycle?
+-   How should BF surface a client/server mod-version mismatch that changes the custom option schema?
 
 ## In-Game Validation
 
-Set Pregnancy recovery to 11. In single-player, hosted multiplayer, and dedicated multiplayer, log context flags, `SandboxVars.ZLBF.PregnancyRecovery`, and its Lua type from the client and server command handler. Complete a birth and verify the authoritative Womb `cycleDay` becomes `-11`, remains recovery after reconnect, and advances normally on subsequent in-game days. Optionally change the option through the live admin UI and confirm the next birth uses the updated server value.
+Set Pregnancy recovery to 11. In single-player, hosted multiplayer, and dedicated multiplayer, log context flags, `SandboxVars.BF.PregnancyRecovery`, and its Lua type from the client and server command handler. Complete a birth and verify the authoritative Womb `cycleDay` becomes `-11`, remains recovery after reconnect, and advances normally on subsequent in-game days. Optionally change the option through the live admin UI and confirm the next birth uses the updated server value.
 
 ## History
 

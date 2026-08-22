@@ -1,6 +1,6 @@
 # Project Zomboid Research Notes
 
-This directory preserves reviewed reverse-engineering findings that affect ZLBF design or implementation. These notes are durable project context, not a substitute for validating behavior against the targeted Project Zomboid build.
+This directory preserves reviewed reverse-engineering findings that affect BF design or implementation. These notes are durable project context, not a substitute for validating behavior against the targeted Project Zomboid build.
 
 ## Workflow
 

@@ -1,10 +1,10 @@
-import { ZLBF_STATE_SCHEMA_VERSION, ZLBF_STATE_MOD_DATA_KEY } from "@constants";
+import { BF_STATE_SCHEMA_VERSION, BF_STATE_MOD_DATA_KEY } from "@constants";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { mockedPlayer } from "@test/mock";
-import { createDefaultDomains } from "@shared/ZLBFState";
+import { createDefaultDomains } from "@shared/BFState";
 
 const state = (stateVersion: number) => ({
-	schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+	schemaVersion: BF_STATE_SCHEMA_VERSION,
 	characterId: "test-character-id",
 	stateVersion,
 	domains: createDefaultDomains()
@@ -19,7 +19,7 @@ describe("StateRepository", () => {
 
 		if (!result.supported) throw new Error("expected supported state");
 		expect(result.state).toEqual(state(0));
-		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(result.state);
+		expect(store[BF_STATE_MOD_DATA_KEY]).toBe(result.state);
 	});
 
 	it("reads and writes state through Kahlua get and set", () => {
@@ -31,8 +31,8 @@ describe("StateRepository", () => {
 		const result = new StateRepository().load(player);
 
 		if (!result.supported) throw new Error("expected supported state");
-		expect(get).toHaveBeenCalledWith(ZLBF_STATE_MOD_DATA_KEY);
-		expect(set).toHaveBeenCalledWith(ZLBF_STATE_MOD_DATA_KEY, result.state);
+		expect(get).toHaveBeenCalledWith(BF_STATE_MOD_DATA_KEY);
+		expect(set).toHaveBeenCalledWith(BF_STATE_MOD_DATA_KEY, result.state);
 		expect(result.stateVersion).toBe(4);
 	});
 
@@ -43,22 +43,22 @@ describe("StateRepository", () => {
 			stateVersion: 7,
 			domains: createDefaultDomains()
 		};
-		const store: Record<string, unknown> = { "ZLBF.AuthoritativeState": retired };
+		const store: Record<string, unknown> = { "BF.AuthoritativeState": retired };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 		const result = new StateRepository().load(player);
 
 		if (!result.supported) throw new Error("expected supported state");
 		expect(result.state).toEqual(state(0));
-		expect(store["ZLBF.AuthoritativeState"]).toBe(retired);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(result.state);
+		expect(store["BF.AuthoritativeState"]).toBe(retired);
+		expect(store[BF_STATE_MOD_DATA_KEY]).toBe(result.state);
 	});
 
 	it("does not import local Lactation when the authoritative root is incomplete", () => {
 		const local = { isActive: true, milkAmount: 0.6, expiration: 8, multiplier: 0.3 };
 		const persisted = state(4) as unknown as { domains: Record<string, unknown> };
 		delete persisted.domains.lactation;
-		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted, ZLBFLactation: local };
+		const store = { [BF_STATE_MOD_DATA_KEY]: persisted, BFLactation: local };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 		const result = new StateRepository().load(player);
@@ -70,13 +70,13 @@ describe("StateRepository", () => {
 
 	it("does not overwrite an unsupported future schema", () => {
 		const persisted = { schemaVersion: 9, stateVersion: 3, domains: { future: true } };
-		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
+		const store = { [BF_STATE_MOD_DATA_KEY]: persisted };
 		const player = mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 		const result = new StateRepository().load(player);
 
 		expect(result).toEqual({ supported: false, schemaVersion: 9, stateVersion: 3 });
-		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(persisted);
+		expect(store[BF_STATE_MOD_DATA_KEY]).toBe(persisted);
 	});
 
 	it("explicitly saves a complete authoritative root", () => {
@@ -88,15 +88,15 @@ describe("StateRepository", () => {
 
 		new StateRepository().save(player, authoritative);
 
-		expect(set).toHaveBeenCalledWith(ZLBF_STATE_MOD_DATA_KEY, authoritative);
+		expect(set).toHaveBeenCalledWith(BF_STATE_MOD_DATA_KEY, authoritative);
 	});
 
 	it("keeps different players isolated", () => {
 		const firstStore: Record<string, unknown> = {
-			[ZLBF_STATE_MOD_DATA_KEY]: state(2)
+			[BF_STATE_MOD_DATA_KEY]: state(2)
 		};
 		const secondStore: Record<string, unknown> = {
-			[ZLBF_STATE_MOD_DATA_KEY]: state(8)
+			[BF_STATE_MOD_DATA_KEY]: state(8)
 		};
 		const repository = new StateRepository();
 

@@ -69,7 +69,7 @@ declare global {
 		list: Record<string, ProceduralDistributionEntry>;
 	}
 
-	interface ZLBFSandboxOptions {
+	interface BFSandboxOptions {
 		PregnancyDuration?: number;
 		PregnancyRecovery?: number;
 		WombMaxCapacity?: number;
@@ -141,7 +141,7 @@ declare module "@asledgehammer/pipewrench" {
 }
 
 declare const SandboxVars: Record<string, string | number> & {
-	ZLBF?: ZLBFSandboxOptions;
+	BF?: BFSandboxOptions;
 };
 
 type ProceduralDistributionList = Record<string, ProceduralDistributionEntry | undefined>;

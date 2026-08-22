@@ -1,13 +1,13 @@
-import { ZLBF_STATE_SCHEMA_VERSION } from "@constants";
+import { BF_STATE_SCHEMA_VERSION } from "@constants";
 import { StateMigrator } from "@server/components/state/StateMigrator";
 import { PregnancyStatus } from "@shared/domain/pregnancy/PregnancyState";
-import { createDefaultDomains } from "@shared/ZLBFState";
+import { createDefaultDomains } from "@shared/BFState";
 
 describe("StateMigrator", () => {
 	const createCharacterId = jest.fn(() => "character-current");
 	const migrator = new StateMigrator(undefined, createCharacterId);
 	const current = (stateVersion = 0) => ({
-		schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+		schemaVersion: BF_STATE_SCHEMA_VERSION,
 		characterId: "character-current",
 		stateVersion,
 		domains: createDefaultDomains()
@@ -34,7 +34,7 @@ describe("StateMigrator", () => {
 		persisted => {
 			expect(migrator.migrate(persisted)).toEqual({
 				supported: true,
-				schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+				schemaVersion: BF_STATE_SCHEMA_VERSION,
 				stateVersion: 0,
 				state: current()
 			});
@@ -50,7 +50,7 @@ describe("StateMigrator", () => {
 	])("resets an old or incomplete root %#", persisted => {
 		expect(migrator.migrate(persisted)).toEqual({
 			supported: true,
-			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			schemaVersion: BF_STATE_SCHEMA_VERSION,
 			stateVersion: 0,
 			state: current()
 		});

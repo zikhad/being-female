@@ -19,8 +19,8 @@ export class PregnancyRecoveryOptions {
 	 * @returns Valid configured days or the declaration default with fallback metadata.
 	 */
 	public read(): PregnancyRecoveryOption {
-		const globals = globalThis as { SandboxVars?: { ZLBF?: ZLBFSandboxOptions } };
-		const value = globals.SandboxVars?.ZLBF?.PregnancyRecovery;
+		const globals = globalThis as { SandboxVars?: { BF?: BFSandboxOptions } };
+		const value = globals.SandboxVars?.BF?.PregnancyRecovery;
 		return PregnancyRecoveryOptions.validDays(value)
 			? { days: value, usedFallback: false }
 			: { days: PregnancyRecoveryOptions.defaultDays, usedFallback: true };

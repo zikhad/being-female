@@ -10,7 +10,7 @@
 	<m_Conditions>
 		<m_Name>PerformingAction</m_Name>
 		<m_Type>STRING</m_Type>
-		<m_Value>ZLBF.PumpMilk</m_Value>
+		<m_Value>BF.PumpMilk</m_Value>
 	</m_Conditions>
 	<m_SubStateBoneWeights>
 		<boneName>Dummy01</boneName>

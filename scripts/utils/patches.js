@@ -12,15 +12,13 @@ const path = require("path");
  * - lualib_bundle.lua: replace bundled test fixture require with runtime
  *   `require "ISBaseObject"`.
  *
- * @param {string} basePath - root of the built mod folder (e.g. dist/ZomboLustBeingFemale)
+ * @param {string} basePath - root of the built mod folder (e.g. dist/BF)
  */
 const patchPipeWrenchLua = async basePath => {
 	const glob = await fs.readdir(basePath, { recursive: true }).catch(() => []);
 
 	// fs.readdir with recursive option returns relative paths on Node >=18
-	const allFiles = Array.isArray(glob)
-		? glob.map(f => path.join(basePath, f))
-		: [];
+	const allFiles = Array.isArray(glob) ? glob.map(f => path.join(basePath, f)) : [];
 
 	for (const filePath of allFiles) {
 		const base = path.basename(filePath);
@@ -62,7 +60,7 @@ const patchPipeWrenchLua = async basePath => {
 		if (base === "lualib_bundle.lua") {
 			const patched = content.replace(
 				/require\s+"tests\/classExtendEachOther\/base\/ISBaseObject"/g,
-				"require \"ISBaseObject\""
+				'require "ISBaseObject"'
 			);
 			if (patched !== content) {
 				content = patched;
@@ -77,5 +75,5 @@ const patchPipeWrenchLua = async basePath => {
 };
 
 module.exports = {
-    patchPipeWrenchLua
+	patchPipeWrenchLua
 };

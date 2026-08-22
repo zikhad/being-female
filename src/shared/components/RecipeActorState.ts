@@ -2,8 +2,8 @@ import { isServer, type IsoGameCharacter } from "@asledgehammer/pipewrench";
 import type { LactationState } from "@shared/domain/lactation/LactationState";
 import type { PregnancyData, WombData } from "@types";
 import { lactationStateSchema } from "@shared/domain/lactation/LactationSchema";
-import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
-import type { AuthoritativeDomains } from "@shared/ZLBFState";
+import { BF_STATE_MOD_DATA_KEY } from "@constants";
+import type { AuthoritativeDomains } from "@shared/BFState";
 import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
 
 /** Legacy player ModData fields consumed by recipe eligibility and SP mutations. */
@@ -29,12 +29,12 @@ export type RecipeActorState = {
  */
 export const readRecipeActorState = (character: IsoGameCharacter): RecipeActorState => {
 	const data = (character.getModData() ?? {}) as unknown as Record<string, unknown>;
-	const root = data[ZLBF_STATE_MOD_DATA_KEY] as { domains?: AuthoritativeDomains } | undefined;
+	const root = data[BF_STATE_MOD_DATA_KEY] as { domains?: AuthoritativeDomains } | undefined;
 	const authoritative = typeof isServer === "function" && isServer() ? root?.domains : undefined;
 	return {
-		womb: data.ZLBFWomb as WombData | undefined,
-		lactation: lactationStateSchema(data.ZLBFLactation) ? data.ZLBFLactation : undefined,
-		pregnancy: data.ZLBFPregnancy as PregnancyData | undefined,
+		womb: data.BFWomb as WombData | undefined,
+		lactation: lactationStateSchema(data.BFLactation) ? data.BFLactation : undefined,
+		pregnancy: data.BFPregnancy as PregnancyData | undefined,
 		authoritative
 	};
 };

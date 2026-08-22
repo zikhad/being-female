@@ -1,4 +1,4 @@
-# ZomboLust Being Female
+# Being Female
 
 <center>
   <p style="text-align: center;">
@@ -10,77 +10,86 @@
 
 ## Overview
 
-**ZomboLust Being Female** is a comprehensive female roleplay enhancement mod for Project Zomboid. This mod introduces realistic female biological systems including menstrual cycles, pregnancy, lactation, and related gameplay mechanics. It provides an immersive experience for players seeking deeper roleplaying opportunities in the zombie apocalypse.
+**Being Female** is a comprehensive female roleplay enhancement mod for Project Zomboid. This mod introduces realistic female biological systems including menstrual cycles, pregnancy, lactation, and related gameplay mechanics. It provides an immersive experience for players seeking deeper roleplaying opportunities in the zombie apocalypse.
 
 The mod features a complete reproductive system simulation with visual indicators, trait-based modifiers, and extensive UI integration. All systems are designed to be balanced and configurable through sandbox options.
 
 ## Features
 
 ### 🩸 Menstrual Cycle System
-- **Realistic Cycle Tracking**: 28-day menstrual cycle with 6 distinct phases:
-  - **Recovery**: Post-pregnancy recovery period
-  - **Menstruation**: Bleeding phase with configurable pain effects
-  - **Follicular**: Hormone building phase
-  - **Ovulation**: Peak fertility window
-  - **Luteal**: Pre-menstrual phase
-  - **Pregnant**: Pregnancy state
-- **Fertility Calculations**: Dynamic fertility rates based on cycle phase and traits
-- **Pain Simulation**: Menstrual cramps with trait-based severity modifiers
-- **Cycle Visualization**: UI indicators showing current phase and fertility status
+
+-   **Realistic Cycle Tracking**: 28-day menstrual cycle with 6 distinct phases:
+    -   **Recovery**: Post-pregnancy recovery period
+    -   **Menstruation**: Bleeding phase with configurable pain effects
+    -   **Follicular**: Hormone building phase
+    -   **Ovulation**: Peak fertility window
+    -   **Luteal**: Pre-menstrual phase
+    -   **Pregnant**: Pregnancy state
+-   **Fertility Calculations**: Dynamic fertility rates based on cycle phase and traits
+-   **Pain Simulation**: Menstrual cramps with trait-based severity modifiers
+-   **Cycle Visualization**: UI indicators showing current phase and fertility status
 
 ### 🤰 Pregnancy System
-- **Full Pregnancy Simulation**: gestation period with progress tracking
-- **Fertilization Mechanics**: Realistic conception based on fertility rates and timing
-- **Labor & Birth**: Animated birthing sequence
-- **Postpartum Recovery**: Recovery period affecting future fertility
-- **Pregnancy Indicators**: Visual and UI feedback throughout gestation
+
+-   **Full Pregnancy Simulation**: gestation period with progress tracking
+-   **Fertilization Mechanics**: Realistic conception based on fertility rates and timing
+-   **Labor & Birth**: Animated birthing sequence
+-   **Postpartum Recovery**: Recovery period affecting future fertility
+-   **Pregnancy Indicators**: Visual and UI feedback throughout gestation
 
 ### 🥛 Lactation System
-- **Milk Production**: Dynamic milk generation based on pregnancy and traits
-- **Expiration Mechanics**: Milk can dry up if not pumped regularly 
-- **Lactation Traits**: Special traits that enhance milk production and duration
-- **Visual Feedback**: UI showing milk levels and lactation status
-- **Fluid Mechanics**: Integrated with build 42 fluid mechanics.
+
+-   **Milk Production**: Dynamic milk generation based on pregnancy and traits
+-   **Expiration Mechanics**: Milk can dry up if not pumped regularly
+-   **Lactation Traits**: Special traits that enhance milk production and duration
+-   **Visual Feedback**: UI showing milk levels and lactation status
+-   **Fluid Mechanics**: Integrated with build 42 fluid mechanics.
 
 ### 🎭 Character Traits
+
 The mod adds several female-specific traits that modify gameplay:
 
-- **Fertile**: +50% fertility rate
-- **Infertile**: Complete infertility (cannot get pregnant)
-- **Hyperfertile**: +100% fertility, faster postpartum recovery
-- **Pregnant**: Active pregnancy state
-- **Dairy Cow**: +25% milk production and +25% lactation duration
-- **Bad Menstrual Cramps**: 2x stronger menstrual pain
-- **No Menstrual Cramps**: No menstrual pain effects
+-   **Fertile**: +50% fertility rate
+-   **Infertile**: Complete infertility (cannot get pregnant)
+-   **Hyperfertile**: +100% fertility, faster postpartum recovery
+-   **Pregnant**: Active pregnancy state
+-   **Dairy Cow**: +25% milk production and +25% lactation duration
+-   **Bad Menstrual Cramps**: 2x stronger menstrual pain
+-   **No Menstrual Cramps**: No menstrual pain effects
 
 ### 🎨 User Interface
-- **ZLBF Panel**: Dedicated UI panel accessible from the character info screen
-- **Real-time Monitoring**:
-  - Womb status (sperm levels, cycle phase, fertility)
-  - Lactation status (milk amount)
-  - Pregnancy progress and status
-- **Visual Indicators**: Dynamic images showing womb and lactation states
-- **Animation Support**: Visual feedback for intercourse and birthing
+
+-   **BF Panel**: Dedicated UI panel accessible from the character info screen
+-   **Real-time Monitoring**:
+    -   Womb status (sperm levels, cycle phase, fertility)
+    -   Lactation status (milk amount)
+    -   Pregnancy progress and status
+-   **Visual Indicators**: Dynamic images showing womb and lactation states
+-   **Animation Support**: Visual feedback for intercourse and birthing
 
 ### 🎬 Animation System
-- **Intercourse Animations**: Contextual animations based on pregnancy status and protection
-- **Birthing Sequences**: Animated labor sequence
-- **Dynamic Rendering**: Animation frames change based on game state
+
+-   **Intercourse Animations**: Contextual animations based on pregnancy status and protection
+-   **Birthing Sequences**: Animated labor sequence
+-   **Dynamic Rendering**: Animation frames change based on game state
 
 ### 🔧 Debug Tools
+
 Built-in debugging utilities for testing and development:
-- Womb data manipulation (sperm levels, cycle progression)
-- Lactation controls (milk amount, toggle status)
-- Pregnancy management (start/stop/advance)
-- All accessible through the `Debug` property on component instances
+
+-   Womb data manipulation (sperm levels, cycle progression)
+-   Lactation controls (milk amount, toggle status)
+-   Pregnancy management (start/stop/advance)
+-   All accessible through the `Debug` property on component instances
 
 ## Installation
 
-1. Download the mod from the [releases page](https://github.com/zikhad/zwbf-pipewrench/releases)
+1. Download the mod from the [releases page](https://github.com/zikhad/being-female/releases)
 2. Extract to your Project Zomboid mods directory
-3. Enable "ZomboLust Being Female" in the mod menu
+3. Enable "Being Female" in the mod menu
 
 ## 🦸‍♀️ Support!
+
 <hr/>
 <br/>
 <p align="center">
@@ -94,14 +103,17 @@ Built-in debugging utilities for testing and development:
 <hr/>
 
 ---
+
 ## API for Other Mods
 
 This mod provides extensive event hooks for other mods to integrate with:
 
 ### Events
-#### `ZLBFPregnancyUpdate`: Fired when pregnancy data changes
+
+#### `BFPregnancyUpdate`: Fired when pregnancy data changes
+
 ```lua
-Events.ZLBFPregnancyUpdate.Add(function ({
+Events.BFPregnancyUpdate.Add(function ({
   progress --[[ number ]],
   current --[[ number ]],
   isInLabor --[[ boolean ]]
@@ -109,9 +121,11 @@ Events.ZLBFPregnancyUpdate.Add(function ({
   -- called every minute during pregnancy
 });
 ```
-#### `ZLBFLactationUpdate`: Fired every minute with lactation data
+
+#### `BFLactationUpdate`: Fired every minute with lactation data
+
 ```lua
-Events.ZLBFLactationUpdate.Add(function ({
+Events.BFLactationUpdate.Add(function ({
   isActive --[[ boolean ]],
   milkAmount --[[ number ]],
   multiplier --[[ number ]],
@@ -120,9 +134,11 @@ Events.ZLBFLactationUpdate.Add(function ({
   -- called every minute
 });
 ```
-#### `ZLBFWombUpdate`: Fired every minute with womb data
+
+#### `BFWombUpdate`: Fired every minute with womb data
+
 ```lua
-Events.ZLBFLactationUpdate.Add(function ({
+Events.BFWombUpdate.Add(function ({
   amount --[[ number ]],
 	capacity --[[ number ]],
 	total --[[ number ]],
@@ -140,55 +156,70 @@ Events.ZLBFLactationUpdate.Add(function ({
       Follicular = ZombRandFloat(0, 0.3),
       Ovulation = ZombRandFloat(0, 0.4) ,
       Luteal = ZombRandFloat(0.85, 1) ,
-      Pregnant = ZombRandFloat(0, 0.3) 
+      Pregnant = ZombRandFloat(0, 0.3)
     }
   ]]
 });
 ```
-#### `ZLBFPregnancyLabor`: Fired during labor
+
+#### `BFPregnancyLabor`: Fired during labor
+
 ```lua
-  Events.ZLBFPregnancyLabor.Add(function (delta --[[ number ]]) {
+  Events.BFPregnancyLabor.Add(function (delta --[[ number ]]) {
     -- delta is a number between 0-1 that represents how far along the labor is
   });
 ```
-#### `ZLBFPregnancyStop`: Fired when pregnancy is forcefully stoped
+
+#### `BFPregnancyStop`: Fired when pregnancy is forcefully stoped
+
 Fired when pregnancy is stopped (via debug or programmatic request, not through natural labor)
+
 ```lua
-  Events.ZLBFPregnancyStop.Add(function () {
+  Events.BFPregnancyStop.Add(function () {
     -- Pregnancy has ended; trigger any cleanup logic
   });
 ```
 
 ### Triggers
-#### `ZLBFIntercourse`: Trigger for intercourse event
+
+#### `BFIntercourse`: Trigger for intercourse event
+
 This will check for condoms and handle intercourse based on current conditions.
 Inject a random amount of semen in womb and trigger pregnancy based on fertility.
+
 ```lua
-  triggerEvent("ZLBFIntercourse");
-```
-#### `ZLBFMenstrualEffects`: Trigger for menstruation effects
-```lua
-  triggerEvent("ZLBFMenstrualEffects");
-```
-#### `ZLBFPregnancyStart`: Trigger to start pregnancy
-```lua
-  triggerEvent("ZLBFPregnancyStart");
+  triggerEvent("BFIntercourse");
 ```
 
-#### `ZLBFWombAnimationStart`: Configure a animation to play
+#### `BFMenstrualEffects`: Trigger for menstruation effects
+
+```lua
+  triggerEvent("BFMenstrualEffects");
+```
+
+#### `BFPregnancyStart`: Trigger to start pregnancy
+
+```lua
+  triggerEvent("BFPregnancyStart");
+```
+
+#### `BFWombAnimationStart`: Configure a animation to play
+
 Fire during the `start()` lifecycle of animation actions.
 You can pass either a predefined key of `ANIMATIONS` or a custom `AnimationSetting`.
 
 Predefined animation name:
+
 ```lua
-  triggerEvent("ZLBFWombAnimationStart", "intercourse");
-  triggerEvent("ZLBFWombAnimationStart", "fertilization");
-  triggerEvent("ZLBFWombAnimationStart", "birth");
+  triggerEvent("BFWombAnimationStart", "intercourse");
+  triggerEvent("BFWombAnimationStart", "fertilization");
+  triggerEvent("BFWombAnimationStart", "birth");
 ```
 
 Custom `AnimationSetting`:
+
 ```lua
-triggerEvent("ZLBFWombAnimationStart", {
+triggerEvent("BFWombAnimationStart", {
   name = "custom-animation", --[[ [required] Folder name of the animation ]]
   steps = [0, 1, 2, 3, 4], --[[ [required] steps of the animation ]]
   loop = 4, --[[ [optional] number of loops the animation will go through ]]
@@ -200,43 +231,68 @@ triggerEvent("ZLBFWombAnimationStart", {
   path = "media/ui/animation/", --[[ [optional] path of the animation ]]
 });
 ```
-Examples of animation paths:
-- `media/ui/animation/custom-animation/empty/0.png`
-- `media/ui/animation/custom-animation/full/0.png`
-- `media/ui/animation/custom-animation/0.png`
-**NOTE:** `birth` and `fertilization` animations will bypass conditions, meaning `pregnancy` and `condom` only apply for `pregnancy` or default animations. (when none of them are defined)
 
-#### `ZLBFWombAnimationUpdate`: Triggers a womb animation update
+Examples of animation paths:
+
+-   `media/ui/animation/custom-animation/empty/0.png`
+-   `media/ui/animation/custom-animation/full/0.png`
+-   `media/ui/animation/custom-animation/0.png`
+    **NOTE:** `birth` and `fertilization` animations will bypass conditions, meaning `pregnancy` and `condom` only apply for `pregnancy` or default animations. (when none of them are defined)
+
+#### `BFWombAnimationUpdate`: Triggers a womb animation update
+
 Usually triggered inside a Update of a **Animation** to apply the animation delta
+
 ```lua
-  triggerEvent("ZLBFWombAnimationUpdate", {
+  triggerEvent("BFWombAnimationUpdate", {
     delta = 0.5 --[[ [required] - usually the action.getJobDelta() ]],
     duration = 1 --[[ [required] - usualy the action.duration ]]
   });
 ```
 
-#### `ZLBFWombAnimationStop`: Clear the womb animation state
+#### `BFWombAnimationStop`: Clear the womb animation state
+
 usually is called at Perform / Stop of a custom animation. ensure the `Animation.wombImage` can show the still image again
+
 ```lua
-  triggerEvent("ZLBFWombAnimationStop");
+  triggerEvent("BFWombAnimationStop");
 ```
-#### `ZLBFWombImage`: Updates the womb image for the current static image
+
+#### `BFWombImage`: Updates the womb image for the current static image
+
 This will update the `Animation.wombImage` based on current womb / pregnancy state
+
 ```lua
-  triggerEvent("ZLBFWombImage");
+  triggerEvent("BFWombImage");
 ```
+
+### Legacy Event Compatibility
+
+New integrations should use the `BF*` event names above. For existing integrations, the
+legacy command aliases `ZLBFIntercourse`, `ZLBFMenstrualEffects`, `ZLBFPregnancyStart`,
+`ZLBFPregnancyStop`, `ZLBFWombAnimationStart`, `ZLBFWombAnimationUpdate`,
+`ZLBFWombAnimationStop`, and `ZLBFWombImage` continue to forward once to their BF
+equivalents. Notifications are emitted under the BF name first and then under
+`ZLBFPregnancyUpdate`, `ZLBFLactationUpdate`, `ZLBFWombUpdate`, or `ZLBFPregnancyLabor`
+with the identical payload.
+
+These event strings are the only compatibility surface retained by the rename. Old
+modules, globals, content identifiers, traits, network namespaces, and persisted data are
+not read or migrated. Triggering both a BF command and its legacy alias intentionally runs
+the command twice.
 
 ### For Mod Integration Developers
 
-For comprehensive guidance on integrating other mods with ZomboLust Being Female—including event patterns, trait extensions, fluid mechanics, Lua UI components, and compatibility considerations—see the **[Mod Integrator Agent Guide](.github/agents/mod-integrator.agent.md)**.
+For comprehensive guidance on integrating other mods with Being Female—including event patterns, trait extensions, fluid mechanics, Lua UI components, and compatibility considerations—see the **[Mod Integrator Agent Guide](.github/agents/mod-integrator.agent.md)**.
 
 This agent provides:
-- **Event Integration Patterns**: How to listen to pregnancy, lactation, menstrual cycle, and labor updates.
-- **Trait Extensions**: Using ZLBF traits for custom gameplay.
-- **Animation Triggers**: Programmatically starting custom animations and intercourse sequences.
-- **Fluid Mechanics**: Accessing milk and sperm quantities through the mod API.
-- **Optional Mod Hooks**: ZomboLust and MoodleFramework integration patterns.
-- **Common Gotchas**: Timing, dependency checks and testing strategies.
+
+-   **Event Integration Patterns**: How to listen to pregnancy, lactation, menstrual cycle, and labor updates.
+-   **Trait Extensions**: Using BF traits for custom gameplay.
+-   **Animation Triggers**: Programmatically starting custom animations and intercourse sequences.
+-   **Fluid Mechanics**: Accessing milk and sperm quantities through the mod API.
+-   **Optional Mod Hooks**: ZomboLust and MoodleFramework integration patterns.
+-   **Common Gotchas**: Timing, dependency checks and testing strategies.
 
 ---
 
@@ -248,14 +304,14 @@ If you are not familiar with Node.js, the short version is:
 2. Open a terminal in this repository
 3. Run `npm install` once to download the development tools
 4. Run `npm run build` to compile the TypeScript source into the dist folder
-5. Copy the `dist/ZomboLust Being Female`into `~/Zomboid/mods` folder 
+5. Copy the `dist/Being Female`into `~/Zomboid/mods` folder
 6. Start Project Zomboid and enable the mod
 
 ### What The Build Does
 
-- `npm run build` transpiles the TypeScript code in `src/` into Lua using `typescript-to-lua`
-- After transpiling, `scripts/postbuild.js` copies media and root files, generates Build 42 translations, and prepares the final mod folder inside `dist/`
-- The final packaged mod is written to `dist/ZomboLust Being Female/`
+-   `npm run build` transpiles the TypeScript code in `src/` into Lua using `typescript-to-lua`
+-   After transpiling, `scripts/postbuild.js` copies media and root files, generates Build 42 translations, and prepares the final mod folder inside `dist/`
+-   The final packaged mod is written to `dist/Being Female/`
 
 ### Typical Development Workflow
 
@@ -268,44 +324,48 @@ If you are not familiar with Node.js, the short version is:
 
 ### Useful Commands
 
-- `npm install`: installs project dependencies
-- `npm test`: runs the Jest test suite
-- `npm run coverage`: runs tests with coverage output
-- `npm run build`: transpiles TypeScript to Lua and prepares the final mod package in `dist/`
-- `npm run check`: checks formatting and lint rules
-- `npm run lint`: rewrites formatting and runs eslint
-- `npm run watch:build`: rebuilds on file changes and writes output to `~/Zomboid/mods` (only `.ts` files)
+-   `npm install`: installs project dependencies
+-   `npm test`: runs the Jest test suite
+-   `npm run coverage`: runs tests with coverage output
+-   `npm run build`: transpiles TypeScript to Lua and prepares the final mod package in `dist/`
+-   `npm run check`: checks formatting and lint rules
+-   `npm run lint`: rewrites formatting and runs eslint
+-   `npm run watch:build`: rebuilds on file changes and writes output to `~/Zomboid/mods` (only `.ts` files)
 
 ### Important Notes
 
-- Edit files in `src/`, not generated Lua files in `dist/`
-- The mod code does not run directly with Node.js; Node is only used for building, testing, and packaging tools
-- The actual gameplay code runs inside Project Zomboid after it has been transpiled to Lua
+-   Edit files in `src/`, not generated Lua files in `dist/`
+-   The mod code does not run directly with Node.js; Node is only used for building, testing, and packaging tools
+-   The actual gameplay code runs inside Project Zomboid after it has been transpiled to Lua
 
 ## Requirements
 
-- **Project Zomboid**: Build 42 or later
+-   **Project Zomboid**: Build 42 or later
 
 ### Recommendedd mods
-- [ZomboLust](https://www.loverslab.com/files/file/44539-project-zomboid-zombolust-zombodesire-framework/) - Sex Framework - Although not required, this will enable impregnation and womb animations
-- [ZomboRut](https://www.loverslab.com/topic/265927-project-zomboid-zomborut-%E2%80%94-b42-nsfw-sex-mod) - Sex Framework - Although not required, this will enable impregnation and womb animations
-**Note:** Those mods might not be compatible with each other, choose one.
+
+-   [ZomboLust](https://www.loverslab.com/files/file/44539-project-zomboid-zombolust-zombodesire-framework/) - Sex Framework - Although not required, this will enable impregnation and womb animations
+-   [ZomboRut](https://www.loverslab.com/topic/265927-project-zomboid-zomborut-%E2%80%94-b42-nsfw-sex-mod) - Sex Framework - Although not required, this will enable impregnation and womb animations
+    **Note:** Those mods might not be compatible with each other, choose one.
 
 ### Optional Mods
-- [MoodleFramework](https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795&searchtext=moodle+framework) - This mod will create custom moodles for **Being Female**
+
+-   [MoodleFramework](https://steamcommunity.com/sharedfiles/filedetails/?id=3396446795&searchtext=moodle+framework) - This mod will create custom moodles for **Being Female**
 
 ## Configuration
 
 The mod includes several sandbox options for customization:
-- Cycle duration and phase lengths
-- Fertility multipliers
-- Pain effect intensities
-- Lactation rates and durations
-- Animation settings
+
+-   Cycle duration and phase lengths
+-   Fertility multipliers
+-   Pain effect intensities
+-   Lactation rates and durations
+-   Animation settings
 
 ## Contributing
 
 Contributions are welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes with tests
@@ -313,23 +373,24 @@ Contributions are welcome! Please:
 
 ## Credits
 
-- **Zikhad**: Lead developer and maintainer
-- **BlaBla**: Custom Animations
-- **[PipeWrench](https://github.com/asledgehammer/PipeWrench)**: Framework for Typescript zomboid mod creation
-- [@LXZ616](https://github.com/LXZ616) For Chinese translations
+-   **Zikhad**: Lead developer and maintainer
+-   **BlaBla**: Custom Animations
+-   **[PipeWrench](https://github.com/asledgehammer/PipeWrench)**: Framework for Typescript zomboid mod creation
+-   [@LXZ616](https://github.com/LXZ616) For Chinese translations
 
 ---
 
 # Upcoming Changes
-- [x] Fix animation looping
-- [x] Fix contraceptive effects (seems not to be working)
-- [x] Check and potentially fix Lactaid
-- [x] Create Sperm fluid
-- [x] Make distribuitions work
-- [x] Fix HaloTextHelper from Moodles.ts
-- [x] Revamp body effects methods
-- [x] Add pain at birth
-- [x] Add fatigue and at birth
-- [x] Create triggers event for animations
-- [x] Reintroduce Babies or similar artifacts
-- [x] Inspect the ZomboLust (new mod that aims to replace Zombowin)
+
+-   [x] Fix animation looping
+-   [x] Fix contraceptive effects (seems not to be working)
+-   [x] Check and potentially fix Lactaid
+-   [x] Create Sperm fluid
+-   [x] Make distribuitions work
+-   [x] Fix HaloTextHelper from Moodles.ts
+-   [x] Revamp body effects methods
+-   [x] Add pain at birth
+-   [x] Add fatigue and at birth
+-   [x] Create triggers event for animations
+-   [x] Reintroduce Babies or similar artifacts
+-   [x] Inspect the ZomboLust (new mod that aims to replace Zombowin)

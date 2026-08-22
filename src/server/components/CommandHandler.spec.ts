@@ -1,12 +1,12 @@
 import { instanceItem, isDebugEnabled, sendServerCommand } from "@asledgehammer/pipewrench";
 import {
-	ZLBF_NETWORK_MODULE,
-	ZLBF_PROTOCOL_SCHEMA_VERSION,
-	ZLBF_STATE_SCHEMA_VERSION,
-	ZLBF_STATE_MOD_DATA_KEY,
-	ZLBFTraitsEnum,
-	ZLBFNetworkCommand,
-	ZLBFSyncStatus
+	BF_NETWORK_MODULE,
+	BF_PROTOCOL_SCHEMA_VERSION,
+	BF_STATE_SCHEMA_VERSION,
+	BF_STATE_MOD_DATA_KEY,
+	BFTraitsEnum,
+	BFNetworkCommand,
+	BFSyncStatus
 } from "@constants";
 import { mockedPlayer } from "@test/mock";
 import { CommandHandler } from "@server/components/CommandHandler";
@@ -16,7 +16,7 @@ import {
 } from "@shared/domain/pregnancy/PregnancyState";
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
 import { createDefaultBirthState } from "@shared/domain/birth/BirthState";
-import { createDefaultDomains } from "@shared/ZLBFState";
+import { createDefaultDomains } from "@shared/BFState";
 
 const domains = createDefaultDomains;
 
@@ -43,11 +43,11 @@ describe("CommandHandler", () => {
 	it("filters unrelated routes and malformed raw args", () => {
 		const handler = new CommandHandler();
 		const player = mockedPlayer();
-		handler.onClientCommand("Other", ZLBFNetworkCommand.SYNC_STATE_REQUEST, player, {});
-		handler.onClientCommand(ZLBF_NETWORK_MODULE, "Other", player, {});
+		handler.onClientCommand("Other", BFNetworkCommand.SYNC_STATE_REQUEST, player, {});
+		handler.onClientCommand(BF_NETWORK_MODULE, "Other", player, {});
 		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_REQUEST,
 			player,
 			null
 		);
@@ -56,8 +56,8 @@ describe("CommandHandler", () => {
 
 	it("ignores a command delivered before the server player is bound", () => {
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_REQUEST,
 			undefined,
 			{}
 		);
@@ -68,29 +68,24 @@ describe("CommandHandler", () => {
 	it("returns a targeted persisted snapshot correlated to the request", () => {
 		const handler = new CommandHandler();
 		const player = playerWithStore();
-		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
-			player,
-			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
-				requestId: "snapshot-7",
-				revision: 7,
-				data: {}
-			}
-		);
+		handler.onClientCommand(BF_NETWORK_MODULE, BFNetworkCommand.SYNC_STATE_REQUEST, player, {
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+			requestId: "snapshot-7",
+			revision: 7,
+			data: {}
+		});
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_RESPONSE,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "snapshot-7",
 				revision: 7,
-				status: ZLBFSyncStatus.OK,
+				status: BFSyncStatus.OK,
 				data: {
 					snapshot: {
-						schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+						schemaVersion: BF_STATE_SCHEMA_VERSION,
 						stateVersion: 0,
 						domains: domains()
 					}
@@ -102,7 +97,7 @@ describe("CommandHandler", () => {
 	it("returns persisted state metadata without incrementing its version", () => {
 		const handler = new CommandHandler();
 		const player = playerWithStore({
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 6,
@@ -110,27 +105,22 @@ describe("CommandHandler", () => {
 			}
 		});
 
-		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
-			player,
-			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
-				requestId: "snapshot-1",
-				revision: 1,
-				data: {}
-			}
-		);
+		handler.onClientCommand(BF_NETWORK_MODULE, BFNetworkCommand.SYNC_STATE_REQUEST, player, {
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+			requestId: "snapshot-1",
+			revision: 1,
+			data: {}
+		});
 
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_RESPONSE,
 			expect.objectContaining({
-				status: ZLBFSyncStatus.OK,
+				status: BFSyncStatus.OK,
 				data: {
 					snapshot: {
-						schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+						schemaVersion: BF_STATE_SCHEMA_VERSION,
 						stateVersion: 6,
 						domains: domains()
 					}
@@ -141,7 +131,7 @@ describe("CommandHandler", () => {
 
 	it("restores the server Pregnancy trait from persisted authoritative state on sync", () => {
 		const player = playerWithStore({
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 1,
@@ -159,50 +149,45 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "snapshot-1",
 				revision: 1,
 				data: {}
 			}
 		);
 
-		expect(CharacterTraitApi.addTrait).toHaveBeenCalledWith(player, ZLBFTraitsEnum.PREGNANCY);
+		expect(CharacterTraitApi.addTrait).toHaveBeenCalledWith(player, BFTraitsEnum.PREGNANCY);
 	});
 
 	it("reports an unsupported future persisted schema without overwriting it", () => {
 		const persisted = { schemaVersion: 6, stateVersion: 9, domains: { future: true } };
-		const store = { [ZLBF_STATE_MOD_DATA_KEY]: persisted };
+		const store = { [BF_STATE_MOD_DATA_KEY]: persisted };
 		const handler = new CommandHandler();
 		const player = playerWithStore(store);
 
-		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_REQUEST,
-			player,
-			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
-				requestId: "snapshot-1",
-				revision: 1,
-				data: {}
-			}
-		);
+		handler.onClientCommand(BF_NETWORK_MODULE, BFNetworkCommand.SYNC_STATE_REQUEST, player, {
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+			requestId: "snapshot-1",
+			revision: 1,
+			data: {}
+		});
 
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SYNC_STATE_RESPONSE,
 			expect.objectContaining({
-				status: ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
+				status: BFSyncStatus.UNSUPPORTED_DATA_SCHEMA,
 				data: {
 					snapshot: { schemaVersion: 6, stateVersion: 9, domains: domains() }
 				}
 			})
 		);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY]).toBe(persisted);
+		expect(store[BF_STATE_MOD_DATA_KEY]).toBe(persisted);
 	});
 
 	it("persists a valid debug Pregnancy mutation and increments state version", () => {
@@ -210,11 +195,11 @@ describe("CommandHandler", () => {
 		const store: Record<string, unknown> = {};
 		const player = playerWithStore(store);
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -228,24 +213,24 @@ describe("CommandHandler", () => {
 			}
 		);
 
-		const persisted = store[ZLBF_STATE_MOD_DATA_KEY] as {
+		const persisted = store[BF_STATE_MOD_DATA_KEY] as {
 			stateVersion: number;
 			domains: { pregnancy: { status: PregnancyStatus } };
 		};
 		expect(persisted.stateVersion).toBe(1);
 		expect(persisted.domains.pregnancy.status).toBe(PregnancyStatus.PREGNANT);
-		expect(CharacterTraitApi.addTrait).toHaveBeenCalledWith(player, ZLBFTraitsEnum.PREGNANCY);
+		expect(CharacterTraitApi.addTrait).toHaveBeenCalledWith(player, BFTraitsEnum.PREGNANCY);
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.OK })
 		);
 	});
 
 	it("persists normal Pregnancy progression without requiring debug mode", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 1,
@@ -264,11 +249,11 @@ describe("CommandHandler", () => {
 		const player = playerWithStore(store);
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -282,20 +267,20 @@ describe("CommandHandler", () => {
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy.current).toBe(1);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.pregnancy.current).toBe(1);
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.OK })
 		);
 	});
 
 	it("does not increment state version for an idempotent Pregnancy mutation", () => {
 		debugMock.mockReturnValue(true);
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 4,
@@ -304,27 +289,24 @@ describe("CommandHandler", () => {
 		};
 		const player = playerWithStore(store);
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: { desired: createDefaultPregnancyState() }
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
-		expect(CharacterTraitApi.removeTrait).toHaveBeenCalledWith(
-			player,
-			ZLBFTraitsEnum.PREGNANCY
-		);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(CharacterTraitApi.removeTrait).toHaveBeenCalledWith(player, BFTraitsEnum.PREGNANCY);
 	});
 
 	it("rejects Pregnancy mutation outside debug mode without changing state", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 4,
@@ -333,11 +315,11 @@ describe("CommandHandler", () => {
 		};
 		const player = playerWithStore(store);
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -351,19 +333,19 @@ describe("CommandHandler", () => {
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.FORBIDDEN })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.FORBIDDEN })
 		);
 	});
 
 	it("rejects inconsistent Pregnancy state without incrementing state version", () => {
 		debugMock.mockReturnValue(true);
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 4,
@@ -372,11 +354,11 @@ describe("CommandHandler", () => {
 		};
 		const player = playerWithStore(store);
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: {
@@ -390,12 +372,12 @@ describe("CommandHandler", () => {
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
 		expect(sendMock).toHaveBeenCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.INVALID_REQUEST })
 		);
 	});
 
@@ -405,8 +387,8 @@ describe("CommandHandler", () => {
 			const handler = new CommandHandler();
 			const player = mockedPlayer();
 			handler.onClientCommand(
-				ZLBF_NETWORK_MODULE,
-				ZLBFNetworkCommand.SYNC_STATE_REQUEST,
+				BF_NETWORK_MODULE,
+				BFNetworkCommand.SYNC_STATE_REQUEST,
 				player,
 				{
 					schemaVersion: requestSchemaVersion,
@@ -417,13 +399,13 @@ describe("CommandHandler", () => {
 			);
 			expect(sendMock).toHaveBeenCalledWith(
 				player,
-				ZLBF_NETWORK_MODULE,
-				ZLBFNetworkCommand.SYNC_STATE_RESPONSE,
+				BF_NETWORK_MODULE,
+				BFNetworkCommand.SYNC_STATE_RESPONSE,
 				expect.objectContaining({
-					schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+					schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 					requestId: "snapshot-1",
 					revision: 1,
-					status: ZLBFSyncStatus.UNSUPPORTED_SCHEMA
+					status: BFSyncStatus.UNSUPPORTED_SCHEMA
 				})
 			);
 		}
@@ -431,7 +413,7 @@ describe("CommandHandler", () => {
 
 	it("allocates and persists a character-scoped birth operation during labor", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 5,
@@ -452,7 +434,7 @@ describe("CommandHandler", () => {
 			getUsername: jest.fn().mockReturnValue("Dihgg")
 		});
 		const request = {
-			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 			requestId: "birth-1",
 			revision: 1,
 			data: {}
@@ -460,28 +442,28 @@ describe("CommandHandler", () => {
 
 		const handler = new CommandHandler();
 		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
 			request
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,
 			pendingBirthId: "test-character-id:birth:1"
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.OK })
 		);
 	});
 
 	it("returns the pending birth idempotently without advancing state version", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 6,
@@ -503,19 +485,19 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "birth-retry",
 				revision: 2,
 				data: {}
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth.birthSequence).toBe(1);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth.birthSequence).toBe(1);
 	});
 
 	it("rejects birth allocation before authoritative labor", () => {
@@ -523,11 +505,11 @@ describe("CommandHandler", () => {
 		const player = playerWithStore(store);
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "birth-early",
 				revision: 1,
 				data: {}
@@ -536,15 +518,15 @@ describe("CommandHandler", () => {
 
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.INVALID_REQUEST })
 		);
 	});
 
 	it("rejects birth allocation for a dead character without changing pending state", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 6,
@@ -566,33 +548,33 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "birth-dead",
 				revision: 1,
 				data: {}
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(6);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,
 			pendingBirthId: "Dihgg:birth:1"
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.ALLOCATE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.INVALID_REQUEST })
 		);
 	});
 
 	it("creates a durable baby and completes the authoritative birth", () => {
-		(globalThis as { SandboxVars?: { ZLBF?: ZLBFSandboxOptions } }).SandboxVars = {
-			ZLBF: { PregnancyRecovery: 11 }
+		(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+			BF: { PregnancyRecovery: 11 }
 		};
 		const itemModData: Record<string, unknown> = {};
 		const baby = { getModData: jest.fn().mockReturnValue(itemModData) };
@@ -603,7 +585,7 @@ describe("CommandHandler", () => {
 			getSurname: jest.fn().mockReturnValue("Doe")
 		};
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 8,
@@ -629,11 +611,11 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.COMPLETE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "complete-1",
 				revision: 1,
 				data: { birthId: "Dihgg:birth:1" }
@@ -641,7 +623,7 @@ describe("CommandHandler", () => {
 		);
 
 		expect(AddItem).toHaveBeenCalledWith(baby);
-		expect(itemModData.ZLBF).toEqual({
+		expect(itemModData.BF).toEqual({
 			schemaVersion: 1,
 			birthId: "Dihgg:birth:1",
 			motherCharacterId: "test-character-id",
@@ -649,14 +631,14 @@ describe("CommandHandler", () => {
 			motherName: "Jane Doe",
 			birthSequence: 1
 		});
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,
 			completedBirthId: "Dihgg:birth:1"
 		});
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.pregnancy).toEqual(
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.pregnancy).toEqual(
 			createDefaultPregnancyState()
 		);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
 			cycleDay: -11,
 			amount: 0,
 			total: 0,
@@ -668,7 +650,7 @@ describe("CommandHandler", () => {
 		const AddItem = jest.fn();
 		const inventory = { AddItem };
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 9,
@@ -684,11 +666,11 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.COMPLETE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "complete-retry",
 				revision: 1,
 				data: { birthId: "Dihgg:birth:1" }
@@ -699,19 +681,19 @@ describe("CommandHandler", () => {
 		expect(
 			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
 		).not.toHaveBeenCalled();
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(9);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(9);
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.OK })
 		);
 	});
 
 	it("rejects dead-character completion without creating a baby or changing state", () => {
 		const AddItem = jest.fn();
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 8,
@@ -734,11 +716,11 @@ describe("CommandHandler", () => {
 		});
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.COMPLETE_BIRTH_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "complete-dead",
 				revision: 1,
 				data: { birthId: "Dihgg:birth:1" }
@@ -750,22 +732,22 @@ describe("CommandHandler", () => {
 		expect(
 			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
 		).not.toHaveBeenCalled();
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(8);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(8);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,
 			pendingBirthId: "Dihgg:birth:1"
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.INVALID_REQUEST })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.COMPLETE_BIRTH_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.INVALID_REQUEST })
 		);
 	});
 
 	it("persists reversible Womb cycle progression", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 3,
@@ -778,11 +760,11 @@ describe("CommandHandler", () => {
 		const player = playerWithStore(store);
 
 		new CommandHandler().onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "womb-1",
 				revision: 1,
 				baseStateVersion: 3,
@@ -798,8 +780,8 @@ describe("CommandHandler", () => {
 			}
 		);
 
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.womb).toEqual({
 			cycleDay: -6,
 			amount: 0.2,
 			total: 0.4,
@@ -807,15 +789,15 @@ describe("CommandHandler", () => {
 		});
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
-			expect.objectContaining({ status: ZLBFSyncStatus.OK })
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			expect.objectContaining({ status: BFSyncStatus.OK })
 		);
 	});
 
 	it("rejects stale contraceptive clearing but accepts the next versioned day change", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 4,
@@ -829,11 +811,11 @@ describe("CommandHandler", () => {
 		const handler = new CommandHandler();
 		const publish = (baseStateVersion: number, cycleDay: number) =>
 			handler.onClientCommand(
-				ZLBF_NETWORK_MODULE,
-				ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+				BF_NETWORK_MODULE,
+				BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
 				player,
 				{
-					schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+					schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 					requestId: `womb-${cycleDay}-${baseStateVersion}`,
 					revision: baseStateVersion + 1,
 					baseStateVersion,
@@ -842,16 +824,16 @@ describe("CommandHandler", () => {
 			);
 
 		publish(3, 1);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(true);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(true);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(4);
 		publish(4, 2);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(false);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(5);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.womb.onContraceptive).toBe(false);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(5);
 	});
 
 	it("persists complete Lactation only against the current authoritative version", () => {
 		const store = {
-			[ZLBF_STATE_MOD_DATA_KEY]: {
+			[BF_STATE_MOD_DATA_KEY]: {
 				schemaVersion: 1,
 				characterId: "test-character-id",
 				stateVersion: 2,
@@ -862,31 +844,31 @@ describe("CommandHandler", () => {
 		const handler = new CommandHandler();
 		const desired = { isActive: true, milkAmount: 0.4, expiration: 8, multiplier: 0.2 };
 		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "lactation-stale",
 				revision: 1,
 				baseStateVersion: 1,
 				data: { desired }
 			}
 		);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(2);
 		handler.onClientCommand(
-			ZLBF_NETWORK_MODULE,
-			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST,
 			player,
 			{
-				schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 				requestId: "lactation-current",
 				revision: 2,
 				baseStateVersion: 2,
 				data: { desired }
 			}
 		);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].stateVersion).toBe(3);
-		expect(store[ZLBF_STATE_MOD_DATA_KEY].domains.lactation).toEqual(desired);
+		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(3);
+		expect(store[BF_STATE_MOD_DATA_KEY].domains.lactation).toEqual(desired);
 	});
 });

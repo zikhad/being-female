@@ -41,7 +41,7 @@ Confidence: low | medium | high
 
 Explain what supports this rating and what prevents a higher rating.
 
-## Implications For ZLBF
+## Implications For BF
 
 List implementation constraints, safe integration boundaries, compatibility concerns, and behavior that must not be assumed.
 

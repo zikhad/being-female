@@ -10,17 +10,17 @@ Scope: server, multiplayer
 
 ## Question
 
-Can server-side player ModData hold authoritative ZLBF state, and how does it persist or synchronize?
+Can server-side player ModData hold authoritative BF state, and how does it persist or synchronize?
 
 ## Conclusion
 
-Build 42 player ModData is part of the player save chain. Installed Build 42.12 bytecode shows `IsoPlayer.save` reaches `IsoObject.save`, which serializes its nonempty Kahlua table; `KahluaTableImpl.save` recursively supports strings, finite numbers, booleans, and nested tables. This directly supports a nested server-owned ZLBF root made from ordinary generated Lua tables.
+Build 42 player ModData is part of the player save chain. Installed Build 42.12 bytecode shows `IsoPlayer.save` reaches `IsoObject.save`, which serializes its nonempty Kahlua table; `KahluaTableImpl.save` recursively supports strings, finite numbers, booleans, and nested tables. This directly supports a nested server-owned BF root made from ordinary generated Lua tables.
 
 Reference Mod implements that boundary under one player key, normalizes and rewrites the root on access, mutates it through the authenticated server player, and returns client-visible results through targeted server commands. It never calls `transmitModData`. The project owner confirms this ModData behavior works in single-player and multiplayer, although that whole-mod runtime report does not isolate restart timing or automatic replication.
 
-ZLBF now persists multiplayer domain state in one strict server-owned schema-v1 root with a required server-generated character identity and maintains clients through explicit validated snapshots. Because this format is unreleased, the final baseline uses a fresh `ZLBF.State` ModData namespace and ignores earlier development roots rather than migrating or salvaging them; future schemas within the final namespace remain protected from downgrade. Single-player intentionally remains on its proven local ModData backend. User testing on 2026-08-22 confirmed the hosted/co-op authoritative path and the separate SP path before this final baseline cleanup. Dedicated-server and abnormal-shutdown durability remain unverified.
+BF now persists multiplayer domain state in one strict server-owned schema-v1 root with a required server-generated character identity and maintains clients through explicit validated snapshots. Because this format is unreleased, the final baseline uses a fresh `BF.State` ModData namespace and ignores earlier development roots rather than migrating or salvaging them; future schemas within the final namespace remain protected from downgrade. Single-player intentionally remains on its proven local ModData backend. User testing on 2026-08-22 confirmed the hosted/co-op authoritative path and the separate SP path before this final baseline cleanup. Dedicated-server and abnormal-shutdown durability remain unverified.
 
-Historically, an earlier ZLBF experiment read local keys from the server player while gameplay wrote them only in the client context, so multiplayer snapshots could contain defaults. That design is superseded: multiplayer gameplay consumes the authoritative root, while SP local state is a deliberate separate runtime backend and is never imported by the multiplayer server.
+Historically, an earlier BF experiment read local keys from the server player while gameplay wrote them only in the client context, so multiplayer snapshots could contain defaults. That design is superseded: multiplayer gameplay consumes the authoritative root, while SP local state is a deliberate separate runtime backend and is never imported by the multiplayer server.
 
 ## Evidence
 
@@ -41,24 +41,24 @@ Historically, an earlier ZLBF experiment read local keys from the server player 
 -   A source and generated-output search found no `transmitModData` call. Its client mirror is updated through command responses rather than player ModData replication.
 -   The project owner confirms the ModData behavior works across actual single-player and multiplayer use. This is direct runtime evidence for the implementation as a whole, not an isolated proof of restart timing or automatic replication.
 
-### Transmission and current ZLBF boundary
+### Transmission and current BF boundary
 
 -   Vanilla Build 42 client UI writes a player preference and then explicitly calls `player:transmitModData()`, demonstrating that the method is an explicit network action rather than a prerequisite for save serialization.
--   Object bytecode treats `transmitModData` as network-oriented: the client sends an object-ModData packet and the server distributes object ModData. ZLBF does not need that broader path because its server is authoritative and clients receive targeted snapshots.
--   Current ZLBF `CommandHandler` uses the event-supplied player, validates commands, loads and mutates the server-owned root, and returns targeted authoritative snapshots.
--   Current ZLBF publishers validate and correlate responses before updating their in-memory `SnapshotStore`; hosted/co-op reconnect and persistence behavior has been exercised successfully.
+-   Object bytecode treats `transmitModData` as network-oriented: the client sends an object-ModData packet and the server distributes object ModData. BF does not need that broader path because its server is authoritative and clients receive targeted snapshots.
+-   Current BF `CommandHandler` uses the event-supplied player, validates commands, loads and mutates the server-owned root, and returns targeted authoritative snapshots.
+-   Current BF publishers validate and correlate responses before updating their in-memory `SnapshotStore`; hosted/co-op reconnect and persistence behavior has been exercised successfully.
 -   Multiplayer persistence uses strict schema v1. Its server-private `characterId` is assigned when the authoritative root is created; new birth IDs are character-scoped and BabyData v1 retains that identity.
 -   Single-player client domains intentionally use direct local state and recipes. This runtime split is working behavior, not a legacy import path or multiplayer truth source.
 
 ## Runtime And Version Applicability
 
-The serialization evidence applies directly to installed Build 42.12 and structurally to Build 42.x. ZLBF's SP and hosted/co-op paths were exercised on 2026-08-22. The final unreleased schema-v1 baseline intentionally resets earlier development roots and has not been revalidated yet. Dedicated save scheduling, immediate disconnect timing, and abnormal shutdown durability remain runtime-sensitive.
+The serialization evidence applies directly to installed Build 42.12 and structurally to Build 42.x. BF's SP and hosted/co-op paths were exercised on 2026-08-22. The final unreleased schema-v1 baseline intentionally resets earlier development roots and has not been revalidated yet. Dedicated save scheduling, immediate disconnect timing, and abnormal shutdown durability remain runtime-sensitive.
 
 ## Confidence
 
-Confidence: high that supported nested Lua tables serialize and that ZLBF's strict root design, SP-local split, and hosted/co-op snapshot transport work in the tested flows; medium-high for the clean schema-v1 baseline from source and automated tests; medium for exact disconnect/save timing; low for abnormal shutdown and dedicated-server durability.
+Confidence: high that supported nested Lua tables serialize and that BF's strict root design, SP-local split, and hosted/co-op snapshot transport work in the tested flows; medium-high for the clean schema-v1 baseline from source and automated tests; medium for exact disconnect/save timing; low for abnormal shutdown and dedicated-server durability.
 
-## Implications For ZLBF
+## Implications For BF
 
 -   Store one server-owned player root such as `{ schemaVersion, characterId, stateVersion, domains }`.
 -   Generate `characterId` once on the server with `getRandomUUID()` when a character root is
@@ -73,7 +73,7 @@ Confidence: high that supported nested Lua tables serialize and that ZLBF's stri
 -   Keep connection epochs, pending requests, replay windows, and client revisions out of persistent domain state.
 -   Use targeted command responses as the explicit client mirror transport; do not call `transmitModData` for this design.
 -   Keep multiplayer gameplay reads and writes on the server-owned root; do not reintroduce local-key imports into multiplayer authority.
--   Track ownership for traits, items, fluids, and lifecycle effects so rollback removes only ZLBF-owned changes.
+-   Track ownership for traits, items, fluids, and lifecycle effects so rollback removes only BF-owned changes.
 
 ## Remaining Questions
 
@@ -83,7 +83,7 @@ Confidence: high that supported nested Lua tables serialize and that ZLBF's stri
 
 ## In-Game Validation
 
-Persist a diagnostic ZLBF root containing schema and state versions, a nested object, numeric-key array, boolean, string, and fractional number. Then:
+Persist a diagnostic BF root containing schema and state versions, a nested object, numeric-key array, boolean, string, and fractional number. Then:
 
 1. In single-player, write server-side, save/quit normally, restart, and compare the loaded server state with the targeted client snapshot.
 2. In hosted multiplayer, repeat across reconnect and host save/quit/restart.
@@ -103,5 +103,5 @@ Persist a diagnostic ZLBF root containing schema and state versions, a nested ob
     strict current validation, explicit state-preserving v1 migration, and no wire-protocol change.
 -   2026-08-22: Recorded successful existing-character v1-to-v2 migration and SP/hosted-co-op validation. Clarified that SP local state is an intentional runtime backend and that dedicated/abnormal-shutdown durability remains open.
 -   2026-08-22: Superseded the unreleased v1-to-v2 migration with a clean schema-v1 baseline that
-    requires `characterId`; rotated persistence to `ZLBF.State` so earlier development roots are
+    requires `characterId`; rotated persistence to `BF.State` so earlier development roots are
     intentionally ignored without compatibility code.
