@@ -9,6 +9,7 @@ import { StateRepository } from "@server/components/state/StateRepository";
 
 jest.mock("@asledgehammer/pipewrench", () => ({
 	ZombRandFloat: jest.fn(() => 0.05),
+	getRandomUUID: jest.fn(() => "recipe-character-id"),
 	isServer: jest.fn(() => false),
 	sendServerCommand: jest.fn()
 }));
@@ -28,6 +29,7 @@ const actor = (milkAmount = 0.4, wombAmount = 0.2, cycleDay = 1) => {
 		ZLBFLactation: domains.lactation,
 		[ZLBF_STATE_MOD_DATA_KEY]: {
 			schemaVersion: ZLBF_STATE_SCHEMA_VERSION,
+			characterId: "recipe-character-id",
 			stateVersion: 2,
 			domains
 		}

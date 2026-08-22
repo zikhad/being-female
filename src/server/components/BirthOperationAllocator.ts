@@ -10,22 +10,22 @@ export type BirthAllocation = {
 	state: AuthoritativeBirthState;
 };
 
-/** Allocates deterministic, retry-safe birth identities for one authenticated player. */
+/** Allocates deterministic, retry-safe birth identities for one server-owned character identity. */
 export class BirthOperationAllocator {
 	/**
 	 * Returns an existing pending operation or allocates the player's next sequence.
 	 *
 	 * @param current Current server-authoritative birth lifecycle state.
-	 * @param motherUsername Username derived from the authenticated server player.
+	 * @param characterId Server-generated identity persisted for the authenticated character.
 	 * @returns Idempotent pending operation and the state that must be persisted.
 	 */
-	public allocate(current: AuthoritativeBirthState, motherUsername: string): BirthAllocation {
+	public allocate(current: AuthoritativeBirthState, characterId: string): BirthAllocation {
 		if (current.pendingBirthId) {
 			return { changed: false, birthId: current.pendingBirthId, state: current };
 		}
 
 		const birthSequence = current.birthSequence + 1;
-		const birthId = `${motherUsername}:birth:${birthSequence}`;
+		const birthId = `${characterId}:birth:${birthSequence}`;
 		return {
 			changed: true,
 			birthId,

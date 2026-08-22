@@ -4,6 +4,8 @@ import type { AuthoritativeDomains } from "@shared/ZLBFState";
 export type AuthoritativeState = {
 	/** Version of the persisted root and domain-data shape. */
 	schemaVersion: number;
+	/** Server-generated identity scoped to this character's persisted authoritative root. */
+	characterId: string;
 	/** Server-owned revision incremented only after successful domain mutations. */
 	stateVersion: number;
 	/** Reserved container for authoritative gameplay domains introduced by later slices. */
