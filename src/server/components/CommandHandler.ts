@@ -5,25 +5,25 @@ import {
 	instanceItem
 } from "@asledgehammer/pipewrench";
 import {
-	ZLBF_STATE_SCHEMA_VERSION,
-	ZLBF_NETWORK_MODULE,
-	ZLBF_PROTOCOL_SCHEMA_VERSION,
+	BF_STATE_SCHEMA_VERSION,
+	BF_NETWORK_MODULE,
+	BF_PROTOCOL_SCHEMA_VERSION,
 	ITEMS,
-	ZLBFTraitsEnum,
-	ZLBFNetworkCommand,
-	ZLBFSyncStatus
+	BFTraitsEnum,
+	BFNetworkCommand,
+	BFSyncStatus
 } from "@constants";
 import {
-	isZLBFSetPregnancyStateRequest,
-	isZLBFAllocateBirthRequest,
-	isZLBFCompleteBirthRequest,
-	isZLBFPublishWombStateRequest,
-	isZLBFPublishLactationStateRequest,
-	isZLBFSyncStateRequest,
-	ZLBFSetPregnancyStateRequest,
-	ZLBFSnapshot,
-	ZLBFSyncStateResponse
-} from "@shared/ZLBFProtocol";
+	isBFSetPregnancyStateRequest,
+	isBFAllocateBirthRequest,
+	isBFCompleteBirthRequest,
+	isBFPublishWombStateRequest,
+	isBFPublishLactationStateRequest,
+	isBFSyncStateRequest,
+	BFSetPregnancyStateRequest,
+	BFSnapshot,
+	BFSyncStateResponse
+} from "@shared/BFProtocol";
 import { StateRepository } from "@server/components/state/StateRepository";
 import { StateLoadResult } from "@server/components/state/AuthoritativeState";
 import { PregnancyReconciler } from "@shared/domain/pregnancy/PregnancyReconciler";
@@ -40,7 +40,7 @@ import { PregnancyRecoveryOptions } from "@shared/components/PregnancyRecoveryOp
 import { createDefaultWombState } from "@shared/domain/womb/WombState";
 import { createDefaultLactationState } from "@shared/domain/lactation/LactationState";
 
-/** Validates and handles ZLBF commands received in the server execution context. */
+/** Validates and handles BF commands received in the server execution context. */
 export class CommandHandler {
 	/** Creates a handler backed by the server-owned player-state repository. */
 	constructor(
@@ -65,57 +65,57 @@ export class CommandHandler {
 		player: IsoPlayer | undefined,
 		args: unknown
 	): void {
-		if (module !== ZLBF_NETWORK_MODULE) return;
+		if (module !== BF_NETWORK_MODULE) return;
 		if (!player) {
-			print(`[ZLBF][MP][Server] ignored ${command} before player binding`);
+			print(`[BF][MP][Server] ignored ${command} before player binding`);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.SYNC_STATE_REQUEST) {
+		if (command === BFNetworkCommand.SYNC_STATE_REQUEST) {
 			this.syncState(player, args);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.SET_PREGNANCY_STATE_REQUEST) {
+		if (command === BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST) {
 			this.setPregnancyState(
 				player,
 				args,
-				ZLBFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+				BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
 				true
 			);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST) {
+		if (command === BFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST) {
 			this.setPregnancyState(
 				player,
 				args,
-				ZLBFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
+				BFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
 				false
 			);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.ALLOCATE_BIRTH_REQUEST) {
+		if (command === BFNetworkCommand.ALLOCATE_BIRTH_REQUEST) {
 			this.allocateBirth(player, args);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.COMPLETE_BIRTH_REQUEST) {
+		if (command === BFNetworkCommand.COMPLETE_BIRTH_REQUEST) {
 			this.completeBirth(player, args);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST) {
+		if (command === BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST) {
 			this.publishWombState(player, args);
 			return;
 		}
-		if (command === ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST) {
+		if (command === BFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST) {
 			this.publishLactationState(player, args);
 		}
 	}
 
 	/** Persists complete client-simulated Lactation state when based on the current version. */
 	private publishLactationState(player: IsoPlayer, args: unknown): void {
-		if (!isZLBFPublishLactationStateRequest(args)) return;
+		if (!isBFPublishLactationStateRequest(args)) return;
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		const status = this.loadStatus(args.schemaVersion, loaded);
 		if (
-			status === ZLBFSyncStatus.OK &&
+			status === BFSyncStatus.OK &&
 			loaded?.supported &&
 			args.baseStateVersion === loaded.stateVersion
 		) {
@@ -135,7 +135,7 @@ export class CommandHandler {
 		}
 		this.sendSnapshot(
 			player,
-			ZLBFNetworkCommand.PUBLISH_LACTATION_STATE_RESPONSE,
+			BFNetworkCommand.PUBLISH_LACTATION_STATE_RESPONSE,
 			args,
 			status,
 			loaded
@@ -144,10 +144,10 @@ export class CommandHandler {
 
 	/** Persists client-simulated reversible Womb contents and cycle progression. */
 	private publishWombState(player: IsoPlayer, args: unknown): void {
-		if (!isZLBFPublishWombStateRequest(args)) return;
+		if (!isBFPublishWombStateRequest(args)) return;
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		const status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === BFSyncStatus.OK && loaded?.supported) {
 			const desired = args.data.desired;
 			const womb = loaded.state.domains.womb;
 			const clearsContraceptive =
@@ -176,7 +176,7 @@ export class CommandHandler {
 		}
 		this.sendSnapshot(
 			player,
-			ZLBFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
+			BFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE,
 			args,
 			status,
 			loaded
@@ -188,25 +188,25 @@ export class CommandHandler {
 	 * Dead characters receive an invalid response with their unchanged authoritative snapshot.
 	 */
 	private completeBirth(player: IsoPlayer, args: unknown): void {
-		if (!isZLBFCompleteBirthRequest(args)) return;
+		if (!isBFCompleteBirthRequest(args)) return;
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && player.isDead()) {
-			status = ZLBFSyncStatus.INVALID_REQUEST;
-		} else if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === BFSyncStatus.OK && player.isDead()) {
+			status = BFSyncStatus.INVALID_REQUEST;
+		} else if (status === BFSyncStatus.OK && loaded?.supported) {
 			const birth = loaded.state.domains.birth;
 			if (birth.completedBirthId === args.data.birthId) {
 				// An acknowledged operation may be retried after a lost response.
 			} else if (birth.pendingBirthId !== args.data.birthId) {
-				status = ZLBFSyncStatus.INVALID_REQUEST;
+				status = BFSyncStatus.INVALID_REQUEST;
 			} else {
 				const mother = new Player(player).identity;
 				if (!mother) {
-					status = ZLBFSyncStatus.INVALID_REQUEST;
+					status = BFSyncStatus.INVALID_REQUEST;
 				} else {
 					const baby = instanceItem(ITEMS.BABY);
 					if (!baby) {
-						status = ZLBFSyncStatus.INVALID_REQUEST;
+						status = BFSyncStatus.INVALID_REQUEST;
 					} else {
 						const babyData = createBabyData({
 							birthId: args.data.birthId,
@@ -214,7 +214,7 @@ export class CommandHandler {
 							mother,
 							birthSequence: birth.birthSequence
 						});
-						(baby.getModData() as unknown as Record<string, unknown>).ZLBF = babyData;
+						(baby.getModData() as unknown as Record<string, unknown>).BF = babyData;
 						const inventory = player.getInventory();
 						inventory.AddItem(baby);
 						sendAddItemToContainer(inventory, baby);
@@ -229,20 +229,20 @@ export class CommandHandler {
 							cycleDay: recovery.days === 0 ? 1 : -recovery.days
 						};
 						if (recovery.usedFallback) {
-							print("[ZLBF][MP][Server] invalid PregnancyRecovery; using default=7");
+							print("[BF][MP][Server] invalid PregnancyRecovery; using default=7");
 						}
 						loaded.state.stateVersion += 1;
 						loaded.stateVersion = loaded.state.stateVersion;
 						this.states.save(player, loaded.state);
 						this.applyPregnancyTrait(player, PregnancyStatus.NOT_PREGNANT);
 						print(
-							`[ZLBF][MP][Server] completed birth player=${mother.username} birthId=${babyData.birthId} motherName=${mother.name}`
+							`[BF][MP][Server] completed birth player=${mother.username} birthId=${babyData.birthId} motherName=${mother.name}`
 						);
 					}
 				}
 			}
 		}
-		this.sendSnapshot(player, ZLBFNetworkCommand.COMPLETE_BIRTH_RESPONSE, args, status, loaded);
+		this.sendSnapshot(player, BFNetworkCommand.COMPLETE_BIRTH_RESPONSE, args, status, loaded);
 	}
 
 	/**
@@ -250,21 +250,21 @@ export class CommandHandler {
 	 * labor. Dead characters receive an invalid response with their unchanged snapshot.
 	 */
 	private allocateBirth(player: IsoPlayer, args: unknown): void {
-		if (!isZLBFAllocateBirthRequest(args)) {
+		if (!isBFAllocateBirthRequest(args)) {
 			print(
-				`[ZLBF][MP][Server] rejected malformed birth allocation from ${player.getUsername()}`
+				`[BF][MP][Server] rejected malformed birth allocation from ${player.getUsername()}`
 			);
 			return;
 		}
 
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && player.isDead()) {
-			status = ZLBFSyncStatus.INVALID_REQUEST;
-		} else if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === BFSyncStatus.OK && player.isDead()) {
+			status = BFSyncStatus.INVALID_REQUEST;
+		} else if (status === BFSyncStatus.OK && loaded?.supported) {
 			const pregnancy = loaded.state.domains.pregnancy;
 			if (pregnancy.status !== PregnancyStatus.PREGNANT || !pregnancy.isInLabor) {
-				status = ZLBFSyncStatus.INVALID_REQUEST;
+				status = BFSyncStatus.INVALID_REQUEST;
 			} else {
 				const allocation = this.births.allocate(
 					loaded.state.domains.birth,
@@ -277,56 +277,56 @@ export class CommandHandler {
 					this.states.save(player, loaded.state);
 				}
 				print(
-					`[ZLBF][MP][Server] birth allocation player=${player.getUsername()} birthId=${allocation.birthId} changed=${allocation.changed}`
+					`[BF][MP][Server] birth allocation player=${player.getUsername()} birthId=${allocation.birthId} changed=${allocation.changed}`
 				);
 			}
 		}
 
-		this.sendSnapshot(player, ZLBFNetworkCommand.ALLOCATE_BIRTH_RESPONSE, args, status, loaded);
+		this.sendSnapshot(player, BFNetworkCommand.ALLOCATE_BIRTH_RESPONSE, args, status, loaded);
 	}
 
 	/** Handles a validated read-only authoritative snapshot request. */
 	private syncState(player: IsoPlayer, args: unknown): void {
-		if (!isZLBFSyncStateRequest(args)) {
-			print(`[ZLBF][MP][Server] rejected malformed request from ${player.getUsername()}`);
+		if (!isBFSyncStateRequest(args)) {
+			print(`[BF][MP][Server] rejected malformed request from ${player.getUsername()}`);
 			return;
 		}
 
 		const state = this.loadForProtocol(player, args.schemaVersion);
 		const status = this.loadStatus(args.schemaVersion, state);
-		if (status === ZLBFSyncStatus.OK && state?.supported) {
+		if (status === BFSyncStatus.OK && state?.supported) {
 			this.applyPregnancyTrait(player, state.state.domains.pregnancy.status);
 		}
-		this.sendSnapshot(player, ZLBFNetworkCommand.SYNC_STATE_RESPONSE, args, status, state);
+		this.sendSnapshot(player, BFNetworkCommand.SYNC_STATE_RESPONSE, args, status, state);
 	}
 
 	/** Handles a reversible Pregnancy state publication through its selected route. */
 	private setPregnancyState(
 		player: IsoPlayer,
 		args: unknown,
-		responseCommand: ZLBFNetworkCommand,
+		responseCommand: BFNetworkCommand,
 		debugOnly: boolean
 	): void {
-		if (!isZLBFSetPregnancyStateRequest(args)) {
+		if (!isBFSetPregnancyStateRequest(args)) {
 			print(
-				`[ZLBF][MP][Server] rejected malformed Pregnancy request from ${player.getUsername()}`
+				`[BF][MP][Server] rejected malformed Pregnancy request from ${player.getUsername()}`
 			);
 			return;
 		}
 
 		const loaded = this.loadForProtocol(player, args.schemaVersion);
 		let status = this.loadStatus(args.schemaVersion, loaded);
-		if (status === ZLBFSyncStatus.OK && debugOnly && !isDebugEnabled()) {
-			status = ZLBFSyncStatus.FORBIDDEN;
+		if (status === BFSyncStatus.OK && debugOnly && !isDebugEnabled()) {
+			status = BFSyncStatus.FORBIDDEN;
 		}
 
-		if (status === ZLBFSyncStatus.OK && loaded?.supported) {
+		if (status === BFSyncStatus.OK && loaded?.supported) {
 			const reconciliation = this.pregnancy.reconcile(
 				loaded.state.domains.pregnancy,
 				args.data.desired
 			);
 			if (!reconciliation.valid) {
-				status = ZLBFSyncStatus.INVALID_REQUEST;
+				status = BFSyncStatus.INVALID_REQUEST;
 			} else {
 				if (reconciliation.changed) {
 					loaded.state.domains.pregnancy = reconciliation.state;
@@ -343,31 +343,28 @@ export class CommandHandler {
 
 	/** Loads persisted state only when the request uses the supported wire schema. */
 	private loadForProtocol(player: IsoPlayer, schemaVersion: number): StateLoadResult | undefined {
-		return schemaVersion === ZLBF_PROTOCOL_SCHEMA_VERSION
-			? this.states.load(player)
-			: undefined;
+		return schemaVersion === BF_PROTOCOL_SCHEMA_VERSION ? this.states.load(player) : undefined;
 	}
 
 	/** Maps protocol and persistence compatibility to a response status. */
-	private loadStatus(schemaVersion: number, state?: StateLoadResult): ZLBFSyncStatus {
-		if (schemaVersion !== ZLBF_PROTOCOL_SCHEMA_VERSION)
-			return ZLBFSyncStatus.UNSUPPORTED_SCHEMA;
-		return state?.supported ? ZLBFSyncStatus.OK : ZLBFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
+	private loadStatus(schemaVersion: number, state?: StateLoadResult): BFSyncStatus {
+		if (schemaVersion !== BF_PROTOCOL_SCHEMA_VERSION) return BFSyncStatus.UNSUPPORTED_SCHEMA;
+		return state?.supported ? BFSyncStatus.OK : BFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
 	}
 
 	/** Reconciles the server-owned compatibility trait with authoritative Pregnancy status. */
 	private applyPregnancyTrait(player: IsoPlayer, status: PregnancyStatus): void {
 		if (status === PregnancyStatus.PREGNANT) {
-			CharacterTraitApi.addTrait(player, ZLBFTraitsEnum.PREGNANCY);
+			CharacterTraitApi.addTrait(player, BFTraitsEnum.PREGNANCY);
 			return;
 		}
-		CharacterTraitApi.removeTrait(player, ZLBFTraitsEnum.PREGNANCY);
+		CharacterTraitApi.removeTrait(player, BFTraitsEnum.PREGNANCY);
 	}
 
 	/** Creates client-visible snapshot data without exposing mutable server storage. */
-	private snapshot(state?: StateLoadResult): ZLBFSnapshot {
+	private snapshot(state?: StateLoadResult): BFSnapshot {
 		return {
-			schemaVersion: state?.schemaVersion ?? ZLBF_STATE_SCHEMA_VERSION,
+			schemaVersion: state?.schemaVersion ?? BF_STATE_SCHEMA_VERSION,
 			stateVersion: state?.stateVersion ?? 0,
 			domains: {
 				pregnancy: state?.supported
@@ -385,21 +382,21 @@ export class CommandHandler {
 	/** Sends a targeted correlated response containing the authoritative snapshot. */
 	private sendSnapshot(
 		player: IsoPlayer,
-		command: ZLBFNetworkCommand,
-		request: Pick<ZLBFSetPregnancyStateRequest, "requestId" | "revision">,
-		status: ZLBFSyncStatus,
+		command: BFNetworkCommand,
+		request: Pick<BFSetPregnancyStateRequest, "requestId" | "revision">,
+		status: BFSyncStatus,
 		state?: StateLoadResult
 	): void {
-		const response: ZLBFSyncStateResponse = {
-			schemaVersion: ZLBF_PROTOCOL_SCHEMA_VERSION,
+		const response: BFSyncStateResponse = {
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
 			requestId: request.requestId,
 			revision: request.revision,
 			status,
 			data: { snapshot: this.snapshot(state) }
 		};
 		print(
-			`[ZLBF][MP][Server] reply ${response.requestId} revision=${response.revision} status=${response.status}`
+			`[BF][MP][Server] reply ${response.requestId} revision=${response.revision} status=${response.status}`
 		);
-		sendServerCommand(player, ZLBF_NETWORK_MODULE, command, response);
+		sendServerCommand(player, BF_NETWORK_MODULE, command, response);
 	}
 }

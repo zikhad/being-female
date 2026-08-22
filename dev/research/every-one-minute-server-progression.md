@@ -7,7 +7,7 @@ Scope: client, server, single-player, multiplayer
 
 ## Question
 
-Can Build 42 `EveryOneMinute` drive periodic domain progression, and should ZLBF run that simulation on the client or server?
+Can Build 42 `EveryOneMinute` drive periodic domain progression, and should BF run that simulation on the client or server?
 
 ## Conclusion
 
@@ -15,19 +15,19 @@ Build 42 triggers `EveryOneMinute` from `GameTime.update(boolean)` whenever the 
 
 The callback is a wake-up signal, not elapsed-time truth. It has no player or delta argument and fires at most once per game update, so a multi-minute jump can collapse into one callback. Any progression implementation must calculate elapsed time from minute-stamp deltas instead of incrementing once per callback.
 
-ZLBF registers `EveryOneMinute` only from client code. In hosted/co-op multiplayer, the first eligible tick bootstraps a snapshot and Pregnancy, Womb, and Lactation publish their latest desired state for validated server persistence. In single-player, the same gameplay components use direct local state and do not wait for a command response. No server domain-progression listener exists.
+BF registers `EveryOneMinute` only from client code. In hosted/co-op multiplayer, the first eligible tick bootstraps a snapshot and Pregnancy, Womb, and Lactation publish their latest desired state for validated server persistence. In single-player, the same gameplay components use direct local state and do not wait for a command response. No server domain-progression listener exists.
 
-ZLBF uses client-simulated, server-persisted progression for reversible multiplayer domain values where anti-cheat is not required. Pregnancy, cycle/Womb, and Lactation simulate on the owning client and publish validated desired state after ticks; the server is the multiplayer persistence and convergence boundary. The separate SP path applies changes locally. User testing confirmed both paths on 2026-08-22. A server listener and online-player enumeration remain an unselected alternative.
+BF uses client-simulated, server-persisted progression for reversible multiplayer domain values where anti-cheat is not required. Pregnancy, cycle/Womb, and Lactation simulate on the owning client and publish validated desired state after ticks; the server is the multiplayer persistence and convergence boundary. The separate SP path applies changes locally. User testing confirmed both paths on 2026-08-22. A server listener and online-player enumeration remain an unselected alternative.
 
 ## Evidence
 
 ### Direct observations
 
--   `src/client/ZLBF/components/Pregnancy.ts` registers a client minute listener that calculates elapsed online minutes, updates presentation, publishes Pregnancy progress, and begins labor/birth presentation locally.
--   `src/client/ZLBF/components/network/PregnancyPublisher.ts` keeps one request in flight, coalesces intervening ticks to the latest desired state, and applies correlated server snapshots without rolling presentation behind queued progress.
+-   `src/client/BF/components/Pregnancy.ts` registers a client minute listener that calculates elapsed online minutes, updates presentation, publishes Pregnancy progress, and begins labor/birth presentation locally.
+-   `src/client/BF/components/network/PregnancyPublisher.ts` keeps one request in flight, coalesces intervening ticks to the latest desired state, and applies correlated server snapshots without rolling presentation behind queued progress.
 -   `src/server/components/CommandHandler.ts` accepts the normal progression route without debug mode, validates and reconciles desired Pregnancy state, persists changes, and returns the canonical snapshot.
--   `src/client/ZLBF/components/network/SyncCoordinator.ts` registers a separate client listener for the one-time snapshot request.
--   `src/server/ZLBF.ts` registers only `OnClientCommand`; it has no minute listener.
+-   `src/client/BF/components/network/SyncCoordinator.ts` registers a separate client listener for the one-time snapshot request.
+-   `src/server/BF.ts` registers only `OnClientCommand`; it has no minute listener.
 -   Installed Build 42 `zombie.GameTime.update(boolean)` updates the minute stamp, compares it with the previous stamp, emits one `EveryOneMinute` event when different, and then stores the new stamp. There is no client/server guard around the trigger.
 -   Paused game time does not change the minute stamp. Hour and ten-minute processing precede the minute event when boundaries coincide.
 -   Vanilla server `media/lua/server/Camping/SCampfireSystem.lua` registers an `EveryOneMinute` listener.
@@ -43,19 +43,19 @@ ZLBF uses client-simulated, server-persisted progression for reversible multipla
 ### Inference
 
 -   The unguarded Java trigger and vanilla client/server registrations strongly support availability in single-player, hosted-server, multiplayer-client, and dedicated-server contexts.
--   Connected-player lists are transient. A server tick must tolerate an empty list, join/disconnect races, and newly connected players whose ZLBF state has not yet been initialized.
+-   Connected-player lists are transient. A server tick must tolerate an empty list, join/disconnect races, and newly connected players whose BF state has not yet been initialized.
 -   Client publication naturally provides the chosen online-only behavior because disconnected clients produce no progression ticks.
 -   Reconnect must seed client simulation from the acknowledged server snapshot before a new tick is published; it must not apply offline catch-up.
 
 ## Runtime And Version Applicability
 
-The Java and vanilla Lua observations apply to the locally installed Build 42 game inspected on 2026-08-11. ZLBF's SP and hosted/co-op behavior has since been exercised successfully. Dedicated behavior is strongly supported by loader location and vanilla usage but has not been instrumented by ZLBF. No Build 41 behavior is claimed.
+The Java and vanilla Lua observations apply to the locally installed Build 42 game inspected on 2026-08-11. BF's SP and hosted/co-op behavior has since been exercised successfully. Dedicated behavior is strongly supported by loader location and vanilla usage but has not been instrumented by BF. No Build 41 behavior is claimed.
 
 ## Confidence
 
 Confidence: high for current listener locations, Java minute-stamp behavior, callback collapse, online-only client simulation, and tested SP/hosted-co-op progression; medium for dedicated-server behavior and retry under lost responses; undetermined for administrative time changes.
 
-## Implications For ZLBF
+## Implications For BF
 
 -   Keep reversible progression in client components, but derive elapsed minutes from client/world minute-stamp deltas so collapsed callbacks do not lose time.
 -   Bootstrap the client from the server snapshot before publishing progression; reconnect starts from that persisted value with no offline delta.
@@ -77,7 +77,7 @@ In a temporary research build, log client execution context, current/previous mi
 
 ## History
 
--   2026-08-11: Initial investigation from ZLBF source/generated Lua, installed Build 42 Java bytecode, vanilla client/server Lua, and PipeWrench declarations.
+-   2026-08-11: Initial investigation from BF source/generated Lua, installed Build 42 Java bytecode, vanilla client/server Lua, and PipeWrench declarations.
 -   2026-08-11: Chose online-only Pregnancy progression; reconnect establishes a new session baseline without catch-up.
 -   2026-08-11: Chose client-simulated, server-persisted progression for reversible Pregnancy, Womb/cycle, and Lactation values; retained server simulation as an unselected alternative.
 -   2026-08-11: Implemented the first Pregnancy progression publisher with minute-stamp deltas, latest-state coalescing, validated persistence, and correlated acknowledgement.

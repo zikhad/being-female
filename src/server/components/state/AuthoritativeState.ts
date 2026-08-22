@@ -1,6 +1,6 @@
-import type { AuthoritativeDomains } from "@shared/ZLBFState";
+import type { AuthoritativeDomains } from "@shared/BFState";
 
-/** Root value stored under the ZLBF key in an authenticated player's ModData. */
+/** Root value stored under the BF key in an authenticated player's ModData. */
 export type AuthoritativeState = {
 	/** Version of the persisted root and domain-data shape. */
 	schemaVersion: number;

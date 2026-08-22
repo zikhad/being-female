@@ -1,5 +1,5 @@
-local ZLBFFertilization = require "ZLBF/AnimationEvents/Fertilization"
+local BFFertilization = require "BF/AnimationEvents/Fertilization"
 
 return function(actionInstance, eventName, parameter)
-    return ZLBFFertilization.onAnimationEvent(actionInstance, eventName, parameter)
+    return BFFertilization.onAnimationEvent(actionInstance, eventName, parameter)
 end

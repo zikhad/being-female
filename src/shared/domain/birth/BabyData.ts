@@ -2,7 +2,7 @@ import { object, oneOf, positiveInteger, string } from "@shared/validation/Schem
 import type { PlayerIdentity } from "@shared/components/Player";
 import { characterIdSchema } from "@shared/domain/CharacterIdentity";
 
-/** Immutable ZLBF metadata attached to a baby item before inventory insertion. */
+/** Immutable BF metadata attached to a baby item before inventory insertion. */
 export type BabyData = {
 	/** Version of the baby item metadata shape. */
 	schemaVersion: number;

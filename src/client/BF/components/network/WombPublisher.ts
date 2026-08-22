@@ -1,0 +1,108 @@
+import { getPlayer, sendClientCommand } from "@asledgehammer/pipewrench";
+import {
+	BF_NETWORK_MODULE,
+	BF_PROTOCOL_SCHEMA_VERSION,
+	BFNetworkCommand,
+	BFSyncStatus
+} from "@constants";
+import { isBFPublishWombStateResponse, BFPublishWombStateRequest } from "@shared/BFProtocol";
+import type { WombProgressState } from "@shared/domain/womb/WombState";
+import { SnapshotStore } from "@client/components/network/SnapshotStore";
+
+/** Publishes reversible Womb contents and cycle progression and applies responses. */
+export class WombPublisher {
+	private nextRevision = 1;
+	private pending?: BFPublishWombStateRequest;
+	private queued?: WombProgressState;
+
+	/** Creates a Womb publisher backed by the shared snapshot mirror. */
+	constructor(private readonly snapshots: SnapshotStore) {}
+
+	/** Clears connection-scoped mutation correlation and optimistic queued state. */
+	public resetSession(): void {
+		this.pending = undefined;
+		this.queued = undefined;
+	}
+
+	/** Returns the newest queued or in-flight desired state for optimistic presentation. */
+	public get latestDesiredState(): WombProgressState | undefined {
+		return this.queued ?? this.pending?.data.desired;
+	}
+
+	/** Publishes or coalesces the latest concrete reversible Womb state. */
+	public publishState(desired: WombProgressState): void {
+		if (this.pending) {
+			this.queued = desired;
+			return;
+		}
+		this.send(desired);
+	}
+
+	/**
+	 * Creates and sends one correlated Womb-state request based on the current snapshot version.
+	 *
+	 * @param desired Complete client-simulated state calculated from the current mirror.
+	 */
+	private send(desired: WombProgressState): void {
+		const revision = this.nextRevision++;
+		const payload: BFPublishWombStateRequest = {
+			schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+			requestId: `womb-${revision}`,
+			revision,
+			baseStateVersion: this.snapshots.snapshot?.stateVersion ?? 0,
+			data: { desired }
+		};
+		this.pending = payload;
+		print(
+			`[BF][MP][Client] send PublishWombStateRequest cycleDay=${desired.cycleDay} amount=${desired.amount} total=${desired.total}`
+		);
+		sendClientCommand(
+			getPlayer(),
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST,
+			payload
+		);
+	}
+
+	/** Routes a correlated Womb response and sends any coalesced state afterward. */
+	public onServerCommand(module: string, command: string, args: unknown): void {
+		if (
+			module !== BF_NETWORK_MODULE ||
+			command !== BFNetworkCommand.PUBLISH_WOMB_STATE_RESPONSE ||
+			!isBFPublishWombStateResponse(args) ||
+			args.schemaVersion !== BF_PROTOCOL_SCHEMA_VERSION
+		)
+			return;
+		const pending = this.pending;
+		if (!pending || args.requestId !== pending.requestId || args.revision !== pending.revision)
+			return;
+		this.pending = undefined;
+		const compatible =
+			args.status !== BFSyncStatus.UNSUPPORTED_SCHEMA &&
+			args.status !== BFSyncStatus.UNSUPPORTED_DATA_SCHEMA;
+		if (compatible) this.snapshots.apply(args.data.snapshot);
+		print(
+			`[BF][MP][Client] acknowledged PublishWombStateResponse status=${args.status} cycleDay=${args.data.snapshot.domains.womb.cycleDay} amount=${args.data.snapshot.domains.womb.amount} total=${args.data.snapshot.domains.womb.total}`
+		);
+		const queued = this.queued;
+		this.queued = undefined;
+		if (compatible) {
+			const authoritative = args.data.snapshot.domains.womb;
+			const desired = queued ?? pending.data.desired;
+			const reconciled =
+				desired.cycleDay === authoritative.cycleDay &&
+				authoritative.onContraceptive !== undefined
+					? { ...desired, onContraceptive: authoritative.onContraceptive }
+					: desired;
+			const unapplied =
+				(authoritative.cycleDay !== undefined &&
+					authoritative.cycleDay !== reconciled.cycleDay) ||
+				(authoritative.amount !== undefined &&
+					authoritative.amount !== reconciled.amount) ||
+				(authoritative.total !== undefined && authoritative.total !== reconciled.total) ||
+				(authoritative.onContraceptive !== undefined &&
+					authoritative.onContraceptive !== reconciled.onContraceptive);
+			if (unapplied) this.send(reconciled);
+		}
+	}
+}

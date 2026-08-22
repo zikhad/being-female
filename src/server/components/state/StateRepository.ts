@@ -1,5 +1,5 @@
 import type { IsoPlayer } from "@asledgehammer/pipewrench";
-import { ZLBF_STATE_MOD_DATA_KEY } from "@constants";
+import { BF_STATE_MOD_DATA_KEY } from "@constants";
 import { AuthoritativeState, StateLoadResult } from "@server/components/state/AuthoritativeState";
 import { StateMigrator } from "@server/components/state/StateMigrator";
 
@@ -9,7 +9,7 @@ type ModDataStore = Record<string, unknown> & {
 	set?: (key: string, value: unknown) => void;
 };
 
-/** Loads and normalizes the server-owned ZLBF root stored on an authenticated player. */
+/** Loads and normalizes the server-owned BF root stored on an authenticated player. */
 export class StateRepository {
 	/** Creates a repository with the supplied persisted-data migration policy. */
 	constructor(private readonly migrator = new StateMigrator()) {}
@@ -32,7 +32,7 @@ export class StateRepository {
 
 		const source = persisted === undefined ? "initialized" : "loaded";
 		print(
-			`[ZLBF][MP][Server] authoritative state ${source} schema=${result.schemaVersion} state=${result.stateVersion}`
+			`[BF][MP][Server] authoritative state ${source} schema=${result.schemaVersion} state=${result.stateVersion}`
 		);
 
 		return result;
@@ -52,7 +52,7 @@ export class StateRepository {
 
 	/** Reads the namespaced state through Kahlua or property access. */
 	private getValue(store: ModDataStore): unknown {
-		return this.getStoreValue(store, ZLBF_STATE_MOD_DATA_KEY);
+		return this.getStoreValue(store, BF_STATE_MOD_DATA_KEY);
 	}
 
 	/** Reads one ModData value through Kahlua or property access. */
@@ -64,10 +64,10 @@ export class StateRepository {
 	/** Writes the complete namespaced state through Kahlua or property access. */
 	private setValue(store: ModDataStore, value: unknown): void {
 		if (typeof store.set === "function") {
-			store.set(ZLBF_STATE_MOD_DATA_KEY, value);
+			store.set(BF_STATE_MOD_DATA_KEY, value);
 			return;
 		}
 
-		store[ZLBF_STATE_MOD_DATA_KEY] = value;
+		store[BF_STATE_MOD_DATA_KEY] = value;
 	}
 }

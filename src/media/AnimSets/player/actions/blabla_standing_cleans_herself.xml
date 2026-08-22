@@ -10,7 +10,7 @@
 	<m_Conditions>
 		<m_Name>PerformingAction</m_Name>
 		<m_Type>STRING</m_Type>
-		<m_Value>ZLBF.CleanSelf</m_Value>
+		<m_Value>BF.CleanSelf</m_Value>
 	</m_Conditions>
 	<m_Events>
 		<m_EventName>Shlick</m_EventName>

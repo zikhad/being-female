@@ -1,4 +1,4 @@
-# ZLBF Agent Instructions
+# BF Agent Instructions
 
 These instructions apply to all AI assistants working in this repository.
 
@@ -18,7 +18,7 @@ These instructions apply to all AI assistants working in this repository.
 
 ## Project Structure
 
--   Client gameplay code lives under `src/client/ZLBF`.
+-   Client gameplay code lives under `src/client/BF`.
 -   Shared logic belongs under `src/shared` when it is reused across client or server boundaries.
 -   Prefer the existing path aliases from `tsconfig.json`, including `@client/*`, `@actions/*`, `@shared/components/*`, `@utils`, and `@constants`.
 

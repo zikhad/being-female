@@ -7,15 +7,15 @@ Scope: shared, multiplayer
 
 ## Question
 
-Which Build 42 command signatures and ordering assumptions can the ZLBF multiplayer foundation safely use?
+Which Build 42 command signatures and ordering assumptions can the BF multiplayer foundation safely use?
 
 ## Conclusion
 
 The `OnClientCommand`, `OnServerCommand`, `sendClientCommand`, and targeted `sendServerCommand` shapes agree across installed PipeWrench declarations, inspected vanilla Build 42 code, and the deployed Reference Mod. The player supplied by `OnClientCommand` must be treated as the authenticated command subject.
 
-The Reference Mod reconnect rule that resets persisted ordering whenever `revision === 1` is replay-unsafe. ZLBF does not use that rule: it correlates replies to pending requests, resets connection-scoped client state on connection boundaries, and gives irreversible birth operations persisted idempotency identifiers.
+The Reference Mod reconnect rule that resets persisted ordering whenever `revision === 1` is replay-unsafe. BF does not use that rule: it correlates replies to pending requests, resets connection-scoped client state on connection boundaries, and gives irreversible birth operations persisted idempotency identifiers.
 
-The Reference Mod's project owner confirms that its unified server-authoritative path works as intended in actual single-player and multiplayer use. ZLBF now deliberately uses different runtime backends: single-player preserves direct local gameplay state, while hosted/co-op multiplayer uses validated client commands, targeted responses, and acknowledged snapshots. Both paths were user-validated on 2026-08-22. Dedicated-server delivery remains unverified.
+The Reference Mod's project owner confirms that its unified server-authoritative path works as intended in actual single-player and multiplayer use. BF now deliberately uses different runtime backends: single-player preserves direct local gameplay state, while hosted/co-op multiplayer uses validated client commands, targeted responses, and acknowledged snapshots. Both paths were user-validated on 2026-08-22. Dedicated-server delivery remains unverified.
 
 ## Evidence
 
@@ -41,13 +41,13 @@ The Reference Mod's project owner confirms that its unified server-authoritative
 
 See [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md) for exact source references and transfer guidance.
 
-### Historical ZLBF runtime experiment
+### Historical BF runtime experiment
 
-An earlier ZLBF multiplayer experiment logged this hosted-session order:
+An earlier BF multiplayer experiment logged this hosted-session order:
 
 1. `OnConnected` fired before `getPlayer()` returned a player.
 2. `OnCreatePlayer` later supplied the player and called `sendClientCommand`.
-3. The server did not receive that immediate ZLBF command, although unrelated vanilla commands reached `OnClientCommand`.
+3. The server did not receive that immediate BF command, although unrelated vanilla commands reached `OnClientCommand`.
 
 This remains useful historical evidence that immediate creation-time bootstrap was unreliable. It is superseded in the current implementation by minute-deferred bootstrap and connection-state reset; hosted/co-op validation confirms that path delivers commands.
 
@@ -57,8 +57,8 @@ The five `Cannot reference code from src/server from src/client` warnings produc
 
 The warnings correspond exactly to these server-to-server value imports:
 
-1. `src/server/ZLBF.ts` to `CommandHandler`.
-2. `src/server/ZLBFRecipes.ts` to `StateRepository`.
+1. `src/server/BF.ts` to `CommandHandler`.
+2. `src/server/BFRecipes.ts` to `StateRepository`.
 3. `src/server/components/CommandHandler.ts` to `StateRepository`.
 4. `src/server/components/CommandHandler.ts` to `BirthOperationAllocator`.
 5. `src/server/components/state/StateRepository.ts` to `StateMigrator`.
@@ -75,7 +75,7 @@ Signatures are supported by local Build 42 evidence. Hosted/co-op connection lif
 
 Confidence: high for signatures, generated-context separation, hosted/co-op command delivery, the explicit SP-local runtime split, and the replay flaw; medium for reconnect resilience beyond normal tested flows; low for dedicated-server and packet-loss behavior.
 
-## Implications For ZLBF
+## Implications For BF
 
 -   Validate incoming tables and finite integer schema/revision values before dereferencing them.
 -   Do not reuse revision-one reset logic for side-effecting commands.
@@ -107,7 +107,7 @@ In single-player, hosted multiplayer, and a dedicated server with two clients:
 
 -   2026-08-04: Initial research from an earlier multiplayer branch and installed Build 42/PipeWrench resources.
 -   2026-08-04: Added hosted runtime evidence and a private Reference Mod comparison; removed stale references to multiplayer files absent from the current branch.
--   2026-08-04: Recorded project-owner runtime confirmation of the Reference Mod's unified single-player and multiplayer behavior; retained ZLBF-specific lifecycle validation.
+-   2026-08-04: Recorded project-owner runtime confirmation of the Reference Mod's unified single-player and multiplayer behavior; retained BF-specific lifecycle validation.
 -   2026-08-11: Recorded hosted bootstrap delivery and linked the server progression event research.
 -   2026-08-18: Confirmed that five PipeWrench client-to-server build warnings are tooling false positives caused by faulty output-scope detection in version 41.78.19. Generated Lua retains correct server placement and side-relative requires.
 -   2026-08-22: Recorded successful SP-local and hosted/co-op command/snapshot validation. Marked the earlier immediate-bootstrap failure historical and retained dedicated-server and packet-loss validation as open.

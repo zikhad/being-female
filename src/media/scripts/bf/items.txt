@@ -1,0 +1,92 @@
+module BF {
+	imports {
+		Base
+	}
+
+	item Condom
+	{
+		DisplayCategory		= FirstAid,
+		ItemType			= base:normal,
+		Weight				= 0.01,
+		DisplayName			= Condom,
+		Icon				= condom,
+		StaticModel			= PillBottle,
+	}
+
+	item CondomUsed
+	{
+		DisplayCategory		= FirstAid,
+		ItemType			= base:normal,
+		Weight				= 0.01,
+		DisplayName			= Used Condom,
+		Icon				= condom_used,
+		StaticModel			= PillBottle,
+		CustomEatSound 		= EatingMushy,
+		component FluidContainer
+		{
+			ContainerName = CondomUsed,
+			Capacity = 0.02,
+			Fluids
+			{
+				fluid = Semen:0.02,
+			}
+		}
+	}
+
+	item CondomBox
+	{
+		DisplayCategory		= FirstAid,
+		ItemType			= base:normal,
+		Weight				= 0.08,
+		DisplayName			= Condom Box,
+		Icon				= condom_box,
+		StaticModel			= BoxOf45Auto,
+		WorldStaticModel	= BoxOf45Auto,
+	}
+
+	item BreastPump
+	{
+		DisplayCategory 	= Babies,
+		Weight				= 0.2,
+		ItemType			= base:normal,
+		DisplayName			= Breast Pump,
+		Icon				= breastpump,
+		StaticModel			= BF.BreastPump,
+		WorldStaticModel	= BF.BreastPump,
+		Tooltip				= Tooltip_BreastPump,
+	}
+
+	item VaginalDouche
+	{
+		DisplayCategory 	= FirstAid,
+		ItemType			= base:normal,
+		Weight				= 0.2,
+		DisplayName			= Vaginal Douche,
+		Icon				= vaginal_douche,
+		Tooltip 			= Tooltip_VaginalDouche,
+		StaticModel 		= BF.VaginalDouche,
+		WorldStaticModel 	= BF.VaginalDouche,
+		component FluidContainer
+		{
+			ContainerName = VaginalDouche,
+			Capacity = 0.5,
+			Fluids
+			{
+				fluid = Water:0.5,
+			}
+		}
+	}
+	
+	item Baby
+	{
+		DisplayCategory		= Babies,
+        ItemType			= base:normal,
+        Icon 				= baby,
+		Weight 				= 2.0,
+        DisplayName			= Baby,
+	    StaticModel			= Baby_leftarm,
+	    primaryAnimMask		= babyright,
+        secondaryAnimMask	= babyleft,
+        WorldStaticModel	= Baby
+	}
+}

@@ -1,0 +1,183 @@
+module BFRecipes
+{
+    import
+    {
+        Base
+    }
+
+    /************************ Pills ************************/
+    craftRecipe TakeContraceptive {
+        timedAction = BF.TakePills,
+        category = Health,
+        time = 20,
+        Tags = InHandCraft,
+        OnTest = BFRecipes.OnTest.TakeContraceptive,
+        OnCreate = BFRecipes.OnCreate.TakeContraceptive,
+        inputs
+        {
+            item 1.0 [BF.Contraceptive],
+        }
+        outputs
+        {
+        }
+    }
+
+    craftRecipe TakeLactaid {
+        timedAction = BF.TakePills,
+        category = Health,
+        time = 20,
+        Tags = InHandCraft,
+        OnTest = BFRecipes.OnTest.TakeLactaid,
+        OnCreate = BFRecipes.OnCreate.TakeLactaid,
+        inputs
+        {
+            item 1.0 [BF.Lactaid],
+        }
+        outputs
+        {
+        }
+    }
+
+    /************************ Vaginal Cleaning ************************/
+    craftRecipe ClearSperm
+    {
+        timedAction = BF.CleanSelf,
+        category = Health,
+        time = 200,
+        Tags = InHandCraft,
+        OnTest = BFRecipes.OnTest.ClearSperm,
+        OnCreate = BFRecipes.OnCreate.ClearSperm,
+        inputs
+        {
+            item 1 [BF.VaginalDouche] flags[Prop1;IsFull] mode:keep,
+        }
+        outputs
+        {
+        }
+    }
+
+        craftRecipe PushCum
+    {
+        timedAction = BF.CleanSelf,
+        category = Health,
+        time = 100,
+        Tags = InHandCraft;CanBeDoneInDark,
+        OnTest = BFRecipes.OnTest.PushCum,
+        OnCreate = BFRecipes.OnCreate.PushCum,
+        inputs
+        {
+            item 1 [Base.PopBottle;Base.PopBottleRare;Base.WaterBottle;Base.MilkBottle;Base.Sportsbottle;Base.FeedingBottle;Base.BeerBottle;Base.BottleCrafted;Base.Bucket;Base.BucketEmpty;Base.BucketWood;Base.BucketForged;Base.BucketCarved;Base.Pot;Base.PotForged;Base.Saucepan;Base.SaucepanCopper;Base.Bowl;Base.ClayBowl] mode:keep flags[Prop2;NotFull;ItemCount],
+        }
+        outputs
+        {
+        }
+    }
+    
+    /************************ Condom ************************/
+    craftRecipe OpenCondomBox
+    {
+        timedAction = UnPackBox,
+        category = Health,
+        time = 20,
+        Tags = InHandCraft;CanBeDoneInDark,
+        recipeGroup = OpenBox,
+        inputs
+        {
+            item 1 [BF.CondomBox],
+        }
+        outputs
+        {
+            item 10 BF.Condom,
+        }
+    }
+
+    craftRecipe PlaceCondomsInBox
+    {
+        timedAction = PackingBox,
+        category = Health,
+        time = 20,
+        Tags = InHandCraft;CanBeDoneInDark,
+        inputs
+        {
+            item 10 [BF.Condom],
+        }
+        outputs
+        {
+            item 1 BF.CondomBox,
+        }
+    }
+    
+    /************************ Milk ************************/
+    craftRecipe HandExpression
+    {
+        timedAction = BF.PumpMilk,
+        category = Cooking,
+        time = 600,
+        xpAward = Cooking:3,
+        Tags = InHandCraft;Cooking,
+        OnTest = BFRecipes.OnTest.HandExpress,
+        OnCreate = BFRecipes.OnCreate.HandExpress,
+        inputs
+        {
+            item 1 [Base.PopBottle;Base.PopBottleRare;Base.WaterBottle;Base.MilkBottle;Base.Sportsbottle;Base.FeedingBottle;Base.BeerBottle;Base.BottleCrafted;Base.Bucket;Base.BucketEmpty;Base.BucketWood;Base.BucketForged;Base.BucketCarved;Base.Pot;Base.PotForged;Base.Saucepan;Base.SaucepanCopper;Base.Bowl;Base.ClayBowl] mode:keep flags[Prop2;NotFull;ItemCount],
+        }
+        outputs
+        {
+        }
+    }
+
+    craftRecipe PumpMilk
+    {
+        timedAction = BF.PumpMilk,
+        category = Cooking,
+        time = 400,
+        xpAward = Cooking:3,
+        Tags = InHandCraft;Cooking,
+        OnTest = BFRecipes.OnTest.BreastPump,
+        OnCreate = BFRecipes.OnCreate.BreastPump,
+        inputs
+        {
+            item 1 [BF.BreastPump] flags[Prop1] mode:keep,
+            item 1 [Base.PopBottle;Base.PopBottleRare;Base.WaterBottle;Base.MilkBottle;Base.Sportsbottle;Base.FeedingBottle;Base.BeerBottle;Base.BottleCrafted;Base.Bucket;Base.BucketEmpty;Base.BucketWood;Base.BucketForged;Base.BucketCarved;Base.Pot;Base.PotForged;Base.Saucepan;Base.SaucepanCopper;Base.Bowl;Base.ClayBowl] mode:keep flags[Prop2;NotFull;ItemCount],
+        }
+        outputs
+        {
+        }
+    }
+
+    /************************ Baby ************************/
+    craftRecipe BreastFeedBaby
+    {
+        timedAction = BF.FeedBaby,
+        time = 500,
+        category = Cooking,
+        Tags = InHandCraft;Cooking,
+        OnTest = BFRecipes.OnTest.BreastFeedBaby,
+        OnCreate = BFRecipes.OnCreate.BreastFeedBaby,
+        inputs
+        {
+            item 1 [BF.Baby] mode:keep,
+        }
+        outputs
+        {
+        }
+    }
+
+    craftRecipe BottleFeedBaby
+    {
+        timedAction = BF.FeedBaby,
+        time = 500,
+        category = Cooking,
+        Tags = InHandCraft;Cooking,
+        OnTest = BFRecipes.OnTest.BottleFeedBaby,
+        OnCreate = BFRecipes.OnCreate.BottleFeedBaby,
+        inputs
+        {
+            item 1 [Base.PopBottle;Base.PopBottleRare;Base.WaterBottle;Base.MilkBottle;Base.Sportsbottle;Base.FeedingBottle;Base.BeerBottle;Base.BottleCrafted] mode:keep flags[Prop1],
+            -fluid 0.2 [BF.HumanMilk]
+        }
+        outputs
+        {
+        }
+    }
+}
