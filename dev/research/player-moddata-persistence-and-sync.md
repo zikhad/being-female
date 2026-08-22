@@ -2,7 +2,7 @@
 
 Status: partially verified
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 Project Zomboid build: 42.12 / 42.x
 
@@ -18,9 +18,9 @@ Build 42 player ModData is part of the player save chain. Installed Build 42.12 
 
 Reference Mod implements that boundary under one player key, normalizes and rewrites the root on access, mutates it through the authenticated server player, and returns client-visible results through targeted server commands. It never calls `transmitModData`. The project owner confirms this ModData behavior works in single-player and multiplayer, although that whole-mod runtime report does not isolate restart timing or automatic replication.
 
-ZLBF should therefore persist authoritative domain state only on the server and maintain clients through explicit validated snapshots. It must not rely on client ModData writes or automatic replication. Exact hosted/dedicated restart and disconnect durability remains to be verified in-game.
+ZLBF now persists multiplayer domain state in one strict server-owned schema-v2 root and maintains clients through explicit validated snapshots. A complete schema-v1 root migrates to v2 while preserving domain and birth lifecycle state and gaining a server-generated character identity; malformed or partial roots reset rather than being salvaged. Single-player intentionally remains on its proven local ModData backend. User testing on 2026-08-22 confirmed the migrated hosted/co-op path and the separate SP path. Dedicated-server and abnormal-shutdown durability remain unverified.
 
-An earlier ZLBF experiment read legacy keys from the server player while gameplay wrote them locally on the client without a transmission path; multiplayer snapshots could therefore contain defaults rather than existing client state. Those experimental networking files are not present on the current branch.
+Historically, an earlier ZLBF experiment read local keys from the server player while gameplay wrote them only in the client context, so multiplayer snapshots could contain defaults. That design is superseded: multiplayer gameplay consumes the authoritative root, while SP local state is a deliberate separate runtime backend and is never imported by the multiplayer server.
 
 ## Evidence
 
@@ -45,17 +45,18 @@ An earlier ZLBF experiment read legacy keys from the server player while gamepla
 
 -   Vanilla Build 42 client UI writes a player preference and then explicitly calls `player:transmitModData()`, demonstrating that the method is an explicit network action rather than a prerequisite for save serialization.
 -   Object bytecode treats `transmitModData` as network-oriented: the client sends an object-ModData packet and the server distributes object ModData. ZLBF does not need that broader path because its server is authoritative and clients receive targeted snapshots.
--   Current ZLBF `CommandHandler` correctly uses the event-supplied player and a targeted response, but still returns constant state metadata rather than loading persisted state.
--   Current ZLBF `SyncPublisher` validates and correlates the response before updating its in-memory `SnapshotStore`.
--   Existing client domains still mutate local player ModData without an authoritative server path and must not be treated as multiplayer truth.
+-   Current ZLBF `CommandHandler` uses the event-supplied player, validates commands, loads and mutates the server-owned root, and returns targeted authoritative snapshots.
+-   Current ZLBF publishers validate and correlate responses before updating their in-memory `SnapshotStore`; hosted/co-op reconnect and persistence behavior has been exercised successfully.
+-   Multiplayer persistence uses strict schema v2. Its server-private `characterId` is assigned at creation or during the explicit complete-v1 migration; new birth IDs are character-scoped and BabyData v2 retains that identity.
+-   Single-player client domains intentionally use direct local state and recipes. This runtime split is working behavior, not a legacy import path or multiplayer truth source.
 
 ## Runtime And Version Applicability
 
-The serialization evidence applies directly to installed Build 42.12 and structurally to Build 42.x. The Reference Mod evidence applies to its deployed Build 42 single-player and multiplayer behavior. Hosted and dedicated save scheduling, immediate disconnect timing, and abnormal shutdown durability remain runtime-sensitive. Single-player can still mask process-boundary mistakes.
+The serialization evidence applies directly to installed Build 42.12 and structurally to Build 42.x. ZLBF's SP and hosted/co-op paths were exercised on 2026-08-22, including migration of a previous character. Dedicated save scheduling, immediate disconnect timing, and abnormal shutdown durability remain runtime-sensitive.
 
 ## Confidence
 
-Confidence: high that nested supported Lua tables in player ModData are serialized by the Build 42 player save path; high that Reference Mod uses server-owned nested state and explicit responses without `transmitModData`; medium-high that this boundary transfers safely to ZLBF; medium for exact disconnect and save timing.
+Confidence: high that supported nested Lua tables serialize and that ZLBF's strict schema-v2 root, complete v1 migration, SP-local split, and hosted/co-op snapshot transport work in the tested flows; medium for exact disconnect/save timing; low for abnormal shutdown and dedicated-server durability.
 
 ## Implications For ZLBF
 
@@ -73,16 +74,14 @@ Confidence: high that nested supported Lua tables in player ModData are serializ
 -   Increment `stateVersion` only after a successful authoritative domain transition; read-only snapshot requests must not increment it.
 -   Keep connection epochs, pending requests, replay windows, and client revisions out of persistent domain state.
 -   Use targeted command responses as the explicit client mirror transport; do not call `transmitModData` for this design.
--   Do not claim domain authority until gameplay reads and writes consume the server-owned root.
+-   Keep multiplayer gameplay reads and writes on the server-owned root; do not reintroduce local-key imports into multiplayer authority.
 -   Track ownership for traits, items, fluids, and lifecycle effects so rollback removes only ZLBF-owned changes.
 
 ## Remaining Questions
 
 -   Which exact server save and disconnect points persist a just-written player table?
 -   Can abnormal shutdown or immediate disconnect lose the latest mutation?
--   What player ModData does `transmitModData` expose, to which peers, and in which direction?
--   No import is required for the unpublished authoritative format. The proven single-player local
-    ModData path remains a separate runtime backend and is not imported by the multiplayer server.
+-   What player ModData does `transmitModData` expose, to which peers, and in which direction? This is not required by the current targeted-snapshot design.
 
 ## In-Game Validation
 
@@ -104,3 +103,4 @@ Persist a diagnostic ZLBF root containing schema and state versions, a nested ob
 -   2026-08-05: Confirmed recursive nested-table serialization in the Build 42.12 player save path; recorded Reference Mod runtime evidence and narrowed the remaining uncertainty to save timing, disconnect durability, and legacy migration.
 -   2026-08-21: Defined schema-v2 character identity: server-only `getRandomUUID()` allocation,
     strict current validation, explicit state-preserving v1 migration, and no wire-protocol change.
+-   2026-08-22: Recorded successful existing-character v1-to-v2 migration and SP/hosted-co-op validation. Clarified that SP local state is an intentional runtime backend and that dedicated/abnormal-shutdown durability remains open.
