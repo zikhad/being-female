@@ -163,7 +163,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (!this.pregnancy) return;
 		const { progress } = this.pregnancy;
 		if (progress < 0.05 || progress > 0.33) return;
-		this.player!.getBodyDamage().setFoodSicknessLevel(50 + ZombRand(0, 50));
+		// Build 42 uses CharacterStat.FOOD_SICKNESS (0–100); old BodyDamage API removed
+		this.player!.getStats().add(CharacterStat.FOOD_SICKNESS, 50 + ZombRand(0, 50));
 	}
 
 	/**

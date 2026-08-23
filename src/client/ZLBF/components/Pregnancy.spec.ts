@@ -396,30 +396,34 @@ describe("Pregnancy", () => {
 				);
 			});
 			describe("Every Day update", () => {
-				const setFoodSicknessLevel = jest.fn();
+				const addStat = jest.fn();
 				let pregnancy: Pregnancy;
 				const dayModData = {};
 				beforeEach(() => {
+					addStat.mockReset();
 					pregnancy = new Pregnancy();
 					(pregnancy as any).onCreatePlayer({
 						...player,
 						getModData: jest.fn(() => dayModData),
-						getBodyDamage: () => ({ setFoodSicknessLevel })
+						getStats: () => ({ add: addStat })
 					});
 				});
 
 				it.each([
 					{
 						progress: 0.01,
-						expected: () => expect(setFoodSicknessLevel).not.toHaveBeenCalled()
+						expected: () => expect(addStat).not.toHaveBeenCalled()
 					},
 					{
 						progress: 0.34,
-						expected: () => expect(setFoodSicknessLevel).not.toHaveBeenCalled()
+						expected: () => expect(addStat).not.toHaveBeenCalled()
 					},
 					{
 						progress: 0.06,
-						expected: () => expect(setFoodSicknessLevel).toHaveBeenCalled()
+						expected: () => expect(addStat).toHaveBeenCalledWith(
+							CharacterStat.FOOD_SICKNESS,
+							expect.any(Number)
+						)
 					}
 				])(
 					"should call appropriate effects when pregnancy progress is $progress",
