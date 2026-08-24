@@ -11,5 +11,5 @@
 # Upcoming fixes
 
 -   [x] Make `BFRecipes.OnTest.TakeContraceptive` return false if player Womb is on recovery phase ([`dccbdeb`](https://github.com/zikhad/being-female/commit/dccbdebd6d5b5669a87337b5bb2d82906e8b405d))
--   [ ] Fix the ItemNames.json missing (This makes item translation not work) - Issue #36
+-   [x] Add the Build 42 `ItemName.json` files required for item translations - Issue #36 ([`3c53b55`](https://github.com/zikhad/being-female/commit/3c53b55b474a3056be219bb762c1ed8595ff25b6))
 -   [ ] Fix Food sickness is crashing game - Issue #43
