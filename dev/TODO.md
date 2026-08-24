@@ -6,7 +6,7 @@
     -   make lactation be affected by hunger (more hunger less production)
     -   make lactation consume extra calories (pregnancy already do that, maybe it is possible to generify)
 -   [x] [Rename mod to Being Female](BEING_FEMALE_RENAME_PLAN.md) ([`73efa44`](https://github.com/zikhad/being-female/commit/73efa44d1cc88a92c14203a5965eb8fcfc78c76d))
--   [ ] Add ES translation (Provided by community)
+-   [x] Add ES translation (provided by community) ([`fe486bd`](https://github.com/zikhad/being-female/commit/fe486bda0195c0d3f1f43f577571293c6fd4de3e))
 
 # Upcoming fixes
 
