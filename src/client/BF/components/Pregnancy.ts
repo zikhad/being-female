@@ -432,14 +432,15 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	/**
 	 * Called every in-game day to apply less-frequent pregnancy effects.
-	 * For example, apply food sickness early in pregnancy.
+	 * Adds early-pregnancy food sickness to any existing sickness and relies on
+	 * the CharacterStat bounds to clamp the combined value at 100.
 	 */
-	onEveryDay() {
+	onEveryDay(): void {
 		if (!this.isActiveBinding()) return;
 		if (!this.pregnancy) return;
 		const { progress } = this.pregnancy;
 		if (progress < 0.05 || progress > 0.33) return;
-		this.player!.getBodyDamage().setFoodSicknessLevel(50 + ZombRand(0, 50));
+		this.player!.getStats().add(CharacterStat.FOOD_SICKNESS, 50 + ZombRand(0, 50));
 	}
 
 	/**

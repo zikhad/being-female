@@ -416,39 +416,50 @@ describe("Pregnancy", () => {
 				);
 			});
 			describe("Every Day update", () => {
-				const setFoodSicknessLevel = jest.fn();
+				const addStat = jest.fn();
 				let pregnancy: Pregnancy;
-				const dayModData = {};
 				beforeEach(() => {
 					pregnancy = new Pregnancy();
 					(pregnancy as any).onCreatePlayer({
 						...player,
-						getModData: jest.fn(() => dayModData),
-						getBodyDamage: () => ({ setFoodSicknessLevel })
+						getStats: () => ({ add: addStat })
 					});
 				});
 
 				it.each([
 					{
 						progress: 0.01,
-						expected: () => expect(setFoodSicknessLevel).not.toHaveBeenCalled()
+						expectedCalls: 0,
+						expectedDelta: undefined
 					},
 					{
 						progress: 0.34,
-						expected: () => expect(setFoodSicknessLevel).not.toHaveBeenCalled()
+						expectedCalls: 0,
+						expectedDelta: undefined
 					},
 					{
 						progress: 0.06,
-						expected: () => expect(setFoodSicknessLevel).toHaveBeenCalled()
+						expectedCalls: 1,
+						expectedDelta: 99
 					}
 				])(
-					"should call appropriate effects when pregnancy progress is $progress",
-					({ progress, expected }) => {
+					"adds food sickness only during early pregnancy at progress $progress",
+					({ progress, expectedCalls, expectedDelta }) => {
+						const random = jest.spyOn(SpyPipewrench, "ZombRand").mockReturnValue(49);
 						jest.spyOn(Pregnancy.prototype, "pregnancy", "get").mockReturnValue(
 							mock<PregnancyData>({ progress })
 						);
 						pregnancy.onEveryDay();
-						expected();
+						expect(addStat).toHaveBeenCalledTimes(expectedCalls);
+						if (expectedCalls > 0) {
+							expect(random).toHaveBeenCalledWith(0, 50);
+							expect(addStat).toHaveBeenCalledWith(
+								CharacterStat.FOOD_SICKNESS,
+								expectedDelta
+							);
+						} else {
+							expect(random).not.toHaveBeenCalled();
+						}
 					}
 				);
 			});

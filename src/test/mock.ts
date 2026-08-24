@@ -41,7 +41,8 @@ globalThis.print = jest.fn();
 	HUNGER: "HUNGER",
 	FATIGUE: "FATIGUE",
 	ENDURANCE: "ENDURANCE",
-	THIRST: "THIRST"
+	THIRST: "THIRST",
+	FOOD_SICKNESS: "FOOD_SICKNESS"
 };
 
 (globalThis as any).ResourceLocation = {
