@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.1](https://github.com/zikhad/zwbf-pipewrench/compare/v1.12.0...v1.12.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ui:** prevent UI duplication on player creation ([2f7153b](https://github.com/zikhad/zwbf-pipewrench/commit/2f7153ba1a0d2363cb0542451b5a6474268c1cee))
+
 ## [1.12.0](https://github.com/zikhad/zwbf-pipewrench/compare/v1.11.0...v1.12.0) (2026-06-15)
 
 
