@@ -126,8 +126,8 @@ export abstract class LocalPlayer<T> extends SharedPlayer {
 	/**
 	 * Applies a stat modification to the player.
 	 *
-	 * The stat will be increased by `value`, optionally capped by `maxValue`.
-	 * The resulting value will never be lower than the current stat value.
+	 * Without `maxValue`, the native CharacterStat bounds clamp the added value.
+	 * With `maxValue`, the wrapper applies the narrower caller-provided ceiling.
 	 *
 	 * @param options.stat - The stat to modify.
 	 * @param options.value - The amount to add to the current stat.
@@ -146,9 +146,12 @@ export abstract class LocalPlayer<T> extends SharedPlayer {
 		if (!stats) return;
 
 		const statKey = CharacterStat[stat];
-		const current = stats.get(statKey);
+		if (maxValue === undefined) {
+			stats.add(statKey, value);
+			return;
+		}
 
-		stats.set(statKey, increaseClamped(current, value, maxValue));
+		stats.set(statKey, increaseClamped(stats.get(statKey), value, maxValue));
 	}
 
 	/**

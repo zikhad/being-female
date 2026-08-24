@@ -40,6 +40,7 @@ globalThis.print = jest.fn();
 (globalThis as any).CharacterStat = {
 	HUNGER: "HUNGER",
 	FATIGUE: "FATIGUE",
+	FITNESS: "FITNESS",
 	ENDURANCE: "ENDURANCE",
 	THIRST: "THIRST",
 	FOOD_SICKNESS: "FOOD_SICKNESS"

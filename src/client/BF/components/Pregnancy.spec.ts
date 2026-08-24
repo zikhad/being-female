@@ -340,28 +340,22 @@ describe("Pregnancy", () => {
 			});
 
 			describe("Every Hour update", () => {
-				const setStat = jest.fn();
-				const getStat = jest.fn();
+				const applyStatEffect = jest.fn();
 				const setCalories = jest.fn();
 				const hourModData = {};
 				let pregnancy: Pregnancy;
 				beforeEach(() => {
-					setStat.mockReset();
-					getStat.mockReset();
-					getStat.mockReturnValue(0);
+					applyStatEffect.mockReset();
 					pregnancy = new Pregnancy();
 					(pregnancy as any).onCreatePlayer({
 						...player,
 						getModData: jest.fn(() => hourModData),
-						getStats: () => ({
-							set: setStat,
-							get: getStat
-						}),
 						getNutrition: () => ({
 							setCalories,
 							getCalories: () => 0
 						})
 					});
+					(pregnancy as any).applyStatEffect = applyStatEffect;
 				});
 				it("Should call moodle", () => {
 					const moodle = jest.fn();
@@ -370,10 +364,6 @@ describe("Pregnancy", () => {
 					(testPregnancy as any).onCreatePlayer({
 						...player,
 						getModData: jest.fn(() => moodleModData),
-						getStats: () => ({
-							set: jest.fn(),
-							get: jest.fn().mockReturnValue(0)
-						}),
 						getNutrition: () => ({
 							setCalories: jest.fn(),
 							getCalories: () => 0
@@ -391,14 +381,18 @@ describe("Pregnancy", () => {
 					{
 						progress: 0,
 						expected: () => {
-							expect(setStat).not.toHaveBeenCalled();
+							expect(applyStatEffect).not.toHaveBeenCalled();
 							expect(setCalories).not.toHaveBeenCalled();
 						}
 					},
 					{
 						progress: 0.5,
 						expected: () => {
-							expect(setStat).toHaveBeenCalled();
+							expect(applyStatEffect).toHaveBeenCalledWith({
+								stat: "THIRST",
+								value: 0.25 / 1440,
+								maxValue: 1
+							});
 							expect(setCalories).toHaveBeenCalled();
 						}
 					}
@@ -416,14 +410,12 @@ describe("Pregnancy", () => {
 				);
 			});
 			describe("Every Day update", () => {
-				const addStat = jest.fn();
+				const applyStatEffect = jest.fn();
 				let pregnancy: Pregnancy;
 				beforeEach(() => {
 					pregnancy = new Pregnancy();
-					(pregnancy as any).onCreatePlayer({
-						...player,
-						getStats: () => ({ add: addStat })
-					});
+					(pregnancy as any).onCreatePlayer(player);
+					(pregnancy as any).applyStatEffect = applyStatEffect;
 				});
 
 				it.each([
@@ -450,13 +442,13 @@ describe("Pregnancy", () => {
 							mock<PregnancyData>({ progress })
 						);
 						pregnancy.onEveryDay();
-						expect(addStat).toHaveBeenCalledTimes(expectedCalls);
+						expect(applyStatEffect).toHaveBeenCalledTimes(expectedCalls);
 						if (expectedCalls > 0) {
 							expect(random).toHaveBeenCalledWith(0, 50);
-							expect(addStat).toHaveBeenCalledWith(
-								CharacterStat.FOOD_SICKNESS,
-								expectedDelta
-							);
+							expect(applyStatEffect).toHaveBeenCalledWith({
+								stat: "FOOD_SICKNESS",
+								value: expectedDelta
+							});
 						} else {
 							expect(random).not.toHaveBeenCalled();
 						}

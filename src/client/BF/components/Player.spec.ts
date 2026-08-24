@@ -430,6 +430,7 @@ describe("Player class", () => {
 
 	describe("applyStatEffect", () => {
 		const mockStats = mock<any>({
+			add: jest.fn(),
 			get: jest.fn(),
 			set: jest.fn()
 		});
@@ -460,7 +461,7 @@ describe("Player class", () => {
 			instance.triggerOnCreatePlayer(mockPlayer);
 
 			instance.testApplyStatEffect({
-				stat: "Fitness" as any,
+				stat: "FITNESS",
 				value: 20,
 				maxValue: 100
 			});
@@ -477,7 +478,7 @@ describe("Player class", () => {
 
 			expect(() =>
 				instance.testApplyStatEffect({
-					stat: "Fitness" as any,
+					stat: "FITNESS",
 					value: 20
 				})
 			).not.toThrow();
@@ -496,7 +497,7 @@ describe("Player class", () => {
 
 			expect(() =>
 				instance.testApplyStatEffect({
-					stat: "Fitness" as any,
+					stat: "FITNESS",
 					value: 20
 				})
 			).not.toThrow();
@@ -505,8 +506,7 @@ describe("Player class", () => {
 
 		it("should apply stat increase without maxValue", () => {
 			const mockStats = mock<any>({
-				get: jest.fn().mockReturnValue(30),
-				set: jest.fn()
+				add: jest.fn()
 			});
 			(mockPlayer.getStats as jest.Mock).mockReturnValue(mockStats);
 
@@ -514,11 +514,13 @@ describe("Player class", () => {
 			instance.triggerOnCreatePlayer(mockPlayer);
 
 			instance.testApplyStatEffect({
-				stat: "Fitness" as any,
+				stat: "FITNESS",
 				value: 15
 			});
 
-			expect(mockStats.set).toHaveBeenCalled();
+			expect(mockStats.add).toHaveBeenCalledWith(CharacterStat.FITNESS, 15);
+			expect(mockStats.get).not.toHaveBeenCalled();
+			expect(mockStats.set).not.toHaveBeenCalled();
 		});
 	});
 });
