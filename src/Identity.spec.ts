@@ -66,12 +66,27 @@ describe("Being Female identity boundary", () => {
 			"VaginalDouche"
 		].map(item => `BF.${item}`);
 
-		for (const locale of ["EN", "PTBR", "CN"]) {
+		for (const locale of ["EN", "PTBR", "CN", "ES"]) {
 			const translations = JSON.parse(read(`src/translations-json/${locale}/ItemName.json`));
 			expect(Object.keys(translations).sort()).toEqual(itemNames);
 			for (const translation of Object.values(translations)) {
 				expect(translation).toEqual(expect.any(String));
 				expect(translation).not.toBe("");
+			}
+		}
+	});
+
+	it("keeps every maintained locale aligned with the English translation catalog", () => {
+		const translationRoot = "src/translations-json";
+		const files = fs
+			.readdirSync(path.join(process.cwd(), translationRoot, "EN"))
+			.filter(file => file.endsWith(".json"));
+
+		for (const locale of ["PTBR", "CN", "ES"]) {
+			for (const file of files) {
+				const english = JSON.parse(read(`${translationRoot}/EN/${file}`));
+				const translated = JSON.parse(read(`${translationRoot}/${locale}/${file}`));
+				expect(Object.keys(translated).sort()).toEqual(Object.keys(english).sort());
 			}
 		}
 	});
