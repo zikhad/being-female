@@ -1,8 +1,10 @@
 # Lactation Rebalance Plan
 
--   **Status:** planned
+-   **Status:** implemented; automated validation complete, in-game validation pending
 -   **Date:** 2026-08-24
 -   **Branch:** `feat/lactation-rebalance`
+-   **Plan commit:** [`ce578e1`](https://github.com/zikhad/being-female/commit/ce578e1)
+-   **Implementation commit:** [`66ff5ec`](https://github.com/zikhad/being-female/commit/66ff5ec)
 -   **Reference:** `dev/example.lua` (community-provided balance experiment; not a production source file)
 
 ## Goal
@@ -161,3 +163,17 @@ Dedicated-server validation remains a separate follow-up.
 -   Final tuning values and observed daily output are recorded in this document.
 -   `dev/TODO.md` is marked complete with the implementation commit link.
 -   This document is retained and updated to `implemented`, including validation results, branch, and commit SHA.
+
+## Implementation And Validation Record
+
+Implemented on `feat/lactation-rebalance` in [`66ff5ec`](https://github.com/zikhad/being-female/commit/66ff5ec).
+
+-   Focused Lactation, recipe, Player, Pregnancy, sandbox, and publisher suites passed.
+-   Full Jest suite passed: 49 suites and 665 tests.
+-   Targeted Prettier and ESLint validation passed for all changed TypeScript files.
+-   `npm run build` passed and generated the expected BF client, shared, and server Lua modules under `dist/Being Female/42/media/lua`.
+-   `git diff --check` passed.
+-   Maintainability review findings for inactive-state convergence, shared milk-removal rules, and sandbox-option ownership were applied.
+-   Runtime/TSTL review found no concrete generated-Lua, Build 42 API, multiplayer-authority, or persistence defect. Its requested expiration, actual-yield cost, full-capacity, and recipe/minute rebase regressions were added.
+-   The build continues to print the repository's existing client/server reference warnings before packaging succeeds.
+-   SP, hosted/co-op, and dedicated in-game validation from this plan remain pending. Keep the linked TODO unchecked until the required SP and hosted/co-op checks pass; dedicated-server validation remains a separate follow-up.
