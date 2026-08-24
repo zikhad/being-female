@@ -420,9 +420,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		if (progress < 0.25) return;
 
 		// Consume extra water
-		const stats = this.player!.getStats();
 		const water = (0.5 * progress) / 1440;
-		stats.set(CharacterStat.THIRST, Math.min(1, stats.get(CharacterStat.THIRST) + water));
+		this.applyStatEffect({ stat: "THIRST", value: water, maxValue: 1 });
 
 		// Consume extra calories
 		const nutrition = this.player!.getNutrition();
@@ -432,14 +431,15 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 
 	/**
 	 * Called every in-game day to apply less-frequent pregnancy effects.
-	 * For example, apply food sickness early in pregnancy.
+	 * Adds early-pregnancy food sickness to any existing sickness and relies on
+	 * the CharacterStat bounds to clamp the combined value at 100.
 	 */
-	onEveryDay() {
+	onEveryDay(): void {
 		if (!this.isActiveBinding()) return;
 		if (!this.pregnancy) return;
 		const { progress } = this.pregnancy;
 		if (progress < 0.05 || progress > 0.33) return;
-		this.player!.getBodyDamage().setFoodSicknessLevel(50 + ZombRand(0, 50));
+		this.applyStatEffect({ stat: "FOOD_SICKNESS", value: 50 + ZombRand(0, 50) });
 	}
 
 	/**
