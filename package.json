@@ -1,5 +1,5 @@
 {
-	"name": "zlbf-pipewrench",
+	"name": "being-female",
 	"version": "1.12.1",
 	"scripts": {
 		"prebuild": "npm run clean",
@@ -33,12 +33,12 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/zikhad/zwbf-pipewrench.git"
+		"url": "git+https://github.com/zikhad/being-female.git"
 	},
 	"bugs": {
-		"url": "https://github.com/zikhad/zwbf-pipewrench/issues"
+		"url": "https://github.com/zikhad/being-female/issues"
 	},
-	"homepage": "https://github.com/zikhad/zwbf-pipewrench.git#readme",
+	"homepage": "https://github.com/zikhad/being-female.git#readme",
 	"keywords": [
 		"zomboid",
 		"mod",
@@ -46,7 +46,7 @@
 	],
 	"author": "Zikhad <zikhad@protonmail.com>",
 	"license": "ISC",
-	"description": "ZomboLust Being Female by Zikhad",
+	"description": "Being Female by Zikhad",
 	"devDependencies": {
 		"@asledgehammer/pipewrench": "^41.78.18",
 		"@asledgehammer/pipewrench-events": "^41.73.0",

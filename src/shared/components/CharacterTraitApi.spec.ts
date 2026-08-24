@@ -1,4 +1,5 @@
 import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { mockedPlayer } from "@test/mock";
 
 describe("CharacterTraitApi", () => {
@@ -258,6 +259,30 @@ describe("CharacterTraitApi", () => {
 			expect(mockCharacterTraits.add).not.toHaveBeenCalled();
 		});
 
+		it("should not add a resolved trait that is already present", () => {
+			const mockTrait = { getName: () => "strength", toString: () => "strength" };
+
+			(globalThis as any).CharacterTrait = {
+				get: jest.fn().mockReturnValue(mockTrait)
+			};
+
+			const mockCharacterTraits = {
+				get: jest.fn().mockReturnValue(true),
+				getKnownTraits: jest.fn(),
+				add: jest.fn(),
+				remove: jest.fn()
+			};
+
+			const player = mockedPlayer({
+				getCharacterTraits: jest.fn().mockReturnValue(mockCharacterTraits)
+			});
+
+			CharacterTraitApi.addTrait(player, "strength");
+
+			expect(mockCharacterTraits.get).toHaveBeenCalledWith(mockTrait);
+			expect(mockCharacterTraits.add).not.toHaveBeenCalled();
+		});
+
 		it("should normalize trait ID before adding", () => {
 			const mockTrait = { getName: () => "strength", toString: () => "strength" };
 
@@ -507,9 +532,7 @@ describe("CharacterTraitApi", () => {
 
 			const mockKnownTraits = {
 				size: jest.fn().mockReturnValue(2),
-				get: jest.fn()
-					.mockReturnValueOnce(mockTrait1)
-					.mockReturnValueOnce(mockTrait2)
+				get: jest.fn().mockReturnValueOnce(mockTrait1).mockReturnValueOnce(mockTrait2)
 			};
 
 			const mockCharacterTraits = {

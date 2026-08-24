@@ -1,6 +1,17 @@
-import { ArrayList, InventoryItem, IsoGameCharacter } from "@asledgehammer/pipewrench";
+import {
+	ArrayList,
+	InventoryItem,
+	IsoGameCharacter,
+	ItemContainer
+} from "@asledgehammer/pipewrench";
+import type { Fluid } from "@shared/components/FluidContainerApi";
 
-export type Fluid = "HumanMilk" | "Semen" | string;
+declare global {
+	/** Build 42 server global missing from the current PipeWrench declarations. */
+	function sendAddItemToContainer(container: ItemContainer, item: InventoryItem): void;
+}
+
+export type { Fluid };
 
 export type FluidContainer = {
 	removeFluid(): void;

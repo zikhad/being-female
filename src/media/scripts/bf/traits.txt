@@ -1,0 +1,75 @@
+module BF
+{
+    character_trait_definition bf:infertile
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:infertile,
+        Cost = 3,
+        UIName = UI_Trait_Infertile,
+        UIDescription = UI_Trait_Infertile_Description,
+        MutuallyExclusiveTraits = bf:fertile;bf:hyperfertile;bf:pregnancy,
+    }
+
+    character_trait_definition bf:fertile
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:fertile,
+        Cost = -2,
+        UIName = UI_Trait_Fertile,
+        UIDescription = UI_Trait_Fertile_Description,
+        MutuallyExclusiveTraits = bf:hyperfertile,
+    }
+
+    character_trait_definition bf:hyperfertile
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:hyperfertile,
+        Cost = -6,
+        UIName = UI_Trait_Hyperfertile,
+        UIDescription = UI_Trait_Hyperfertile_Description,
+    }
+
+    character_trait_definition bf:pregnancy
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:pregnancy,
+        Cost = -8,
+        UIName = UI_Trait_Pregnancy,
+        UIDescription = UI_Trait_Pregnancy_Description,
+    }
+
+    character_trait_definition bf:dairycow
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:dairycow,
+        Cost = 4,
+        UIName = UI_Trait_DairyCow,
+        UIDescription = UI_Trait_DairyCow_Description,
+    }
+
+    character_trait_definition bf:strongmenstrualcramps
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:strongmenstrualcramps,
+        Cost = -1,
+        UIName = UI_Trait_StrongMenstrualCramps,
+        UIDescription = UI_Trait_StrongMenstrualCramps_Description,
+        MutuallyExclusiveTraits = bf:nomenstrualcramps,
+    }
+
+    character_trait_definition bf:nomenstrualcramps
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = bf:nomenstrualcramps,
+        Cost = 1,
+        UIName = UI_Trait_NoMenstrualCramps,
+        UIDescription = UI_Trait_NoMenstrualCramps_Description,
+    }
+}

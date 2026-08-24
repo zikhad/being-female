@@ -12,7 +12,7 @@ globalThis.print = jest.fn();
 	}
 };
 
-(globalThis as any).NewZLBFUI = () => ({
+(globalThis as any).NewBFUI = () => ({
 	setWidthPixel: jest.fn(),
 	setHeight: jest.fn(),
 	setVisible: jest.fn(),
@@ -31,10 +31,11 @@ globalThis.print = jest.fn();
 	setPositionPercent: jest.fn(),
 	toggle: jest.fn(),
 	close: jest.fn(),
-	open: jest.fn(),
+	open: jest.fn()
 });
 
-(globalThis as any).ZLBFRecipes = {};
+(globalThis as any).BFRecipes = {};
+(globalThis as any).sendAddItemToContainer = jest.fn();
 
 (globalThis as any).CharacterStat = {
 	HUNGER: "HUNGER",

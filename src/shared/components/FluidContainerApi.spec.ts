@@ -1,7 +1,7 @@
 import { mock } from "jest-mock-extended";
 import { InventoryItem } from "@asledgehammer/pipewrench";
 import { FluidContainerApi } from "@shared/components/FluidContainerApi";
-import { Fluid } from "@server/types";
+import { Fluid } from "@shared/components/FluidContainerApi";
 import { Fluids } from "@constants";
 
 const getMockedItem = ({
@@ -13,7 +13,7 @@ const getMockedItem = ({
 	removeFluid = jest.fn(),
 	isFluidContainer = true,
 	primaryFluid = Fluids.HUMAN_MILK,
-	amount = 1,
+	amount = 1
 }: Partial<{
 	capacity: number;
 	freeCapacity: number;
@@ -35,7 +35,7 @@ const getMockedItem = ({
 				isFull: jest.fn(() => isFull),
 				isEmpty: jest.fn(() => isEmpty),
 				getPrimaryFluid: jest.fn(() => primaryFluid),
-				getAmount: jest.fn(() => amount),
+				getAmount: jest.fn(() => amount)
 			}))
 		});
 	}
@@ -226,16 +226,15 @@ describe("FluidContainerApi", () => {
 	});
 
 	describe("clear", () => {
-		it("should call removeFluid with amount and once without args when amount is provided", () => {
+		it("should remove only the requested amount when amount is provided", () => {
 			const removeFluid = jest.fn();
 			const mockItem = getMockedItem({ removeFluid });
 
 			const api = new FluidContainerApi(mockItem);
 			api.clear(0.25);
 
-			expect(removeFluid).toHaveBeenNthCalledWith(1, 0.25);
-			expect(removeFluid).toHaveBeenNthCalledWith(2);
-			expect(removeFluid).toHaveBeenCalledTimes(2);
+			expect(removeFluid).toHaveBeenCalledWith(0.25);
+			expect(removeFluid).toHaveBeenCalledTimes(1);
 		});
 
 		it("should call removeFluid when container exists", () => {

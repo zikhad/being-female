@@ -1,0 +1,38 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../Zomboid"
+		},
+		{
+			"path": "../../../../Library/Application Support/Steam/steamapps/common/ProjectZomboid/Project Zomboid.app/Contents/Java/media"
+		},
+		{
+			"path": "../mods/testmod_registries"
+		},
+		{
+			"path": "../../Personal/Zomboid/naninhas"
+		},
+		{
+			"path": "../../../../Zomboid/mods/ZomboLust"
+		},
+		{
+			"path": "../../../../Zomboid/mods/ZomboDesire"
+		},
+		{
+			"path": "../../../../Library/Application Support/Steam/steamapps/workshop/content/108600/2335368829/mods/Authentic Z - Current"
+		},
+		{
+			"path": "../../../../Zomboid/mods/Being Female"
+		},
+		{
+			"path": "../../../../Library/Application Support/Steam/steamapps/workshop/content/108600/3396446795/mods/MoodleFramework"
+		},
+		{
+			"path": "../../../../Zomboid/mods/ZomboRut"
+		}
+	],
+	"settings": {}
+}
