@@ -6,7 +6,7 @@ export type LactationState = {
 	milkAmount: number;
 	/** Remaining active duration in hours. */
 	expiration: number;
-	/** Current production multiplier. */
+	/** Temporary recent-demand production stimulation, behaviorally clamped to 0..0.5. */
 	multiplier: number;
 };
 

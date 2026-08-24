@@ -341,21 +341,19 @@ describe("Pregnancy", () => {
 
 			describe("Every Hour update", () => {
 				const applyStatEffect = jest.fn();
-				const setCalories = jest.fn();
+				const applyNutritionEffect = jest.fn();
 				const hourModData = {};
 				let pregnancy: Pregnancy;
 				beforeEach(() => {
 					applyStatEffect.mockReset();
+					applyNutritionEffect.mockReset();
 					pregnancy = new Pregnancy();
 					(pregnancy as any).onCreatePlayer({
 						...player,
-						getModData: jest.fn(() => hourModData),
-						getNutrition: () => ({
-							setCalories,
-							getCalories: () => 0
-						})
+						getModData: jest.fn(() => hourModData)
 					});
 					(pregnancy as any).applyStatEffect = applyStatEffect;
+					(pregnancy as any).applyNutritionEffect = applyNutritionEffect;
 				});
 				it("Should call moodle", () => {
 					const moodle = jest.fn();
@@ -382,7 +380,7 @@ describe("Pregnancy", () => {
 						progress: 0,
 						expected: () => {
 							expect(applyStatEffect).not.toHaveBeenCalled();
-							expect(setCalories).not.toHaveBeenCalled();
+							expect(applyNutritionEffect).not.toHaveBeenCalled();
 						}
 					},
 					{
@@ -393,7 +391,9 @@ describe("Pregnancy", () => {
 								value: 0.25 / 1440,
 								maxValue: 1
 							});
-							expect(setCalories).toHaveBeenCalled();
+							expect(applyNutritionEffect).toHaveBeenCalledWith({
+								calories: -300 / 1440
+							});
 						}
 					}
 				])(

@@ -424,9 +424,8 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		this.applyStatEffect({ stat: "THIRST", value: water, maxValue: 1 });
 
 		// Consume extra calories
-		const nutrition = this.player!.getNutrition();
 		const calories = (600 * progress) / 1440;
-		nutrition.setCalories(Math.max(-2200, nutrition.getCalories() - calories));
+		this.applyNutritionEffect({ calories: -calories });
 	}
 
 	/**

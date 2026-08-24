@@ -76,6 +76,17 @@ export class Player<T = unknown> {
 		value: number;
 		maxValue?: number;
 	}) {}
+	getStatValue(_stat: keyof typeof CharacterStat, fallback = 0) {
+		return fallback;
+	}
+	applyNutritionEffect(
+		_effects: Partial<{
+			calories: number;
+			carbohydrates: number;
+			lipids: number;
+			proteins: number;
+		}>
+	) {}
 
 	hasItem(arg: never): boolean {
 		return null as never;
