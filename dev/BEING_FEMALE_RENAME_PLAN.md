@@ -1,9 +1,13 @@
 # Being Female Rename Plan
 
--   Status: implemented; in-game validation pending
+-   Status: implemented; core SP and hosted/co-op validation completed, extended in-game validation pending
 -   Date: 2026-08-22
 -   Branch: `refactor/rename-being-female`
--   Commits: `refactor!: rename ZomboLust Being Female to Being Female`
+-   Commits:
+    -   `73efa44 refactor!: rename ZomboLust Being Female to Being Female`
+    -   `8ddd325 fix(client): repair BF runtime event and pregnancy lookups`
+    -   `1a54b60 fix(client): register notifications and isolate lactation state`
+    -   `a494277 fix(multiplayer): emit queued pregnancy presentation`
 
 ## Summary
 
@@ -104,7 +108,7 @@ Identity baseline:
 
 ## Validation Results
 
--   `npm test -- --runInBand`: passed, 49 suites and 655 tests.
+-   `npm test -- --runInBand`: passed, 49 suites and 656 tests after the runtime fixes.
 -   `npm run build`: passed; generated `dist/Being Female` with `id=BF`, BF Lua paths,
     BF media namespaces, and schema version 1. The existing client/server boundary warnings
     remain informational output from the PipeWrench build.
@@ -122,5 +126,11 @@ Identity baseline:
 -   `npm run check`: the repository-wide Prettier phase still reports pre-existing format
     drift in 32 files outside this rename's formatting scope. Targeted formatting and lint
     checks for modified implementation files passed.
--   In-game single-player, hosted/co-op, external-event-stub, ZomboLust, old-save isolation,
-    and dedicated-server validation were not run in this environment.
+-   In-game single-player startup and gameplay initialization: passed after repairing BF
+    runtime event registration and pregnancy/lactation descriptor lookups.
+-   In-game hosted/co-op pregnancy synchronization and persistence: passed on a fresh server;
+    pregnancy publications were acknowledged by the authoritative server and persisted across
+    reconnect. An earlier failed persistence attempt was traced to two Project Zomboid server
+    processes concurrently locking the same `players.db`, not to BF serialization.
+-   External legacy-event stub, full conception-to-birth gameplay, recipes/fluids, ZomboLust,
+    old-save isolation, and dedicated-server validation remain pending.
