@@ -132,12 +132,13 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		).addListener(data => this.onLactationUpdate(data));
 	}
 
-	private get pregnancy(): PregnancyData | null {
+	/** Returns stored pregnancy data under a descriptor name unique to this component family. */
+	private get pregnancyData(): PregnancyData | null {
 		return PregnancyState.get(this.player);
 	}
 
 	onPregnancyUpdate(data: PregnancyData) {
-		if (!this.pregnancy) return;
+		if (!this.pregnancyData) return;
 
 		const { progress } = data;
 		if (progress < 0.5) return;
@@ -262,7 +263,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 */
 	get images(): LactationImages {
 		const getState = () => {
-			const progress = this.pregnancy?.progress ?? 0;
+			const progress = this.pregnancyData?.progress ?? 0;
 			if (progress < 0.4) return "normal";
 			return `pregnant_${progress < 0.7 ? "early" : "late"}`;
 		};

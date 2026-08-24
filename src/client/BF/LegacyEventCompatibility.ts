@@ -21,20 +21,12 @@ type BFNotificationEvent =
 	| BFEventsEnum.WOMB_UPDATE
 	| BFEventsEnum.PREGNANCY_LABOR;
 
-/** BF notification events and their legacy external aliases. */
-const LEGACY_NOTIFICATION_EVENTS: Record<BFNotificationEvent, string> = {
-	[BFEventsEnum.PREGNANCY_UPDATE]: "ZLBFPregnancyUpdate",
-	[BFEventsEnum.LACTATION_UPDATE]: "ZLBFLactationUpdate",
-	[BFEventsEnum.WOMB_UPDATE]: "ZLBFWombUpdate",
-	[BFEventsEnum.PREGNANCY_LABOR]: "ZLBFPregnancyLabor"
-};
-
-/** Legacy notification names registered before BF attempts dual emission. */
-const LEGACY_NOTIFICATION_EVENT_NAMES: readonly string[] = [
-	"ZLBFPregnancyUpdate",
-	"ZLBFLactationUpdate",
-	"ZLBFWombUpdate",
-	"ZLBFPregnancyLabor"
+/** BF notification events paired with their legacy external aliases. */
+const NOTIFICATION_EVENT_ALIASES: ReadonlyArray<readonly [BFNotificationEvent, string]> = [
+	[BFEventsEnum.PREGNANCY_UPDATE, "ZLBFPregnancyUpdate"],
+	[BFEventsEnum.LACTATION_UPDATE, "ZLBFLactationUpdate"],
+	[BFEventsEnum.WOMB_UPDATE, "ZLBFWombUpdate"],
+	[BFEventsEnum.PREGNANCY_LABOR, "ZLBFPregnancyLabor"]
 ];
 
 /** Guards the module-level compatibility installation against duplicate listeners. */
@@ -54,7 +46,8 @@ export const installLegacyEventCompatibility = (): void => {
 		);
 	}
 
-	for (const legacyEvent of LEGACY_NOTIFICATION_EVENT_NAMES) {
+	for (const [bfEvent, legacyEvent] of NOTIFICATION_EVENT_ALIASES) {
+		new Events.EventEmitter(bfEvent);
 		new Events.EventEmitter(legacyEvent);
 	}
 };
@@ -67,6 +60,10 @@ export const installLegacyEventCompatibility = (): void => {
  */
 export const emitBFNotification = (event: BFNotificationEvent, ...payload: unknown[]): void => {
 	triggerEvent(event, ...payload);
-	const legacyEvent = LEGACY_NOTIFICATION_EVENTS[event];
-	triggerEvent(legacyEvent, ...payload);
+	for (const [bfEvent, legacyEvent] of NOTIFICATION_EVENT_ALIASES) {
+		if (bfEvent === event) {
+			triggerEvent(legacyEvent, ...payload);
+			return;
+		}
+	}
 };
