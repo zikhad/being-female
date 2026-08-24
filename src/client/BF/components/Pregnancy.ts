@@ -152,13 +152,14 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		}
 
 		this.addTrait(BFTraitsEnum.PREGNANCY);
-		PregnancyState.set(this.player, {
+		const presentation: PregnancyData = {
 			current: pregnancy.current,
 			progress: pregnancy.progress,
 			isInLabor: pregnancy.isInLabor
-		});
+		};
+		PregnancyState.set(this.player, presentation);
 		this.moodle?.moodle(pregnancy.progress);
-		emitBFNotification(BFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
+		emitBFNotification(BFEventsEnum.PREGNANCY_UPDATE, presentation);
 		if (previousStatus === PregnancyStatus.NOT_PREGNANT) this.playStartAnimation();
 		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
 			this.births?.allocate();
