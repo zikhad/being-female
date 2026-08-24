@@ -54,6 +54,28 @@ describe("Being Female identity boundary", () => {
 		expect(fs.existsSync(path.join(process.cwd(), "src/client/BF"))).toBe(true);
 	});
 
+	it("provides Build 42 item-name translations for every BF item", () => {
+		const itemNames = [
+			"Baby",
+			"BreastPump",
+			"Condom",
+			"CondomBox",
+			"CondomUsed",
+			"Contraceptive",
+			"Lactaid",
+			"VaginalDouche"
+		].map(item => `BF.${item}`);
+
+		for (const locale of ["EN", "PTBR", "CN"]) {
+			const translations = JSON.parse(read(`src/translations-json/${locale}/ItemName.json`));
+			expect(Object.keys(translations).sort()).toEqual(itemNames);
+			for (const translation of Object.values(translations)) {
+				expect(translation).toEqual(expect.any(String));
+				expect(translation).not.toBe("");
+			}
+		}
+	});
+
 	it("keeps the retired prefix only inside the legacy-event boundary", () => {
 		const retiredPrefix = ["ZL", "BF"].join("");
 		const allowed = new Set([
