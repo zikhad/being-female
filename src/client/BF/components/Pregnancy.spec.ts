@@ -1348,6 +1348,52 @@ describe("Pregnancy", () => {
 			});
 		});
 
+		it("emits queued desired data when an unrelated response still reports not pregnant", () => {
+			jest.restoreAllMocks();
+			jest.spyOn(Player.prototype as any, "addTrait").mockImplementation(jest.fn());
+			const desired = {
+				status: PregnancyStatus.PREGNANT,
+				current: 2,
+				progress: 0.02,
+				isInLabor: false
+			};
+			const commands = {
+				latestDesiredState: desired,
+				setState: jest.fn(),
+				publishState: jest.fn(),
+				onServerCommand: jest.fn()
+			} as unknown as PregnancyPublisher;
+			const snapshots = new SnapshotStore();
+			const pregnancy = new Pregnancy(commands, snapshots);
+			bind(
+				pregnancy,
+				mock<IsoPlayer>({
+					getModData: jest.fn(() => ({}))
+				})
+			);
+
+			snapshots.apply({
+				schemaVersion: 1,
+				stateVersion: 2,
+				domains: {
+					womb: createDefaultWombState(),
+					lactation: createDefaultLactationState(),
+					birth: createDefaultBirthState(),
+					pregnancy: createDefaultPregnancyState()
+				}
+			});
+
+			expect(SpyPipewrench.triggerEvent).toHaveBeenCalledWith(BFEventsEnum.PREGNANCY_UPDATE, {
+				current: 2,
+				progress: 0.02,
+				isInLabor: false
+			});
+			expect(SpyPipewrench.triggerEvent).not.toHaveBeenCalledWith(
+				BFEventsEnum.PREGNANCY_UPDATE,
+				null
+			);
+		});
+
 		it("routes start and stop through the authoritative Pregnancy publisher", () => {
 			const commands = mock<PregnancyPublisher>({ setState: jest.fn() });
 			const pregnancy = new Pregnancy(commands, new SnapshotStore());
