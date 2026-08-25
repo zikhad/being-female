@@ -83,6 +83,7 @@ export enum BFNetworkCommand {
 	ALLOCATE_BIRTH_RESPONSE = "AllocateBirthResponse",
 	COMPLETE_BIRTH_REQUEST = "CompleteBirthRequest",
 	COMPLETE_BIRTH_RESPONSE = "CompleteBirthResponse",
+	CONVERT_CONDOM_REQUEST = "ConvertCondomRequest",
 	PUBLISH_WOMB_STATE_REQUEST = "PublishWombStateRequest",
 	PUBLISH_WOMB_STATE_RESPONSE = "PublishWombStateResponse",
 	PUBLISH_LACTATION_STATE_REQUEST = "PublishLactationStateRequest",

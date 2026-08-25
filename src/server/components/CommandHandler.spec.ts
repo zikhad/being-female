@@ -26,15 +26,20 @@ jest.mock("@shared/components/CharacterTraitApi");
 describe("CommandHandler", () => {
 	const sendMock = sendServerCommand as jest.MockedFunction<typeof sendServerCommand>;
 	const debugMock = isDebugEnabled as jest.MockedFunction<typeof isDebugEnabled>;
+	const addItemMock = sendAddItemToContainer as jest.MockedFunction<
+		typeof sendAddItemToContainer
+	>;
+	const removeItemMock = sendRemoveItemFromContainer as jest.MockedFunction<
+		typeof sendRemoveItemFromContainer
+	>;
 	const playerWithStore = (store: Record<string, unknown> = {}) =>
 		mockedPlayer({ getModData: jest.fn().mockReturnValue(store) });
 
 	beforeEach(() => {
 		sendMock.mockReset();
 		(instanceItem as jest.Mock).mockReset();
-		(
-			globalThis as unknown as { sendAddItemToContainer: jest.Mock }
-		).sendAddItemToContainer.mockReset();
+		addItemMock.mockReset();
+		removeItemMock.mockReset();
 		debugMock.mockReset();
 		debugMock.mockReturnValue(false);
 		delete (globalThis as { SandboxVars?: unknown }).SandboxVars;
@@ -52,6 +57,88 @@ describe("CommandHandler", () => {
 			null
 		);
 		expect(sendMock).not.toHaveBeenCalled();
+	});
+
+	it("authoritatively replaces one condom from the player's main inventory", () => {
+		const condom = {};
+		const used = {};
+		(instanceItem as jest.Mock).mockReturnValue(used);
+		const inventory = {
+			getFirstType: jest.fn().mockReturnValue(condom),
+			Remove: jest.fn(),
+			AddItem: jest.fn()
+		};
+		const player = playerWithStore();
+		player.getInventory = jest.fn().mockReturnValue(inventory) as never;
+
+		new CommandHandler().onClientCommand(
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.CONVERT_CONDOM_REQUEST,
+			player,
+			{
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "condom-1",
+				revision: 1,
+				data: {}
+			}
+		);
+
+		expect(inventory.getFirstType).toHaveBeenCalledWith("BF.Condom");
+		expect(inventory.Remove).toHaveBeenCalledWith(condom);
+		expect(removeItemMock).toHaveBeenCalledWith(inventory, condom);
+		expect(instanceItem).toHaveBeenCalledWith("BF.CondomUsed");
+		expect(inventory.AddItem).toHaveBeenCalledWith(used);
+		expect(addItemMock).toHaveBeenCalledWith(inventory, used);
+		expect(sendMock).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the main inventory has no condom", () => {
+		const inventory = {
+			getFirstType: jest.fn().mockReturnValue(undefined),
+			AddItem: jest.fn()
+		};
+		const player = playerWithStore();
+		player.getInventory = jest.fn().mockReturnValue(inventory) as never;
+
+		new CommandHandler().onClientCommand(
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.CONVERT_CONDOM_REQUEST,
+			player,
+			{
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "condom-1",
+				revision: 1,
+				data: {}
+			}
+		);
+
+		expect(inventory.getFirstType).toHaveBeenCalledWith("BF.Condom");
+		expect(instanceItem).not.toHaveBeenCalled();
+		expect(inventory.AddItem).not.toHaveBeenCalled();
+		expect(removeItemMock).not.toHaveBeenCalled();
+		expect(addItemMock).not.toHaveBeenCalled();
+	});
+
+	it("rejects client-selected condom data without mutating inventory", () => {
+		const inventory = { getFirstType: jest.fn(), AddItem: jest.fn() };
+		const player = playerWithStore();
+		player.getInventory = jest.fn().mockReturnValue(inventory) as never;
+
+		new CommandHandler().onClientCommand(
+			BF_NETWORK_MODULE,
+			BFNetworkCommand.CONVERT_CONDOM_REQUEST,
+			player,
+			{
+				schemaVersion: BF_PROTOCOL_SCHEMA_VERSION,
+				requestId: "condom-selected",
+				revision: 1,
+				data: { itemId: 42 }
+			}
+		);
+
+		expect(inventory.getFirstType).not.toHaveBeenCalled();
+		expect(instanceItem).not.toHaveBeenCalled();
+		expect(inventory.AddItem).not.toHaveBeenCalled();
 	});
 
 	it("ignores a command delivered before the server player is bound", () => {
@@ -678,9 +765,7 @@ describe("CommandHandler", () => {
 		);
 
 		expect(AddItem).not.toHaveBeenCalled();
-		expect(
-			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
-		).not.toHaveBeenCalled();
+		expect(addItemMock).not.toHaveBeenCalled();
 		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(9);
 		expect(sendMock).toHaveBeenLastCalledWith(
 			player,
@@ -729,9 +814,7 @@ describe("CommandHandler", () => {
 
 		expect(instanceItem).not.toHaveBeenCalled();
 		expect(AddItem).not.toHaveBeenCalled();
-		expect(
-			(globalThis as unknown as { sendAddItemToContainer: jest.Mock }).sendAddItemToContainer
-		).not.toHaveBeenCalled();
+		expect(addItemMock).not.toHaveBeenCalled();
 		expect(store[BF_STATE_MOD_DATA_KEY].stateVersion).toBe(8);
 		expect(store[BF_STATE_MOD_DATA_KEY].domains.birth).toEqual({
 			birthSequence: 1,

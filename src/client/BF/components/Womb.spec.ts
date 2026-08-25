@@ -12,6 +12,7 @@ import { WombOptions } from "@client/SandboxOptions";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import { WombPublisher } from "@client/components/network/WombPublisher";
 import { createDefaultDomains } from "@shared/BFState";
+import { CondomPublisher } from "@client/components/network/CondomPublisher";
 
 // === Mocks ===
 jest.mock("@asledgehammer/pipewrench");
@@ -207,7 +208,13 @@ describe("Womb", () => {
 			describe("Intercourse", () => {
 				it("should call intercourse via event Listener", () => {
 					const womb = new Womb();
-					womb.onCreatePlayer(mockedPlayer());
+					womb.onCreatePlayer(
+						mockedPlayer({
+							getInventory: jest.fn().mockReturnValue({
+								getFirstType: jest.fn()
+							})
+						})
+					);
 
 					// Event order: PREGNANCY_UPDATE, INTERCOURSE, MENSTRUAL_EFFECTS
 					const [listenerFn] = mockAddListener.mock.calls[1];
@@ -222,11 +229,14 @@ describe("Womb", () => {
 				])(
 					"when player has condom: $condom impregnate should be called: $impregnate",
 					({ condom, impregnate }) => {
-						jest.spyOn(Player.prototype, "hasItem").mockReturnValue(condom);
+						const condomItem = condom ? {} : undefined;
+						const Remove = jest.fn();
+						const AddItem = jest.fn();
 						const player = mockedPlayer({
 							getInventory: jest.fn().mockImplementation(() => ({
-								Remove: jest.fn(),
-								AddItem: jest.fn()
+								getFirstType: jest.fn(() => condomItem),
+								Remove,
+								AddItem
 							}))
 						});
 						const womb = new Womb();
@@ -238,9 +248,34 @@ describe("Womb", () => {
 							expect(spyIpregnate).toHaveBeenCalled();
 						} else {
 							expect(spyIpregnate).not.toHaveBeenCalled();
+							expect(Remove).toHaveBeenCalledWith(condomItem);
+							expect(AddItem).toHaveBeenCalledWith("BF.CondomUsed");
 						}
 					}
 				);
+
+				it("requests one server conversion without local inventory mutation in MP", () => {
+					const condom = {};
+					const inventory = {
+						getFirstType: jest.fn().mockReturnValue(condom),
+						Remove: jest.fn(),
+						AddItem: jest.fn()
+					};
+					const publisher = {
+						convert: jest.fn()
+					} as unknown as CondomPublisher;
+					const womb = new Womb(undefined, undefined, publisher);
+					womb.onCreatePlayer(
+						mockedPlayer({ getInventory: jest.fn().mockReturnValue(inventory) })
+					);
+
+					(womb as any).intercourse();
+
+					expect(inventory.getFirstType).toHaveBeenCalledWith("BF.Condom");
+					expect(publisher.convert).toHaveBeenCalledWith();
+					expect(inventory.Remove).not.toHaveBeenCalled();
+					expect(inventory.AddItem).not.toHaveBeenCalled();
+				});
 			});
 			describe("Menstrual effects", () => {
 				it("should call menstruationEffects via event listener", () => {
@@ -267,7 +302,13 @@ describe("Womb", () => {
 			it("should return early when pregnancy exists", () => {
 				(PregnancyState.get as jest.Mock).mockReturnValue({ progress: 0.5 });
 				const womb = new Womb();
-				womb.onCreatePlayer(mockedPlayer());
+				womb.onCreatePlayer(
+					mockedPlayer({
+						getInventory: jest.fn().mockReturnValue({
+							getFirstType: jest.fn()
+						})
+					})
+				);
 				const spyImpregnate = jest.spyOn(womb as any, "impregnate");
 
 				(womb as any).intercourse();

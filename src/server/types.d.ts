@@ -9,13 +9,15 @@ import type { Fluid } from "@shared/components/FluidContainerApi";
 declare global {
 	/** Build 42 server global missing from the current PipeWrench declarations. */
 	function sendAddItemToContainer(container: ItemContainer, item: InventoryItem): void;
+	/** Build 42 server global that synchronizes an authoritative inventory removal. */
+	function sendRemoveItemFromContainer(container: ItemContainer, item: InventoryItem): void;
 }
 
 export type { Fluid };
 
 export type FluidContainer = {
 	removeFluid(): void;
-	addFluid(type: any, amount: number): void;
+	addFluid(type: Fluid, amount: number): void;
 	getCapacity(): number;
 };
 

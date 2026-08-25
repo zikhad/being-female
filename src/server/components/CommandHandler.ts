@@ -17,6 +17,7 @@ import {
 	isBFSetPregnancyStateRequest,
 	isBFAllocateBirthRequest,
 	isBFCompleteBirthRequest,
+	isBFConvertCondomRequest,
 	isBFPublishWombStateRequest,
 	isBFPublishLactationStateRequest,
 	isBFSyncStateRequest,
@@ -70,43 +71,56 @@ export class CommandHandler {
 			print(`[BF][MP][Server] ignored ${command} before player binding`);
 			return;
 		}
-		if (command === BFNetworkCommand.SYNC_STATE_REQUEST) {
-			this.syncState(player, args);
-			return;
+		switch (command) {
+			case BFNetworkCommand.SYNC_STATE_REQUEST:
+				this.syncState(player, args);
+				return;
+			case BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST:
+				this.setPregnancyState(
+					player,
+					args,
+					BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
+					true
+				);
+				return;
+			case BFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST:
+				this.setPregnancyState(
+					player,
+					args,
+					BFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
+					false
+				);
+				return;
+			case BFNetworkCommand.ALLOCATE_BIRTH_REQUEST:
+				this.allocateBirth(player, args);
+				return;
+			case BFNetworkCommand.COMPLETE_BIRTH_REQUEST:
+				this.completeBirth(player, args);
+				return;
+			case BFNetworkCommand.CONVERT_CONDOM_REQUEST:
+				this.convertCondom(player, args);
+				return;
+			case BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST:
+				this.publishWombState(player, args);
+				return;
+			case BFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST:
+				this.publishLactationState(player, args);
 		}
-		if (command === BFNetworkCommand.SET_PREGNANCY_STATE_REQUEST) {
-			this.setPregnancyState(
-				player,
-				args,
-				BFNetworkCommand.SET_PREGNANCY_STATE_RESPONSE,
-				true
-			);
-			return;
-		}
-		if (command === BFNetworkCommand.PUBLISH_PREGNANCY_STATE_REQUEST) {
-			this.setPregnancyState(
-				player,
-				args,
-				BFNetworkCommand.PUBLISH_PREGNANCY_STATE_RESPONSE,
-				false
-			);
-			return;
-		}
-		if (command === BFNetworkCommand.ALLOCATE_BIRTH_REQUEST) {
-			this.allocateBirth(player, args);
-			return;
-		}
-		if (command === BFNetworkCommand.COMPLETE_BIRTH_REQUEST) {
-			this.completeBirth(player, args);
-			return;
-		}
-		if (command === BFNetworkCommand.PUBLISH_WOMB_STATE_REQUEST) {
-			this.publishWombState(player, args);
-			return;
-		}
-		if (command === BFNetworkCommand.PUBLISH_LACTATION_STATE_REQUEST) {
-			this.publishLactationState(player, args);
-		}
+	}
+
+	/** Replaces one current authenticated-player condom using server inventory authority. */
+	private convertCondom(player: IsoPlayer, args: unknown): void {
+		if (!isBFConvertCondomRequest(args)) return;
+		if (args.schemaVersion !== BF_PROTOCOL_SCHEMA_VERSION || player.isDead()) return;
+		const inventory = player.getInventory();
+		const condom = inventory.getFirstType(ITEMS.CONDOM);
+		if (!condom) return;
+		const used = instanceItem(ITEMS.CONDOM_USED);
+		if (!used) return;
+		inventory.Remove(condom);
+		sendRemoveItemFromContainer(inventory, condom);
+		inventory.AddItem(used);
+		sendAddItemToContainer(inventory, used);
 	}
 
 	/** Persists complete client-simulated Lactation state when based on the current version. */

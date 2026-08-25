@@ -14,6 +14,7 @@ import { RecipeSnapshotReceiver } from "@client/components/network/RecipeSnapsho
 import { LactationPublisher } from "@client/components/network/LactationPublisher";
 import { isClient } from "@asledgehammer/pipewrench";
 import { installLegacyEventCompatibility } from "@client/LegacyEventCompatibility";
+import { CondomPublisher } from "@client/components/network/CondomPublisher";
 
 installLegacyEventCompatibility();
 
@@ -30,9 +31,12 @@ export const lactation = new Lactation(
 );
 /** Client publisher for reversible menstrual-cycle progression. */
 export const wombPublisher = new WombPublisher(snapshots);
+/** Requests server-authoritative replacement of exact used condom items. */
+export const condomPublisher = new CondomPublisher();
 export const womb = new Womb(
 	multiplayerClient ? wombPublisher : undefined,
-	multiplayerClient ? snapshots : undefined
+	multiplayerClient ? snapshots : undefined,
+	multiplayerClient ? condomPublisher : undefined
 );
 /** Applies server-authoritative recipe mutation acknowledgements. */
 export const recipeSnapshots = new RecipeSnapshotReceiver(snapshots);

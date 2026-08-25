@@ -80,6 +80,12 @@ export type BFCompleteBirthRequest = BFEnvelopeMetadata & {
 /** Authoritative snapshot returned after birth completion or an idempotent retry. */
 export type BFCompleteBirthResponse = BFSyncStateResponse;
 
+/** Requests server-authoritative replacement of one condom in the player's main inventory. */
+export type BFConvertCondomRequest = BFEnvelopeMetadata & {
+	/** The server selects one current condom from the authenticated player's inventory. */
+	data: Record<string, never>;
+};
+
 /** Publishes the owning client's reversible menstrual-cycle progression. */
 export type BFPublishWombStateRequest = BFEnvelopeMetadata & {
 	/** Authoritative version on which the desired transition was calculated. */
@@ -154,6 +160,13 @@ const completeBirthRequestSchema = object<BFCompleteBirthRequest>({
 		birthId: string({ minimumLength: 1, maximumLength: 128 })
 	})
 });
+/** Runtime schema for an untrusted condom conversion request. */
+const convertCondomRequestSchema = object<BFConvertCondomRequest>({
+	schemaVersion: positiveInteger,
+	requestId,
+	revision: positiveInteger,
+	data: emptyRecord
+});
 /** Runtime schema for an untrusted Womb progression publication. */
 const publishWombStateRequestSchema = object<BFPublishWombStateRequest>({
 	schemaVersion: positiveInteger,
@@ -215,6 +228,9 @@ export const isBFCompleteBirthRequest = completeBirthRequestSchema;
 
 /** Validates a birth-completion response using the standard snapshot envelope. */
 export const isBFCompleteBirthResponse = responseSchema;
+
+/** Validates a request to replace one condom in the player's main inventory. */
+export const isBFConvertCondomRequest = convertCondomRequestSchema;
 
 /** Validates client-published reversible Womb cycle progression. */
 export const isBFPublishWombStateRequest = publishWombStateRequestSchema;
