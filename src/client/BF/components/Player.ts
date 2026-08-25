@@ -155,6 +155,45 @@ export abstract class LocalPlayer<T> extends SharedPlayer {
 	}
 
 	/**
+	 * Reads one Build 42 CharacterStat without exposing the game stats object to subclasses.
+	 *
+	 * @param stat CharacterStat key to read.
+	 * @param fallback Value returned before a player or stats object is available.
+	 * @returns Current native stat value or the supplied fallback.
+	 */
+	protected getStatValue(stat: keyof typeof CharacterStat, fallback = 0): number {
+		const stats = this.player?.getStats();
+		if (!stats) return fallback;
+		return stats.get(CharacterStat[stat]);
+	}
+
+	/**
+	 * Applies nutrition deltas through the player boundary and relies on native nutrition clamps.
+	 * Positive values add nutrition and negative values consume it.
+	 *
+	 * @param effects Nutrition deltas to apply to the bound player.
+	 */
+	protected applyNutritionEffect(
+		effects: Partial<{
+			calories: number;
+			carbohydrates: number;
+			lipids: number;
+			proteins: number;
+		}>
+	): void {
+		const nutrition = this.player?.getNutrition();
+		if (!nutrition) return;
+		if (effects.calories !== undefined)
+			nutrition.setCalories(nutrition.getCalories() + effects.calories);
+		if (effects.carbohydrates !== undefined)
+			nutrition.setCarbohydrates(nutrition.getCarbohydrates() + effects.carbohydrates);
+		if (effects.lipids !== undefined)
+			nutrition.setLipids(nutrition.getLipids() + effects.lipids);
+		if (effects.proteins !== undefined)
+			nutrition.setProteins(nutrition.getProteins() + effects.proteins);
+	}
+
+	/**
 	 * Check if player has a given item in their Inventory
 	 * @param itemName Name of the item to search
 	 * @param recursive check recursively in Inventory

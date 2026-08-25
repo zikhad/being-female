@@ -96,8 +96,8 @@ export class WombTab extends BFUITabDefinition {
 
 		triggerEvent(BFEventsEnum.IMAGE);
 
-		ui[this.ELEMENTS.sperm.currentAmount]?.setText(valueInMilliliters(amount));
-		ui[this.ELEMENTS.sperm.totalAmount]?.setText(valueInMilliliters(total));
+		ui[this.ELEMENTS.sperm.currentAmount]?.setText(`${valueInMilliliters(amount)} ml`);
+		ui[this.ELEMENTS.sperm.totalAmount]?.setText(`${valueInMilliliters(total)} ml`);
 		ui[this.ELEMENTS.womb.image]?.setPath(Animation.wombImage);
 
 		if (!context.player || Player.hasTrait(context.player, BFTraitsEnum.INFERTILE)) {

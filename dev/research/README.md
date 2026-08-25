@@ -36,6 +36,7 @@ This directory preserves reviewed reverse-engineering findings that affect BF de
 | [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Partially verified | 42.x         | Client, server, multiplayer | 2026-08-22   |
 | [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
 | [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
+| [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-24   |
 
 ## Remaining Multiplayer Validation And Hardening
 

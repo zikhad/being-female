@@ -3,6 +3,7 @@
  * The game loads custom sandbox options from sandbox-options.txt into SandboxVars.BF.
  * This module reads those values directly and falls back to defaults when unavailable.
  */
+import { configuredLactationDurationHours } from "@shared/components/BFSandboxOptions";
 
 const DEFAULT_OPTIONS = {
 	pregnancy: {
@@ -113,11 +114,7 @@ class LactationOptionsClass extends SandboxOptions {
 	 * Default: 7 days
 	 */
 	get expiration(): number {
-		const days = this.getOption<number>(
-			options => options.MilkExpiration,
-			DEFAULT_OPTIONS.milk.expiration
-		);
-		return days * 24; // Convert days to hours
+		return configuredLactationDurationHours();
 	}
 }
 

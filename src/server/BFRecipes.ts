@@ -1,16 +1,11 @@
-import {
-	InventoryItem,
-	IsoPlayer,
-	isServer,
-	sendServerCommand,
-	ZombRandFloat
-} from "@asledgehammer/pipewrench";
+import { InventoryItem, IsoPlayer, isServer, sendServerCommand } from "@asledgehammer/pipewrench";
 import {
 	Fluids,
 	BF_NETWORK_MODULE,
 	BF_PROTOCOL_SCHEMA_VERSION,
 	BFNetworkCommand,
-	BFSyncStatus
+	BFSyncStatus,
+	BFTraitsEnum
 } from "@constants";
 import { Recipe } from "server/types";
 import { FluidContainerApi } from "@shared/components/FluidContainerApi";
@@ -19,6 +14,13 @@ import { StateRepository } from "@server/components/state/StateRepository";
 import type { LactationState } from "@shared/domain/lactation/LactationState";
 import type { BFSyncStateResponse } from "@shared/BFProtocol";
 import { RECIPE_BOTTLE_AMOUNT, BFRecipeTests } from "@shared/BFRecipeTests";
+import { CharacterTraitApi } from "@shared/components/CharacterTraitApi";
+import {
+	addLactaidStimulation,
+	applyMilkRemoval,
+	lactationDuration
+} from "@shared/domain/lactation/LactationBalance";
+import { configuredLactationDurationHours } from "@shared/components/BFSandboxOptions";
 import type {
 	AuthoritativeState,
 	SupportedStateLoadResult
@@ -59,18 +61,16 @@ const saveRecipeState = (
 };
 
 /**
- * Applies milk use to complete Lactation data without mutating its input.
+ * Returns the actor's configured lactation duration with trait modification applied once.
  *
- * @param state Current complete actor Lactation state.
- * @param amount Milk volume to consume, clamped to the available amount.
- * @param multiplier Replacement production multiplier, clamped to zero.
- * @returns A complete updated Lactation value preserving unrelated fields.
+ * @param player Recipe actor whose Dairy Cow trait controls duration.
+ * @returns Duration in game hours.
  */
-const useMilk = (state: LactationState, amount: number, multiplier: number): LactationState => ({
-	...state,
-	milkAmount: Math.max(0, state.milkAmount - Math.min(amount, state.milkAmount)),
-	multiplier: Math.max(0, multiplier)
-});
+const refreshedLactationDuration = (player: IsoPlayer): number =>
+	lactationDuration(
+		configuredLactationDurationHours(),
+		CharacterTraitApi.hasTrait(player, BFTraitsEnum.DAIRY_COW)
+	);
 
 /**
  * Resolves, writes, persists, and acknowledges one actor-scoped Lactation mutation.
@@ -118,6 +118,8 @@ const loadRecipeState = (player: IsoPlayer): SupportedStateLoadResult | undefine
 	return loaded.supported ? loaded : undefined;
 };
 
+// The Project Zomboid loader requires assignment to its declared recipe callback global.
+// eslint-disable-next-line prefer-const
 BFRecipes = {
 	OnTest: BFRecipeTests,
 	OnCreate: {
@@ -135,9 +137,12 @@ BFRecipes = {
 			const player = character as IsoPlayer;
 			const loaded = loadRecipeState(player);
 			if (!loaded) return;
-			saveLactation(player, loaded, current =>
-				useMilk({ ...current, isActive: true }, 0, ZombRandFloat(0, 0.3))
-			);
+			saveLactation(player, loaded, current => ({
+				...current,
+				isActive: true,
+				expiration: refreshedLactationDuration(player),
+				multiplier: addLactaidStimulation(current.multiplier)
+			}));
 		},
 		HandExpress: (items, character) => {
 			const player = character as IsoPlayer;
@@ -150,7 +155,7 @@ BFRecipes = {
 			);
 			syncFluidItem(container);
 			saveLactation(player, loaded, current =>
-				useMilk(current, amount * 2, ZombRandFloat(0.05, 0.1))
+				applyMilkRemoval(current, amount * 2, refreshedLactationDuration(player))
 			);
 		},
 		BreastPump: (items, character) => {
@@ -164,7 +169,7 @@ BFRecipes = {
 			);
 			syncFluidItem(container);
 			saveLactation(player, loaded, current =>
-				useMilk(current, amount, ZombRandFloat(0.1, 0.2))
+				applyMilkRemoval(current, amount, refreshedLactationDuration(player))
 			);
 		},
 		ClearSperm: (items, character) => {
@@ -200,7 +205,7 @@ BFRecipes = {
 			const loaded = loadRecipeState(player);
 			if (!loaded) return;
 			saveLactation(player, loaded, current =>
-				useMilk(current, RECIPE_BOTTLE_AMOUNT, ZombRandFloat(0.2, 0.5))
+				applyMilkRemoval(current, RECIPE_BOTTLE_AMOUNT, refreshedLactationDuration(player))
 			);
 		},
 		BottleFeedBaby: (items, character) => {

@@ -15,7 +15,7 @@ jest.mock("@asledgehammer/pipewrench", () => ({
 }));
 
 /** Creates one actor with isolated component-local and authoritative ModData. */
-const actor = (milkAmount = 0.4, wombAmount = 0.2, cycleDay = 1) => {
+const actor = (milkAmount = 0.4, wombAmount = 0.2, cycleDay = 1, dairyCow = false) => {
 	const domains = createDefaultDomains();
 	domains.lactation = { isActive: true, milkAmount, expiration: 12, multiplier: 0.2 };
 	domains.womb = {
@@ -36,6 +36,13 @@ const actor = (milkAmount = 0.4, wombAmount = 0.2, cycleDay = 1) => {
 	};
 	const player = mock<IsoPlayer>({
 		isFemale: jest.fn(() => true),
+		getCharacterTraits: jest.fn(
+			() =>
+				({
+					get: jest.fn(() => dairyCow),
+					getKnownTraits: jest.fn(() => ({ size: jest.fn(() => 0), get: jest.fn() }))
+				}) as never
+		),
 		getModData: jest.fn(() => modData)
 	});
 	return { player, modData, domains };
@@ -97,8 +104,8 @@ describe("BFRecipes actor authority", () => {
 		expect(root.domains.lactation).toEqual({
 			isActive: true,
 			milkAmount: 0,
-			expiration: 12,
-			multiplier: 0.05
+			expiration: 168,
+			multiplier: 0.5
 		});
 		expect(load).toHaveBeenCalledTimes(1);
 		load.mockRestore();
@@ -115,6 +122,29 @@ describe("BFRecipes actor authority", () => {
 			domains: ReturnType<typeof createDefaultDomains>;
 		};
 		expect(root.domains.lactation.milkAmount).toBe(0);
+	});
+
+	it("adds deterministic Lactaid stimulation and refreshes duration", () => {
+		const { player, modData } = actor();
+		BFRecipes.OnCreate.TakeLactaid({} as CraftRecipeData, player);
+		const root = modData[BF_STATE_MOD_DATA_KEY] as {
+			domains: ReturnType<typeof createDefaultDomains>;
+		};
+		expect(root.domains.lactation).toEqual({
+			isActive: true,
+			milkAmount: 0.4,
+			expiration: 168,
+			multiplier: 0.45
+		});
+	});
+
+	it("applies the Dairy Cow duration factor exactly once", () => {
+		const { player, modData } = actor(0.4, 0.2, 1, true);
+		BFRecipes.OnCreate.TakeLactaid({} as CraftRecipeData, player);
+		const root = modData[BF_STATE_MOD_DATA_KEY] as {
+			domains: ReturnType<typeof createDefaultDomains>;
+		};
+		expect(root.domains.lactation.expiration).toBe(210);
 	});
 
 	it("persists ClearSperm amount zero and clears its input container", () => {

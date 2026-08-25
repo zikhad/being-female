@@ -1,4 +1,4 @@
-import { percentageToNumber, valueInMilliliters, createArray, repeatArray } from "@client/Utils";
+import { percentageToNumber, valueInMilliliters } from "@client/Utils";
 
 describe("Utils", () => {
 	describe("percentageToNumber", () => {
@@ -17,25 +17,44 @@ describe("Utils", () => {
 });
 
 describe("valueInMilliliters", () => {
-	it("formats 0 as 0 ml", () => {
-		expect(valueInMilliliters(0)).toBe("0 ml");
-	});
-
-	it("formats 1 as 1000 ml", () => {
-		expect(valueInMilliliters(1)).toBe("1000 ml");
-	});
-
-	it("formats 0.25 as 250 ml", () => {
-		expect(valueInMilliliters(0.25)).toBe("250 ml");
-	});
-
-	it("rounds to nearest integer", () => {
-		expect(valueInMilliliters(0.1234)).toBe("123 ml");
-		expect(valueInMilliliters(0.126)).toBe("126 ml");
-		expect(valueInMilliliters(0.999)).toBe("999 ml");
-	});
-
-	it("handles negative values", () => {
-		expect(valueInMilliliters(-0.5)).toBe("-500 ml");
+	it.each([
+		{
+			description: "should return 0 when value is 0",
+			value: 0,
+			expected: 0
+		},
+		{
+			description: "should return 1000 when value is 1",
+			value: 1,
+			expected: 1000
+		},
+		{
+			description: "should return 250 when value is 0.25",
+			value: 0.25,
+			expected: 250
+		},
+		{
+			description: "should round to nearest integer",
+			value: 0.1234,
+			expected: 123
+		},
+		{
+			description: "should round to nearest integer",
+			value: 0.126,
+			expected: 126
+		},
+		{
+			description: "should round to nearest integer",
+			value: 0.999,
+			expected: 999
+		},
+		{
+			description: "should handle negative values",
+			value: -0.5,
+			expected: -500
+		}
+	])("$description", ({ value, expected }) => {
+		const result = valueInMilliliters(value);
+		expect(result).toBe(expected);
 	});
 });

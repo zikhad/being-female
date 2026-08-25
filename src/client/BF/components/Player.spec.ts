@@ -60,6 +60,19 @@ class ConcretePlayer extends Player<Record<string, unknown>> {
 	public testRemoveTrait(trait: BFTraitsEnum): void {
 		this.removeTrait(trait);
 	}
+	public testGetStatValue(stat: keyof typeof CharacterStat, fallback?: number): number {
+		return this.getStatValue(stat, fallback);
+	}
+	public testApplyNutritionEffect(
+		effects: Partial<{
+			calories: number;
+			carbohydrates: number;
+			lipids: number;
+			proteins: number;
+		}>
+	): void {
+		this.applyNutritionEffect(effects);
+	}
 }
 
 describe("Player class", () => {
@@ -308,16 +321,6 @@ describe("Player class", () => {
 			}
 		}
 
-		class ConcretePlayerWithApplyStat extends ConcretePlayer {
-			public testApplyStatEffect(options: {
-				stat: keyof typeof CharacterStat;
-				value: number;
-				maxValue?: number;
-			}): void {
-				this.applyStatEffect(options);
-			}
-		}
-
 		it("should apply pain to a body part", () => {
 			const instance = new ConcretePlayerWithApplyDamage("TEST_KEY");
 			instance.triggerOnCreatePlayer(mockPlayer);
@@ -521,6 +524,46 @@ describe("Player class", () => {
 			expect(mockStats.add).toHaveBeenCalledWith(CharacterStat.FITNESS, 15);
 			expect(mockStats.get).not.toHaveBeenCalled();
 			expect(mockStats.set).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("stat and nutrition boundaries", () => {
+		it("reads CharacterStat values without exposing the stats object", () => {
+			const stats = { get: jest.fn().mockReturnValue(0.6) };
+			(mockPlayer.getStats as jest.Mock).mockReturnValue(stats);
+			const instance = new ConcretePlayer("TEST_KEY");
+			instance.triggerOnCreatePlayer(mockPlayer);
+
+			expect(instance.testGetStatValue("THIRST")).toBe(0.6);
+			expect(stats.get).toHaveBeenCalledWith(CharacterStat.THIRST);
+		});
+
+		it("applies nutrition deltas through the Player wrapper", () => {
+			const nutrition = {
+				getCalories: jest.fn(() => 1000),
+				setCalories: jest.fn(),
+				getCarbohydrates: jest.fn(() => 100),
+				setCarbohydrates: jest.fn(),
+				getLipids: jest.fn(() => 80),
+				setLipids: jest.fn(),
+				getProteins: jest.fn(() => 60),
+				setProteins: jest.fn()
+			};
+			(mockPlayer.getNutrition as jest.Mock).mockReturnValue(nutrition);
+			const instance = new ConcretePlayer("TEST_KEY");
+			instance.triggerOnCreatePlayer(mockPlayer);
+
+			instance.testApplyNutritionEffect({
+				calories: -320,
+				carbohydrates: -16,
+				lipids: -16,
+				proteins: -8
+			});
+
+			expect(nutrition.setCalories).toHaveBeenCalledWith(680);
+			expect(nutrition.setCarbohydrates).toHaveBeenCalledWith(84);
+			expect(nutrition.setLipids).toHaveBeenCalledWith(64);
+			expect(nutrition.setProteins).toHaveBeenCalledWith(52);
 		});
 	});
 });

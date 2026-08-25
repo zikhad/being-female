@@ -185,7 +185,6 @@ describe("LactationPublisher", () => {
 	});
 
 	it("rebases activity replacement and numeric expiration/multiplier deltas", () => {
-		const base = { isActive: false, milkAmount: 0.5, expiration: 8, multiplier: 0.2 };
 		const desired = { isActive: true, milkAmount: 0.5, expiration: 6, multiplier: 0.5 };
 		const authoritative = { isActive: false, milkAmount: 0.3, expiration: 10, multiplier: 0.1 };
 		const rebased = rebaseLactationState(
@@ -200,6 +199,27 @@ describe("LactationPublisher", () => {
 		expect(rebased.expiration).toBe(8);
 		expect(rebased.milkAmount).toBeCloseTo(0.3);
 		expect(rebased.multiplier).toBeCloseTo(0.4);
+	});
+
+	it("rebases a queued minute simulation over an authoritative recipe mutation", () => {
+		const authoritativeAfterRecipe = {
+			isActive: true,
+			milkAmount: 0.2,
+			expiration: 168,
+			multiplier: 0.45
+		};
+		const rebased = rebaseLactationState(
+			{
+				milkAmount: { mode: "delta", value: 0.01 },
+				expiration: { mode: "delta", value: -1 / 60 },
+				multiplier: { mode: "delta", value: -0.025 / 60 }
+			},
+			authoritativeAfterRecipe
+		);
+
+		expect(rebased.milkAmount).toBeCloseTo(0.21);
+		expect(rebased.expiration).toBeCloseTo(167 + 59 / 60);
+		expect(rebased.multiplier).toBeCloseTo(0.45 - 0.025 / 60);
 	});
 
 	it("accumulates multiple queued production deltas", () => {

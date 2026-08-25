@@ -1,4 +1,4 @@
-import { BodyPartType, IsoPlayer, ZombRand, ZombRandFloat } from "@asledgehammer/pipewrench";
+import { BodyPartType, getGameTime, IsoPlayer, ZombRandFloat } from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { LactationData, LactationImages, PregnancyData } from "@types";
 import { percentageToNumber } from "@utils";
@@ -14,6 +14,15 @@ import {
 	LactationMutationIntent,
 	LactationPublisher
 } from "@client/components/network/LactationPublisher";
+import {
+	applyMilkRemoval,
+	clampStimulation,
+	decayStimulation,
+	lactationDuration,
+	LACTATION_BALANCE,
+	metabolicCostFor,
+	requestedProduction
+} from "@shared/domain/lactation/LactationBalance";
 
 /**
  * Lactation management system for a player character.
@@ -25,12 +34,13 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 	private moodle?: Moodle;
 	private publicationSuppressed = false;
+	private lastMinuteStamp?: number;
 
 	private readonly CONSTANTS = {
 		MAX_LEVEL: 5,
 		AMOUNTS: {
-			MIN: 0.002,
-			MAX: 0.01
+			MIN: LACTATION_BALANCE.BASE_RATE_MIN,
+			MAX: LACTATION_BALANCE.BASE_RATE_MAX
 		}
 	};
 
@@ -81,7 +91,8 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 	/** Replaces local Lactation compatibility data after an authoritative acknowledgement. */
 	private applyAuthoritativeSnapshot(snapshot: BFSnapshot): void {
-		this.data = { ...(this.commands?.latestDesiredState ?? snapshot.domains.lactation) };
+		const lactation = this.commands?.latestDesiredState ?? snapshot.domains.lactation;
+		this.data = { ...lactation, multiplier: clampStimulation(lactation.multiplier) };
 	}
 
 	/** Publishes the complete current Lactation state after a local simulation mutation. */
@@ -109,6 +120,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 */
 	onCreatePlayer(player: IsoPlayer): void {
 		super.onCreatePlayer(player);
+		this.lastMinuteStamp = getGameTime().getMinutesStamp();
 		const snapshot = this.snapshots?.snapshot;
 		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
 		this.moodle = new Moodle({
@@ -126,10 +138,6 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		new Events.EventEmitter<(data: PregnancyData) => void>(
 			BFEventsEnum.PREGNANCY_UPDATE
 		).addListener(data => this.onPregnancyUpdate(data));
-
-		new Events.EventEmitter<(data: LactationData) => void>(
-			BFEventsEnum.LACTATION_UPDATE
-		).addListener(data => this.onLactationUpdate(data));
 	}
 
 	/** Returns stored pregnancy data under a descriptor name unique to this component family. */
@@ -145,31 +153,81 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		this.applyMutation(
 			() => {
 				this.toggle(true);
-				this.useMilk(0, progress);
 			},
 			() => ({
 				isActive: { mode: "replace", value: true },
-				expiration: { mode: "replace", value: this.expiration },
-				multiplier: { mode: "replace", value: this.multiplier }
+				expiration: { mode: "replace", value: this.expiration }
 			})
 		);
 	}
 
-	onLactationUpdate(data: LactationData) {
-		if (!this.isLactating) return;
-		const multiplier = 1 + this.multiplier;
-		const requested =
-			ZombRandFloat(this.CONSTANTS.AMOUNTS.MIN, this.CONSTANTS.AMOUNTS.MAX) * multiplier;
-		const previous = this.milkAmount;
-		this.milkAmount = Math.min(this.capacity, previous + requested);
-		const produced = this.milkAmount - previous;
-		if (produced > 0) this.publishState({ milkAmount: { mode: "delta", value: produced } });
-	}
-
-	onEveryMinute() {
+	/** Reconciles elapsed production, stimulation, expiration, and proportional metabolic costs. */
+	onEveryMinute(): void {
 		this.commands?.onEveryOneMinute();
+		const minuteStamp = getGameTime().getMinutesStamp();
+		const elapsed = Math.max(0, minuteStamp - (this.lastMinuteStamp ?? minuteStamp - 1));
+		this.lastMinuteStamp = minuteStamp;
+		if (this.isLactating && elapsed > 0) this.produce(elapsed);
 		this.moodle?.moodle(this.percentage, true);
 		emitBFNotification(BFEventsEnum.LACTATION_UPDATE, this.data);
+	}
+
+	/**
+	 * Produces milk for elapsed game minutes and applies costs only to the clamped actual yield.
+	 *
+	 * @param elapsedMinutes Game minutes elapsed since the prior simulation callback.
+	 */
+	private produce(elapsedMinutes: number): void {
+		const previousMilk = this.milkAmount;
+		const previousMultiplier = this.multiplier;
+		const previousExpiration = this.expiration;
+		const activeMinutes = Math.min(elapsedMinutes, previousExpiration * 60);
+		const hasDairyCow = this.hasTrait(BFTraitsEnum.DAIRY_COW);
+		const requested = requestedProduction({
+			baseRatePerMinute: ZombRandFloat(
+				this.CONSTANTS.AMOUNTS.MIN,
+				this.CONSTANTS.AMOUNTS.MAX
+			),
+			elapsedMinutes: activeMinutes,
+			stimulation: previousMultiplier,
+			hasDairyCow,
+			thirst: this.getStatValue("THIRST"),
+			hunger: this.getStatValue("HUNGER")
+		});
+		this.milkAmount = Math.min(this.capacity, previousMilk + requested);
+		const produced = this.milkAmount - previousMilk;
+		this.multiplier = decayStimulation(previousMultiplier, activeMinutes);
+		this.expiration = Math.max(0, previousExpiration - elapsedMinutes / 60);
+
+		if (produced > 0) {
+			const cost = metabolicCostFor(produced);
+			this.applyStatEffect({ stat: "THIRST", value: cost.thirst, maxValue: 1 });
+			this.applyNutritionEffect({
+				calories: -cost.calories,
+				carbohydrates: -cost.carbohydrates,
+				lipids: -cost.lipids,
+				proteins: -cost.proteins
+			});
+		}
+
+		const expired = this.expiration === 0;
+		if (expired) {
+			this.resetInactiveState();
+			this.moodle?.moodle(0);
+		}
+
+		this.publishState({
+			isActive: expired ? { mode: "replace", value: false } : undefined,
+			milkAmount: expired
+				? { mode: "replace", value: 0 }
+				: { mode: "delta", value: this.milkAmount - previousMilk },
+			expiration: expired
+				? { mode: "replace", value: this.expiration }
+				: { mode: "delta", value: this.expiration - previousExpiration },
+			multiplier: expired
+				? { mode: "replace", value: 0 }
+				: { mode: "delta", value: this.multiplier - previousMultiplier }
+		});
 	}
 
 	onEveryTenMinutes() {
@@ -184,22 +242,9 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		});
 	}
 
-	onEveryHour() {
+	onEveryHour(): void {
 		if (!this.isLactating) return;
-		const previousMultiplier = this.multiplier;
-		const previousExpiration = this.expiration;
-		this.multiplier = Math.max(0, this.multiplier - 0.1);
-		this.expiration = Math.max(0, this.expiration - 1);
-
-		// Apply moodle
 		this.moodle?.moodle(this.percentage);
-
-		if (this.expiration === 0) this.toggle(false);
-		else
-			this.publishState({
-				multiplier: { mode: "delta", value: this.multiplier - previousMultiplier },
-				expiration: { mode: "delta", value: this.expiration - previousExpiration }
-			});
 	}
 
 	/**
@@ -207,14 +252,9 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 */
 	public toggle(status: boolean) {
 		this.isLactating = status;
-		this.expiration = this.options.expiration;
+		this.expiration = this.refreshedDuration;
 		if (!status) {
-			this.data = {
-				isActive: false,
-				expiration: this.options.expiration,
-				milkAmount: 0,
-				multiplier: 0
-			};
+			this.resetInactiveState();
 			this.moodle?.moodle(0);
 		}
 		this.publishState({
@@ -226,36 +266,37 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	}
 
 	/**
-	 * Uses milk, applies multipliers based on traits
+	 * Uses milk and converts actual removal into additive demand stimulation.
 	 * @param amount - amount of milk to use
-	 * @param multiplier - additional production multiplier
-	 * @param expiration - override expiration value
 	 */
-	public useMilk(amount: number, multiplier?: number) {
+	public useMilk(amount: number): void {
 		if (!this.data) return;
 
-		amount = Math.min(amount, this.milkAmount);
-		this.multiplier = Math.max(0, multiplier || 0);
-		this.expiration = this.options.expiration;
-
-		if (this.hasTrait(BFTraitsEnum.DAIRY_COW)) {
-			this.multiplier *= 1.25;
-			this.expiration *= 1.25;
-		}
-
-		this.remove(amount);
+		const previousMilk = this.milkAmount;
+		const previousMultiplier = this.multiplier;
+		const next = applyMilkRemoval(this.data, amount, this.refreshedDuration);
+		this.milkAmount = next.milkAmount;
+		this.expiration = next.expiration;
+		this.multiplier = next.multiplier;
+		const removed = previousMilk - this.milkAmount;
 		this.publishState({
-			milkAmount: { mode: "delta", value: -amount },
-			expiration: { mode: "replace", value: this.expiration },
-			multiplier: { mode: "replace", value: this.multiplier }
+			milkAmount: { mode: "delta", value: -removed },
+			expiration: removed > 0 ? { mode: "replace", value: this.expiration } : undefined,
+			multiplier: { mode: "delta", value: this.multiplier - previousMultiplier }
 		});
 	}
 
-	/**
-	 * Removes milk amount ensuring it doesn't go below 0
-	 */
-	private remove(amount: number) {
-		this.milkAmount = Math.max(0, this.milkAmount - amount);
+	/** Establishes the single complete persisted shape used whenever lactation is inactive. */
+	private resetInactiveState(): void {
+		this.isLactating = false;
+		this.milkAmount = 0;
+		this.expiration = this.options.expiration;
+		this.multiplier = 0;
+	}
+
+	/** Returns the configured duration with Dairy Cow applied exactly once. */
+	private get refreshedDuration(): number {
+		return lactationDuration(this.options.expiration, this.hasTrait(BFTraitsEnum.DAIRY_COW));
 	}
 
 	/**
@@ -309,7 +350,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		return this.data?.milkAmount ?? 0;
 	}
 
-	/** Multiplier that affects production */
+	/** Temporary recent-demand stimulation that affects production. */
 	private set multiplier(value: number) {
 		this.data!.multiplier = value;
 	}
@@ -317,11 +358,8 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		return this.data!.multiplier;
 	}
 
-	/** Time until spoilage in hours */
+	/** Remaining active lactation duration in hours. */
 	private set expiration(value: number) {
-		if (this.hasTrait(BFTraitsEnum.DAIRY_COW)) {
-			this.data!.expiration = value * 1.25;
-		}
 		this.data!.expiration = value;
 	}
 	private get expiration() {
