@@ -88,8 +88,8 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 21 },
 			{ itemType: "BF.Lactaid", chance: 14 },
-			{ itemType: "BF.Condom", chance: 28 },
-			{ itemType: "BF.CondomBox", chance: 26 },
+			{ itemType: "BF.Condom", chance: 2 },
+			{ itemType: "BF.CondomBox", chance: 0.5 },
 			{ itemType: "BF.VaginalDouche", chance: 10 }
 		]
 	},
@@ -103,8 +103,8 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 	{
 		tableNames: [...TABLE_GROUPS.bedroomDressers, ...TABLE_GROUPS.bedroomSideTables],
 		items: [
-			{ itemType: "BF.Condom", chance: 28 },
-			{ itemType: "BF.CondomBox", chance: 14 }
+			{ itemType: "BF.Condom", chance: 4 },
+			{ itemType: "BF.CondomBox", chance: 0.5 }
 		]
 	},
 	{
@@ -116,13 +116,13 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 21 },
 			{ itemType: "BF.Lactaid", chance: 18 },
-			{ itemType: "BF.Condom", chance: 18 }
+			{ itemType: "BF.Condom", chance: 4 }
 		]
 	},
 	{
 		tableNames: TABLE_GROUPS.hospitalRoom,
 		items: [
-			{ itemType: "BF.CondomBox", chance: 14 },
+			{ itemType: "BF.CondomBox", chance: 1 },
 			{ itemType: "BF.BreastPump", chance: 18 },
 			{ itemType: "BF.VaginalDouche", chance: 14 }
 		]
@@ -132,22 +132,22 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 18 },
 			{ itemType: "BF.Lactaid", chance: 14 },
-			{ itemType: "BF.Condom", chance: 21 },
-			{ itemType: "BF.CondomBox", chance: 28 },
+			{ itemType: "BF.Condom", chance: 2 },
+			{ itemType: "BF.CondomBox", chance: 2 },
 			{ itemType: "BF.BreastPump", chance: 14 },
 			{ itemType: "BF.VaginalDouche", chance: 10 }
 		]
 	},
 	{
 		tableNames: TABLE_GROUPS.trashBins,
-		items: [{ itemType: "BF.CondomUsed", chance: 28 }]
+		items: [{ itemType: "BF.CondomUsed", chance: 1 }]
 	},
 	{
 		tableNames: TABLE_GROUPS.drugLocations,
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 10 },
 			{ itemType: "BF.Lactaid", chance: 7 },
-			{ itemType: "BF.Condom", chance: 18 }
+			{ itemType: "BF.Condom", chance: 2 }
 		]
 	}
 ];

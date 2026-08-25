@@ -42,9 +42,9 @@ describe("BFDistributions.ts", () => {
 	);
 
 	beforeEach(() => {
-		(globalThis as any).ProceduralDistributions = {
-			list: {}
-		} as ProceduralDistributionRegistry;
+		Object.assign(globalThis, {
+			ProceduralDistributions: { list: {} } as ProceduralDistributionRegistry
+		});
 	});
 	it("injects item/chance pairs into existing procedural distributions", () => {
 		const tableNames = Array.from(
@@ -64,5 +64,16 @@ describe("BFDistributions.ts", () => {
 	it("returns zero when procedural distributions are unavailable", () => {
 		const appliedEntries = applyBFDistributions();
 		expect(appliedEntries).toBe(0);
+	});
+
+	it("keeps condoms uncommon and ten-count boxes rarer than singles", () => {
+		const chancesFor = (itemType: string) =>
+			BF_DISTRIBUTION_RULES.filter(rule => rule.itemType === itemType).map(
+				rule => rule.chance
+			);
+
+		expect(chancesFor("BF.Condom")).toEqual([2, 4, 4, 2, 2]);
+		expect(chancesFor("BF.CondomBox")).toEqual([0.5, 0.5, 1, 2]);
+		expect(chancesFor("BF.CondomUsed")).toEqual([1]);
 	});
 });
