@@ -1,6 +1,7 @@
 import { BFSyncStatus } from "@constants";
 import {
 	isBFSetPregnancyStateRequest,
+	isBFConvertCondomRequest,
 	isBFSyncStateRequest,
 	isBFSyncStateResponse
 } from "@shared/BFProtocol";
@@ -83,6 +84,28 @@ describe("BFProtocol validators", () => {
 				requestId: "pregnancy-1",
 				revision: 1,
 				data: { desired: { status: "pregnant", progress: 2 } }
+			})
+		).toBe(false);
+	});
+
+	it("accepts an empty condom conversion request", () => {
+		expect(
+			isBFConvertCondomRequest({
+				schemaVersion: 1,
+				requestId: "condom-1",
+				revision: 1,
+				data: {}
+			})
+		).toBe(true);
+	});
+
+	it("rejects client-selected condom data", () => {
+		expect(
+			isBFConvertCondomRequest({
+				schemaVersion: 1,
+				requestId: "condom-1",
+				revision: 1,
+				data: { itemId: 42 }
 			})
 		).toBe(false);
 	});

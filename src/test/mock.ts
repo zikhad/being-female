@@ -35,7 +35,8 @@ globalThis.print = jest.fn();
 });
 
 (globalThis as any).BFRecipes = {};
-(globalThis as any).sendAddItemToContainer = jest.fn();
+globalThis.sendAddItemToContainer = jest.fn();
+globalThis.sendRemoveItemFromContainer = jest.fn();
 
 (globalThis as any).CharacterStat = {
 	HUNGER: "HUNGER",

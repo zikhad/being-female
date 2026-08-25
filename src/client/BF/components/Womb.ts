@@ -13,10 +13,11 @@ import { Player, TimedEvents } from "@client/components/Player";
 import { CyclePhaseEnum, ITEMS, BFEventsEnum, BFTraitsEnum } from "@constants";
 import { emitBFNotification } from "@client/LegacyEventCompatibility";
 import { PregnancyState } from "@client/components/PregnancyState";
-import { percentageToNumber, trimModuleName } from "@client/Utils";
+import { percentageToNumber } from "@client/Utils";
 import { WombPublisher } from "@client/components/network/WombPublisher";
 import { SnapshotStore } from "@client/components/network/SnapshotStore";
 import type { BFSnapshot } from "@shared/BFProtocol";
+import { CondomPublisher } from "@client/components/network/CondomPublisher";
 
 /**
  * Manages reproductive functions, fertility, and pregnancy-related variables
@@ -182,7 +183,8 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	 */
 	constructor(
 		private readonly commands?: WombPublisher,
-		private readonly snapshots?: SnapshotStore
+		private readonly snapshots?: SnapshotStore,
+		private readonly condoms?: CondomPublisher
 	) {
 		super("BFWomb");
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
@@ -255,10 +257,15 @@ export class Womb extends Player<WombData> implements TimedEvents {
 			text: `${getText("IGUI_BF_UI_Sperm")} ${amountInMilliliters} ml`,
 			style: "good"
 		});
-		if (this.hasItem(ITEMS.CONDOM)) {
-			const inventory = this.player.getInventory();
-			inventory.Remove(trimModuleName(ITEMS.CONDOM)); // for whichever reason the remove method doesn't work with the module.name of the item.
-			inventory.AddItem(ITEMS.CONDOM_USED);
+		const inventory = this.player.getInventory();
+		const condom = inventory.getFirstType(ITEMS.CONDOM);
+		if (condom !== undefined) {
+			if (this.condoms) {
+				this.condoms.convert();
+			} else {
+				inventory.Remove(condom);
+				inventory.AddItem(ITEMS.CONDOM_USED);
+			}
 		} else {
 			this.amount = Math.min(this.capacity, this.amount + amount);
 			this.total += amount;
