@@ -15,7 +15,8 @@ const makeUI = () => ({
 	addText: jest.fn(),
 	nextLine: jest.fn(),
 	[tabElements.image]: { setPath: jest.fn() },
-	[tabElements.level]: { setPath: jest.fn() }
+	[tabElements.level]: { setPath: jest.fn() },
+	[tabElements.amount]: { setText: jest.fn() }
 });
 
 const addSizedImage = (ui: Pick<BFTabbedUI, "addImage">) => {
@@ -48,7 +49,7 @@ describe("LactationTab", () => {
 	});
 
 	describe("build", () => {
-		it("adds boob image, title text, and level image", () => {
+		it("adds boob image, title text, level image, and milk amount", () => {
 			tab.build(ui as any, {});
 
 			expect(ui.addImage).toHaveBeenCalledWith(
@@ -62,6 +63,12 @@ describe("LactationTab", () => {
 			expect(ui.addText).toHaveBeenCalledWith(
 				tabElements.title,
 				expect.any(String),
+				undefined,
+				"Center"
+			);
+			expect(ui.addText).toHaveBeenCalledWith(
+				tabElements.amount,
+				"0 ml",
 				undefined,
 				"Center"
 			);
@@ -108,12 +115,13 @@ describe("LactationTab", () => {
 			expect((ui as any)[tabElements.level].setPath).not.toHaveBeenCalled();
 		});
 
-		it("updates breast and level images from lactation context", () => {
+		it("updates breast, level, and rounded milliliter amount from lactation context", () => {
 			const lactation = mock<Lactation>();
 			(lactation as any).images = {
 				breasts: "path/to/breasts.png",
 				level: "path/to/level.png"
 			};
+			(lactation as any).milkAmount = 0.1234;
 
 			const context: BFUITabContext = { lactation };
 			tab.update(ui as any, context);
@@ -124,6 +132,7 @@ describe("LactationTab", () => {
 			expect((ui as any)[tabElements.level].setPath).toHaveBeenCalledWith(
 				"path/to/level.png"
 			);
+			expect((ui as any)[tabElements.amount].setText).toHaveBeenCalledWith("123 ml");
 		});
 	});
 });

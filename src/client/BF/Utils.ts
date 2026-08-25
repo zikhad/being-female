@@ -1,11 +1,11 @@
 /**
- * Formats a fractional value in liters as a string in milliliters (ml).
+ * Converts a fractional value in liters to whole milliliters.
  * Rounds to the nearest integer.
  *
  * @param value - The value in liters (e.g., 0.25 for 250ml).
- * @returns The formatted string, e.g., "250 ml".
+ * @returns The rounded milliliter amount, e.g., `250`.
  */
-export const valueInMilliliters = (value: number): string => `${Math.round(value * 1000)} ml`;
+export const valueInMilliliters = (value: number): number => Math.round(value * 1000);
 /**
  * Given a percentage and an arbitrary number, returns the corresponding number between 0 and the number
  * @param percentage the percentage to be converted into an arbirary number
