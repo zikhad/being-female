@@ -6,7 +6,7 @@
  * and declares CharacterStat as a global.
  */
 
-import { Fluid } from "server/types";
+import { Fluid } from "@shared/components/FluidContainerApi";
 
 /** Opaque type representing a CharacterStat enum value (Java-backed). */
 declare type CharacterStatValue = { readonly __brand: "CharacterStatValue" };
@@ -69,7 +69,7 @@ declare global {
 		list: Record<string, ProceduralDistributionEntry>;
 	}
 
-	interface ZLBFSandboxOptions {
+	interface BFSandboxOptions {
 		PregnancyDuration?: number;
 		PregnancyRecovery?: number;
 		WombMaxCapacity?: number;
@@ -92,7 +92,7 @@ declare global {
 		isFull(): boolean;
 		isEmpty(): boolean;
 		getFreeCapacity(): number;
-		getPrimaryFluid(): Fluid
+		getPrimaryFluid(): Fluid;
 	}
 }
 
@@ -105,6 +105,8 @@ declare module "@asledgehammer/pipewrench" {
 	export namespace zombie.inventory {
 		interface InventoryItem {
 			getFluidContainer?(): FluidContainer | null;
+			/** Broadcasts authoritative mutable item fields to the owning client. */
+			syncItemFields(): void;
 		}
 
 		interface ItemContainer {
@@ -139,13 +141,13 @@ declare module "@asledgehammer/pipewrench" {
 }
 
 declare const SandboxVars: Record<string, string | number> & {
-	ZLBF?: ZLBFSandboxOptions;
+	BF?: BFSandboxOptions;
 };
 
 type ProceduralDistributionList = Record<string, ProceduralDistributionEntry | undefined>;
 
 declare const ProceduralDistributions: {
 	list: ProceduralDistributionList;
-}
+};
 
 export {};

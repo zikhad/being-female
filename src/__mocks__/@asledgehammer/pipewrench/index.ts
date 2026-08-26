@@ -1,14 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { mock } from "jest-mock-extended";
 import { Trait } from "@asledgehammer/pipewrench";
 
 export const getPlayer = jest.fn();
 export const getSpecificPlayer = jest.fn();
+export const sendClientCommand = jest.fn();
+export const sendServerCommand = jest.fn();
+export const instanceItem = jest.fn();
+export const getRandomUUID = jest.fn(() => "test-character-id");
 
 export const ZombRandFloat = (a: number, b?: number) => a;
 export const ZombRand = (a: number, b?: number) => a;
 export const isDebugEnabled = jest.fn();
+export const isClient = jest.fn(() => true);
 
 export const BodyPartType = {
 	Groin: "Groin",
@@ -68,6 +74,8 @@ export class GameTime {
 		};
 	}
 }
+
+export const getGameTime = jest.fn(() => ({ getMinutesStamp: jest.fn(() => 1) }));
 
 export class HaloTextHelper {
 	static addTextWithArrow() {}

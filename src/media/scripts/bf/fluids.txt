@@ -1,0 +1,57 @@
+module BF {
+
+    fluid HumanMilk
+    {
+        ColorReference = White,
+        DisplayName = Human Milk,
+        Categories
+        {
+            Beverage,
+        }
+        Properties
+        {
+            HungerChange = -50.0,
+            ThirstChange = -50.0,
+            Calories = 600.0,
+            Carbohydrates = 45.0,
+            Lipids = 25.0,
+            Proteins = 30.0,
+            fluReduction = 0.0,
+            painReduction = 0.0,
+            enduranceChange = 0.0,
+            foodSicknessChange = 0,
+        }
+        BlendWhiteList
+        {
+            whitelist = true,
+            categories
+            {
+                Beverage,
+            }
+        }
+    }
+    fluid Semen
+    {
+        ColorReference = LightYellow,
+        DisplayName = Semen,
+        Categories
+        {
+            Beverage,
+        }
+        Properties
+        {
+            HungerChange = -50.0,
+            ThirstChange = -3,.0,
+            Calories = 25.0,
+            Proteins = 5.0,
+        }
+        BlendWhiteList
+        {
+            whitelist = true,
+            categories
+            {
+                Beverage,
+            }
+        }
+    }
+}

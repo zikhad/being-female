@@ -1,0 +1,41 @@
+module BF {
+	model VaginalDouche {
+		mesh 		= WorldItems/VaginalDouche,
+		texture		= WorldItems/VaginalDouche,
+		scale		= 1
+	}
+	model BreastPump {
+		mesh 		= WorldItems/BreastPump,
+		texture		= WorldItems/BreastPump,
+		scale		= 1
+	}
+	
+	model Baby {
+		mesh = WorldItems/Baby_01,
+		texture = WorldItems/baby_01,
+
+		attachment Bip01_Prop1
+		{
+			offset = 0.0242 0.0270 -0.0235,
+			rotate = 177.3152 17.2140 -4.7104,
+		}
+	}
+
+	model Baby_leftarm
+	{
+		mesh = WorldItems/Baby_01_leftarm,
+		texture = WorldItems/baby_01,
+
+		attachment Bip01_Prop2
+		{
+			offset = 0.0119 0.0126 -0.0172,
+			rotate = -173.0707 -0.0781 9.9703,
+		}
+
+		attachment Bip01_Prop1
+		{
+			offset = 0.0242 0.0270 -0.0235,
+			rotate = 177.3152 17.2140 -4.7104,
+		}
+	}
+}

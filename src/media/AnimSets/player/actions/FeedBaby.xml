@@ -10,7 +10,7 @@
 	<m_Conditions>
 		<m_Name>PerformingAction</m_Name>
 		<m_Type>STRING</m_Type>
-		<m_StringValue>ZLBF.FeedBaby</m_StringValue>
+		<m_StringValue>BF.FeedBaby</m_StringValue>
 	</m_Conditions>
 	<m_Scalar></m_Scalar>
 	<m_Scalar2></m_Scalar2>

@@ -1,8 +1,3 @@
 {
-    "DisplayNameContraceptive": "Contraceptive",
-    "DisplayNameCondom": "Condom",
-    "DisplayNameCondomUsed": "Used Condom",
-    "CustomContextMenuCondomUsed": "Drink",
-    "DisplayNameCondomBox": "Condom Box",
-    "DisplayNameBaby": "Baby"
+	"CustomContextMenuCondomUsed": "Drink"
 }

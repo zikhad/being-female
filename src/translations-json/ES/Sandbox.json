@@ -1,0 +1,13 @@
+{
+	"Sandbox_BF": "(BF) Being Female",
+	"Sandbox_BF_Milk_Capacity": "Capacidad de leche (L)",
+	"Sandbox_BF_Milk_Capacity_tooltip": "La cantidad máxima de leche que pueden contener los senos, en ml.",
+	"Sandbox_BF_Milk_Expiration": "Caducidad de la leche",
+	"Sandbox_BF_Milk_Expiration_tooltip": "Número de días que faltan para que finalice la lactancia si no se utiliza.",
+	"Sandbox_BF_Pregnancy_Duration": "Duración del embarazo",
+	"Sandbox_BF_Pregnancy_Duration_tooltip": "Número de días en el juego que durará el embarazo",
+	"Sandbox_BF_Pregnancy_Recovery": "Tiempo de recuperación del embarazo",
+	"Sandbox_BF_Pregnancy_Recovery_tooltip": "¿Cuántos días faltan para que se reanude el ciclo menstrual?",
+	"Sandbox_BF_Womb_Max_Capacity": "Capacidad del útero (L)",
+	"Sandbox_BF_Womb_Max_Capacity_tooltip": "La cantidad máxima de esperma que puede contener el útero."
+}

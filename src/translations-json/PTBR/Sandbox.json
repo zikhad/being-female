@@ -1,13 +1,13 @@
 {
-    "Sandbox_ZLBF": "(ZLBF) Being Female",
-    "Sandbox_ZLBF_Milk_Capacity": "Capacidade de Leite (L)",
-    "Sandbox_ZLBF_Milk_Capacity_tooltip": "A quantidade máxima de leite que os seios podem conter em ml",
-    "Sandbox_ZLBF_Milk_Expiration": "Expiração do Leite",
-    "Sandbox_ZLBF_Milk_Expiration_tooltip": "O número de dias para a lactação expirar se não for usada",
-    "Sandbox_ZLBF_Pregnancy_Duration": "Duração da gravidez",
-    "Sandbox_ZLBF_Pregnancy_Duration_tooltip": "Quantos dias vai durar a gravidez",
-    "Sandbox_ZLBF_Pregnancy_Recovery": "Tempo de recuperação da gravidez",
-    "Sandbox_ZLBF_Pregnancy_Recovery_tooltip": "Quantos dias antes do reinício do ciclo menstrual?",
-    "Sandbox_ZLBF_Womb_Max_Capacity": "Capacidade do útero (L)",
-    "Sandbox_ZLBF_Womb_Max_Capacity_tooltip": "A quantidade máxima de esperma que o útero pode conter"
+	"Sandbox_BF": "(BF) Being Female",
+	"Sandbox_BF_Milk_Capacity": "Capacidade de Leite (L)",
+	"Sandbox_BF_Milk_Capacity_tooltip": "A quantidade máxima de leite que os seios podem conter em ml",
+	"Sandbox_BF_Milk_Expiration": "Expiração do Leite",
+	"Sandbox_BF_Milk_Expiration_tooltip": "O número de dias para a lactação expirar se não for usada",
+	"Sandbox_BF_Pregnancy_Duration": "Duração da gravidez",
+	"Sandbox_BF_Pregnancy_Duration_tooltip": "Quantos dias vai durar a gravidez",
+	"Sandbox_BF_Pregnancy_Recovery": "Tempo de recuperação da gravidez",
+	"Sandbox_BF_Pregnancy_Recovery_tooltip": "Quantos dias antes do reinício do ciclo menstrual?",
+	"Sandbox_BF_Womb_Max_Capacity": "Capacidade do útero (L)",
+	"Sandbox_BF_Womb_Max_Capacity_tooltip": "A quantidade máxima de esperma que o útero pode conter"
 }
