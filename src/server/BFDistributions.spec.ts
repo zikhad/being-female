@@ -42,9 +42,9 @@ describe("BFDistributions.ts", () => {
 	);
 
 	beforeEach(() => {
-		(globalThis as any).ProceduralDistributions = {
-			list: {}
-		} as ProceduralDistributionRegistry;
+		Object.assign(globalThis, {
+			ProceduralDistributions: { list: {} } as ProceduralDistributionRegistry
+		});
 	});
 	it("injects item/chance pairs into existing procedural distributions", () => {
 		const tableNames = Array.from(
