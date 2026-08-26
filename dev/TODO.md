@@ -1,7 +1,7 @@
 # Upcoming features
 
 -   [x] Add multiplayer support ([`a494277`](https://github.com/zikhad/being-female/commit/a494277b713bd7b72568791915727b96b765c654))
--   [ ] [Balance lactation mechanics](LACTATION_REBALANCE_PLAN.md)
+-   [x] [Balance lactation mechanics](LACTATION_REBALANCE_PLAN.md) ([`66ff5ec`](https://github.com/zikhad/being-female/commit/66ff5ec8d6963e91f97a32742304c5c55b1cd2be))
     -   Make lactation consume (and be affected by) water and thirsty levels
     -   make lactation be affected by hunger (more hunger less production)
     -   make lactation consume extra calories (pregnancy already do that, maybe it is possible to generify)
