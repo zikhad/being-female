@@ -2,7 +2,6 @@
 local MODULE_NAME = "BFZomboLustAnimation"
 
 local INCLUDED_TAGS = {
-    Fertilization = true,
     Pregnancy = true
 }
 
@@ -87,7 +86,8 @@ local function patchAnimationAction()
             originalStart(self, ...)
         end
 
-        if isAllowedAction(self) then
+        self.__BFWombAnimationActive = isAllowedAction(self)
+        if self.__BFWombAnimationActive then
             emitAnimationStart(self)
         end
     end
@@ -97,27 +97,37 @@ local function patchAnimationAction()
             originalUpdate(self, ...)
         end
 
-        if isAllowedAction(self) then
+        if self.__BFWombAnimationActive then
             emitAnimationUpdate(self)
         end
     end
 
     function ISZomboDesireAnimationAction:perform(...)
+        local shouldStopBFAnimation = self and self.__BFWombAnimationActive
+        if self then
+            self.__BFWombAnimationActive = false
+        end
+
         if originalPerform then
             originalPerform(self, ...)
         end
 
-        if self and self.character and self.character:isFemale() then
+        if shouldStopBFAnimation then
             emitAnimationStop()
         end
     end
 
     function ISZomboDesireAnimationAction:stop(...)
+        local shouldStopBFAnimation = self and self.__BFWombAnimationActive
+        if self then
+            self.__BFWombAnimationActive = false
+        end
+
         if originalStop then
             originalStop(self, ...)
         end
 
-        if self and self.character and self.character:isFemale() then
+        if shouldStopBFAnimation then
             emitAnimationStop()
         end
     end
