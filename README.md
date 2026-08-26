@@ -73,6 +73,21 @@ The mod adds several female-specific traits that modify gameplay:
 -   **Birthing Sequences**: Animated labor sequence
 -   **Dynamic Rendering**: Animation frames change based on game state
 
+### 🎒 Items
+
+BF introduces some items. check table below to check how rare they are
+
+| Item           | Intended availability | Base-game comparison                                                         |
+| -------------- | --------------------- | ---------------------------------------------------------------------------- |
+| Condom         | Uncommon              | Slightly harder to find than adhesive bandages                               |
+| Condom box     | Uncommon              | About as common as sleeping tablets                                          |
+| Contraceptive  | Uncommon              | Harder to find than painkillers                                              |
+| Lactaid        | Uncommon              | About as common as beta blockers                                             |
+| Breast pump    | Rare                  | Roughly comparable to first-aid kits                                         |
+| Vaginal douche | Rare                  | Comparable to antibiotics                                                    |
+| Used condom    | Uncommon trash loot   | Primarily found in trash or produced                                         |
+| Baby           | Not world loot        | -                                                                            |
+
 ### 🔧 Debug Tools
 
 Built-in debugging utilities for testing and development:

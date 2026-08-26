@@ -150,7 +150,7 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 	},
 	{
 		tableNames: TABLE_GROUPS.trashBins,
-		items: [{ itemType: "BF.CondomUsed", chance: 1 }]
+		items: [{ itemType: "BF.CondomUsed", chance: 4 }]
 	}
 ];
 
