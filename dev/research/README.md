@@ -37,6 +37,7 @@ This directory preserves reviewed reverse-engineering findings that affect BF de
 | [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
 | [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
 | [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-24   |
+| [Build 42 dynamic Lua removal](build42-dynamic-lua-removal.md)                              | Partially verified | 42.20.4      | Shared, client, server      | 2026-08-26   |
 
 ## Remaining Multiplayer Validation And Hardening
 
