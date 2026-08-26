@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0](https://github.com/zikhad/being-female/compare/v1.12.1...v2.0.0) (2026-08-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* BF replaces all active ZLBF code, content, network, and persistence namespaces. Only legacy ZLBF custom event strings remain supported.
+* **state:** reset authoritative schema
+
+### Features
+
+* **birth:** allocate authoritative birth operations ([88b06ea](https://github.com/zikhad/being-female/commit/88b06ea0ae0ab828865fedd1c1c07e22eb89e536))
+* **birth:** complete authoritative births ([8ee3610](https://github.com/zikhad/being-female/commit/8ee3610d1c4daf0b1433210cd08de9828195c1c7))
+* **birth:** request allocation during labor ([2069e20](https://github.com/zikhad/being-female/commit/2069e201490add26b2a72f2751f85a93b54a00e5))
+* **lactation:** rebalance demand and production ([66ff5ec](https://github.com/zikhad/being-female/commit/66ff5ec8d6963e91f97a32742304c5c55b1cd2be))
+* **multiplayer:** initial multiplayer structure ([19feb12](https://github.com/zikhad/being-female/commit/19feb12ddd1d4537de6920b04715a5a907bd37a0))
+* **multiplayer:** persist womb contents ([0840276](https://github.com/zikhad/being-female/commit/084027682af594fbd2ac5235f66db982698d2d1e))
+* **multiplayer:** persist womb recovery state ([381cc90](https://github.com/zikhad/being-female/commit/381cc9025fea44c2da887a908cad8df36e627d21))
+* **multiplayer:** slice 2 - authoritative state management ([ca272ed](https://github.com/zikhad/being-female/commit/ca272ed0a991ca86f2aacfc975a90e95ab6c8ab9))
+* **multiplayer:** synchronize authoritative recipe state ([5143998](https://github.com/zikhad/being-female/commit/51439980d070706878d97675aecb9997ec4fae5c))
+* **multiplayer:** synchronize debug pregnancy state ([f155a73](https://github.com/zikhad/being-female/commit/f155a73754930691a939d46dfcad81feabf4d55b))
+* **pregnancy:** add authoritative persisted domain state ([152fc1c](https://github.com/zikhad/being-female/commit/152fc1ccfe2b90a0d619b7bf876e8e467c118ac8))
+* **pregnancy:** persist client progression updates ([644f597](https://github.com/zikhad/being-female/commit/644f597792cca3ca0b935f93911997fb4634fe4f))
+* **pregnancy:** persist normal conception ([96a6993](https://github.com/zikhad/being-female/commit/96a69932c6e516a8eb8658f162f7b5c6e4f23478))
+* **state:** add character-scoped identity ([b4a7cb7](https://github.com/zikhad/being-female/commit/b4a7cb78be47832437a70c1518a60a55eb9ef383))
+* **translations:** add Spanish locale ([fe486bd](https://github.com/zikhad/being-female/commit/fe486bda0195c0d3f1f43f577571293c6fd4de3e))
+* **ui:** show lactation amount in milliliters ([5e6d64d](https://github.com/zikhad/being-female/commit/5e6d64d71d5b4e950ab262282aed0c6a8d7f65be))
+* **validation:** add number and boolean schema validators ([a7fb861](https://github.com/zikhad/being-female/commit/a7fb861b009ebff3485caddd13bbad2ebafb553d))
+
+
+### Bug Fixes
+
+* **balance:** rebalance items distributions ([846a892](https://github.com/zikhad/being-female/commit/846a892d41990ae307194838ab50f1ce89ba481a))
+* **balance:** reduce condom loot frequency ([0a0d8d0](https://github.com/zikhad/being-female/commit/0a0d8d0792f77845d77fb4e3e61ea56cfd669c60))
+* **balance:** tune BF item distributions ([9a2a45d](https://github.com/zikhad/being-female/commit/9a2a45dc5db990d858c67a60ffa0dec0161e6521))
+* **birth:** cancel pending birth on character death ([1daf2cc](https://github.com/zikhad/being-female/commit/1daf2cc38b8b6136a9bb1994f846d07e65b256c1))
+* **birth:** recover interrupted birth presentation ([0b3c795](https://github.com/zikhad/being-female/commit/0b3c795a15fcdecc3fa845ed08d00a1580a26e6b))
+* **build:** replace removed Lua compilation calls ([13ec0df](https://github.com/zikhad/being-female/commit/13ec0dfe54ea78196e48e6dbb44f6e434482c248))
+* **client:** register notifications and isolate lactation state ([24e75c0](https://github.com/zikhad/being-female/commit/24e75c05d64d2cc295b46868366f264e3848e31b))
+* **client:** repair BF runtime event and pregnancy lookups ([5722c3d](https://github.com/zikhad/being-female/commit/5722c3d56c41ceb9c2e80cc57d81e905fff4b67d))
+* **integration:** scope ZomboLust animation lifecycle ([c76771c](https://github.com/zikhad/being-female/commit/c76771ce9dab304891f63c58bfd522c7493793b6))
+* **multiplayer:** create used condoms on server ([9b9540b](https://github.com/zikhad/being-female/commit/9b9540b16023b7bc1f217989388716429c9848b8))
+* **multiplayer:** emit queued pregnancy presentation ([a487ca4](https://github.com/zikhad/being-female/commit/a487ca46534928e1c9c63502df6b06b5c4f9b4dc))
+* **multiplayer:** recover birth completion delivery ([8bf1faf](https://github.com/zikhad/being-female/commit/8bf1faf3c32ecd65f2eb4a4bab7f8a024d6e374c))
+* **pregnancy:** use CharacterStat food sickness ([7d498fc](https://github.com/zikhad/being-female/commit/7d498fce7284b9001bac1ea6d4c6e855e9cc39d8))
+* **sync:** preserve single-player gameplay paths ([b798829](https://github.com/zikhad/being-female/commit/b7988298b62b59fbff47f42c3c2c3bcb390e2da0))
+* **traits:** prevent duplicate trait additions ([a4d6ebb](https://github.com/zikhad/being-female/commit/a4d6ebb6ab5bca68c91343347aa709a89ee99515))
+* **translations:** add Build 42 item names ([3c53b55](https://github.com/zikhad/being-female/commit/3c53b55b474a3056be219bb762c1ed8595ff25b6))
+
+
+* rename ZomboLust Being Female to Being Female ([4bdcb58](https://github.com/zikhad/being-female/commit/4bdcb582f8ada0f25aed6f0b136c17767288e008))
+* **state:** reset authoritative schema ([77e10ed](https://github.com/zikhad/being-female/commit/77e10ed709300d86b7ebf75d216bde65bce571f3))
+
 ### [1.12.1](https://github.com/zikhad/zwbf-pipewrench/compare/v1.12.0...v1.12.1) (2026-08-04)
 
 
