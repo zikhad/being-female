@@ -88,8 +88,8 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 2 },
 			{ itemType: "BF.Lactaid", chance: 1 },
-			{ itemType: "BF.Condom", chance: 2 },
-			{ itemType: "BF.CondomBox", chance: 0.5 },
+			{ itemType: "BF.Condom", chance: 6 },
+			{ itemType: "BF.CondomBox", chance: 4 },
 			{ itemType: "BF.VaginalDouche", chance: 0.5 }
 		]
 	},
@@ -102,10 +102,15 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 	},
 	{
 		tableNames: [...TABLE_GROUPS.bedroomDressers, ...TABLE_GROUPS.bedroomSideTables],
-		items: [
-			{ itemType: "BF.Condom", chance: 4 },
-			{ itemType: "BF.CondomBox", chance: 0.5 }
-		]
+		items: [{ itemType: "BF.Condom", chance: 6 }]
+	},
+	{
+		tableNames: TABLE_GROUPS.bedroomDressers,
+		items: [{ itemType: "BF.CondomBox", chance: 1 }]
+	},
+	{
+		tableNames: TABLE_GROUPS.bedroomSideTables,
+		items: [{ itemType: "BF.CondomBox", chance: 2 }]
 	},
 	{
 		tableNames: TABLE_GROUPS.bedroomSideTables,
@@ -115,14 +120,14 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 		tableNames: TABLE_GROUPS.hospital,
 		items: [
 			{ itemType: "BF.Contraceptive", chance: 4 },
-			{ itemType: "BF.Lactaid", chance: 2 },
-			{ itemType: "BF.Condom", chance: 4 }
+			{ itemType: "BF.Lactaid", chance: 4 },
+			{ itemType: "BF.Condom", chance: 6 },
+			{ itemType: "BF.CondomBox", chance: 8 }
 		]
 	},
 	{
 		tableNames: TABLE_GROUPS.hospitalRoom,
 		items: [
-			{ itemType: "BF.CondomBox", chance: 1 },
 			{ itemType: "BF.BreastPump", chance: 1 },
 			{ itemType: "BF.VaginalDouche", chance: 1 }
 		]
@@ -138,8 +143,8 @@ const BF_DISTRIBUTION_GROUPS: readonly DistributionGroup[] = [
 	{
 		tableNames: TABLE_GROUPS.toiletriesStore,
 		items: [
-			{ itemType: "BF.Condom", chance: 2 },
-			{ itemType: "BF.CondomBox", chance: 2 },
+			{ itemType: "BF.Condom", chance: 6 },
+			{ itemType: "BF.CondomBox", chance: 4 },
 			{ itemType: "BF.VaginalDouche", chance: 1 }
 		]
 	},
