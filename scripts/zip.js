@@ -6,10 +6,11 @@ const { copyFolder, getInfo, distPath } = require("./utils");
 const archiver = require("archiver");
 
 /**
- * Creates a easy to share zip
+ * Creates a shareable ZIP whose root directory is the installable mod folder.
+ *
+ * @returns {Promise<void>} Resolves after the archive is finalized and its temporary files are removed.
  */
 const createZip = async () => {
-
 	if (!(await fs.pathExists(distPath()))) {
 		console.error("Error: dist path does not exist. Please run the build script first.");
 		process.exit(1);
@@ -18,7 +19,7 @@ const createZip = async () => {
 	const { name, zipname } = getInfo();
 	const tempPath = path.join(os.tmpdir(), `${name}-temp`);
 
-	await fs.ensureDir(tempPath);	
+	await fs.ensureDir(tempPath);
 
 	await copyFolder(distPath(), tempPath);
 
@@ -26,7 +27,7 @@ const createZip = async () => {
 	const archive = archiver("zip", { zlib: { level: 9 } });
 
 	archive.pipe(output);
-	archive.directory(tempPath, false);
+	archive.directory(tempPath, name);
 	await archive.finalize();
 
 	await fs.remove(tempPath);
