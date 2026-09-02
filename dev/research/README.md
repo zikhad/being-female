@@ -39,6 +39,14 @@ This directory preserves reviewed reverse-engineering findings that affect BF de
 | [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-24   |
 | [Build 42 dynamic Lua removal](build42-dynamic-lua-removal.md)                              | Partially verified | 42.20.4      | Shared, client, server      | 2026-08-26   |
 
+## Implementation Plans
+
+These documents track development work and are not Project Zomboid runtime evidence.
+
+| Plan                                                                         | Status      | Scope                     | Last updated |
+| ---------------------------------------------------------------------------- | ----------- | ------------------------- | ------------ |
+| [Animation creator web app](animation-creator-webapp-implementation-plan.md) | Implemented | Local development tooling | 2026-09-02   |
+
 ## Remaining Multiplayer Validation And Hardening
 
 The shared protocol, hosted/co-op command and snapshot path, authoritative persistence, reversible domain publication, authoritative recipes, and resumable birth lifecycle are implemented and have been exercised in single-player and hosted/co-op multiplayer. Remaining work is:
