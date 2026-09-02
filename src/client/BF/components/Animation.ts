@@ -112,6 +112,12 @@ export class Animation {
 				fullnessSupport: ["empty"]
 			},
 			{
+				name: "intercourse-v7",
+				steps: createArray(50),
+				loop: 1,
+				fullnessSupport: ["empty"]
+			},
+			{
 				name: "pregnant",
 				steps: [...repeatArray([0, 1, 2, 3, 2, 1], 20), ...createArray(12)],
 				loop: 1,
