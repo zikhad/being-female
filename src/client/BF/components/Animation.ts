@@ -96,6 +96,11 @@ export class Animation {
 			},
 			{
 				name: "intercourse-v4",
+				steps: createArray(8),
+				loop: 20
+			},
+			{
+				name: "intercourse-v5",
 				steps: createArray(30),
 				loop: 20,
 				fullnessSupport: ["empty"]
