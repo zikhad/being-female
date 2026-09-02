@@ -27,7 +27,8 @@ const getArgs = () => {
 const createTranslationZip = async () => {
 	const { locale } = getArgs();
 	const { id, name, version } = getInfo();
-	const localePackagePath = path.join(process.cwd(), "dist", `${name} - ${locale}`);
+	const localePackageName = `${name} - ${locale}`;
+	const localePackagePath = path.join(process.cwd(), "dist", localePackageName);
 
 	if (!(await fs.pathExists(localePackagePath))) {
 		console.error(
@@ -49,7 +50,7 @@ const createTranslationZip = async () => {
 		const archive = archiver("zip", { zlib: { level: 9 } });
 
 		archive.pipe(output);
-		archive.directory(tempPath, false);
+		archive.directory(tempPath, localePackageName);
 		await archive.finalize();
 
 		console.log(`Translation zip file created successfully: ${zipname}`);
