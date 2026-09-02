@@ -19,7 +19,7 @@ module BF
         Cost = -2,
         UIName = UI_Trait_Fertile,
         UIDescription = UI_Trait_Fertile_Description,
-        MutuallyExclusiveTraits = bf:hyperfertile,
+        MutuallyExclusiveTraits = bf:infertile;bf:hyperfertile,
     }
 
     character_trait_definition bf:hyperfertile
@@ -30,6 +30,7 @@ module BF
         Cost = -6,
         UIName = UI_Trait_Hyperfertile,
         UIDescription = UI_Trait_Hyperfertile_Description,
+        MutuallyExclusiveTraits = bf:infertile;bf:fertile,
     }
 
     character_trait_definition bf:pregnancy
