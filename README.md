@@ -77,16 +77,16 @@ The mod adds several female-specific traits that modify gameplay:
 
 BF introduces some items. check table below to check how rare they are
 
-| Item           | Intended availability | Base-game comparison                                                         |
-| -------------- | --------------------- | ---------------------------------------------------------------------------- |
-| Condom         | Uncommon              | Slightly harder to find than adhesive bandages                               |
-| Condom box     | Uncommon              | About as common as sleeping tablets                                          |
-| Contraceptive  | Uncommon              | Harder to find than painkillers                                              |
-| Lactaid        | Uncommon              | About as common as beta blockers                                             |
-| Breast pump    | Rare                  | Roughly comparable to first-aid kits                                         |
-| Vaginal douche | Rare                  | Comparable to antibiotics                                                    |
-| Used condom    | Uncommon trash loot   | Primarily found in trash or produced                                         |
-| Baby           | Not world loot        | -                                                                            |
+| Item           | Intended availability | Base-game comparison                           |
+| -------------- | --------------------- | ---------------------------------------------- |
+| Condom         | Uncommon              | Slightly harder to find than adhesive bandages |
+| Condom box     | Uncommon              | About as common as sleeping tablets            |
+| Contraceptive  | Uncommon              | Harder to find than painkillers                |
+| Lactaid        | Uncommon              | About as common as beta blockers               |
+| Breast pump    | Rare                  | Roughly comparable to first-aid kits           |
+| Vaginal douche | Rare                  | Comparable to antibiotics                      |
+| Used condom    | Uncommon trash loot   | Primarily found in trash or produced           |
+| Baby           | Not world loot        | -                                              |
 
 ### 🔧 Debug Tools
 
@@ -346,6 +346,35 @@ If you are not familiar with Node.js, the short version is:
 -   `npm run check`: checks formatting and lint rules
 -   `npm run lint`: rewrites formatting and runs eslint
 -   `npm run watch:build`: rebuilds on file changes and writes output to `~/Zomboid/mods` (only `.ts` files)
+-   `npm run animation-creator`: starts the local browser tool for creating animation frame packages
+-   `npm run extract-images -- <input>`: extracts numbered PNG frames from a GIF or video in the terminal
+
+### Generating Animation Frames
+
+The animation creator turns `.gif`, `.mp4`, `.mov`, or `.webm` media into the zero-based PNG sequence used by BF. Install [FFmpeg](https://ffmpeg.org/) so both `ffmpeg` and `ffprobe` are available on your `PATH`, then install the repository dependencies with `npm install`.
+
+Run the browser tool:
+
+```bash
+npm run animation-creator
+```
+
+Open the localhost URL printed in the terminal. Upload or drop a source, configure its trim, FPS, dimensions, fit or fill behavior, and generate a preview. Output dimensions default to 276×276. The preview plays the exact PNG frames that will be downloaded. The resulting ZIP contains a copy-ready animation directory, TypeScript and Lua examples, a settings manifest, and installation instructions; the tool never modifies `Animation.ts` or files under `src/`.
+
+Full and empty layouts apply only to intercourse animations. A single intercourse animation may be plain, full-only, empty-only, or contain paired full and empty sources. Paired sources share their output transform, may use separate trims, and must produce the same number of frames. Birth and fertilization animations always use one plain source.
+
+For terminal automation, use:
+
+```bash
+npm run extract-images -- path/to/source.gif \
+  --width 256 \
+  --height 256 \
+  --fps 5 \
+  --mode fit \
+  --output path/to/frames
+```
+
+Use both `--width` and `--height`, or omit both to keep the source dimensions. Other options include `--starttime HH:MM:SS`, `--endtime HH:MM:SS`, and `--position center`. See `npm run extract-images -- --help` for the complete CLI reference.
 
 ### Important Notes
 
