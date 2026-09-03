@@ -15,8 +15,10 @@ import { LactationPublisher } from "@client/components/network/LactationPublishe
 import { isClient } from "@asledgehammer/pipewrench";
 import { installLegacyEventCompatibility } from "@client/LegacyEventCompatibility";
 import { CondomPublisher } from "@client/components/network/CondomPublisher";
+import { animationRegistry } from "@client/components/AnimationRegistry";
 
 installLegacyEventCompatibility();
+animationRegistry.install();
 
 /** Whether this Lua context is a multiplayer client that requires command synchronization. */
 const multiplayerClient = typeof isClient === "function" && isClient();
