@@ -3,6 +3,9 @@ import os from "node:os";
 import fs from "fs-extra";
 import { execa } from "execa";
 import sharp from "sharp";
+import imageOptimization from "../utils/imageOptimization.js";
+
+const { PNG_COMPRESSION_OPTIONS } = imageOptimization;
 
 export const SUPPORTED_EXTENSIONS = [".mp4", ".mov", ".webm", ".gif"];
 export const POSITIONS = [
@@ -140,7 +143,9 @@ export async function extractFrames({ input, outputDir, maxFrames = Infinity, ..
 					background: { r: 0, g: 0, b: 0, alpha: 0 },
 					position: options.position
 				});
-			await pipeline.png().toFile(path.join(processedDir, `${index}.png`));
+			await pipeline
+				.png(PNG_COMPRESSION_OPTIONS)
+				.toFile(path.join(processedDir, `${index}.png`));
 		}
 		const existing = (await fs.readdir(outputDir)).filter(file => /^\d+\.png$/.test(file));
 		await Promise.all(existing.map(file => fs.remove(path.join(outputDir, file))));
