@@ -53,6 +53,7 @@ main {
 	padding-bottom: 60px;
 }
 .panel {
+	min-width: 0;
 	background: color-mix(in srgb, var(--panel) 94%, transparent);
 	border: 1px solid var(--edge);
 	border-radius: 18px;
@@ -156,6 +157,51 @@ button:disabled {
 .checks input {
 	width: auto;
 }
+.playback-editor {
+	margin-top: 22px;
+	padding-top: 20px;
+	border-top: 1px solid var(--edge);
+}
+.section-heading.compact {
+	align-items: end;
+}
+.section-heading.compact h3,
+.section-heading.compact p {
+	margin: 0;
+}
+.section-heading.compact label {
+	min-width: 220px;
+}
+.segments {
+	display: grid;
+	gap: 10px;
+	margin: 16px 0 12px;
+}
+.segment {
+	display: grid;
+	grid-template-columns: auto minmax(130px, 1fr) repeat(3, minmax(90px, 0.65fr)) auto;
+	gap: 10px;
+	align-items: end;
+	padding: 12px;
+	border: 1px solid var(--edge);
+	border-radius: 12px;
+	background: #19161b;
+}
+.segment-number {
+	align-self: center;
+	color: var(--accent2);
+	font-weight: 800;
+}
+.segment-steps {
+	grid-column: span 3;
+}
+.segment-actions {
+	display: flex;
+	gap: 6px;
+}
+.segment-actions button {
+	padding-inline: 10px;
+}
 .trim {
 	padding: 14px;
 	border: 1px solid var(--edge);
@@ -253,8 +299,24 @@ button:disabled {
 .tabs {
 	margin-top: 20px;
 }
+.install-guide {
+	margin-top: 24px;
+	padding: 18px 20px;
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.025);
+}
+.install-guide ol {
+	margin: 10px 0 0;
+	padding-left: 22px;
+}
+.install-guide li + li {
+	margin-top: 10px;
+}
 .code-wrap {
 	position: relative;
+	min-width: 0;
+	max-width: 100%;
 }
 .code-wrap > button {
 	position: absolute;
@@ -262,7 +324,10 @@ button:disabled {
 	top: 10px;
 }
 pre {
-	overflow: auto;
+	width: 100%;
+	max-width: 100%;
+	overflow-x: auto;
+	overflow-y: auto;
 	background: #100e11;
 	padding: 22px;
 	border-radius: 12px;
@@ -308,5 +373,13 @@ pre {
 	}
 	.stage {
 		min-height: 280px;
+	}
+	.segment {
+		grid-template-columns: 1fr 1fr;
+	}
+	.segment-number,
+	.segment-steps,
+	.segment-actions {
+		grid-column: 1 / -1;
 	}
 }

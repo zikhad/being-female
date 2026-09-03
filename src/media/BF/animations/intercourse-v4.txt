@@ -1,0 +1,7 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=intercourse-v4
+category=intercourse
+frameCount=8
+loop=20
+

@@ -1,42 +1,16 @@
 import { ZombRandBetween, getTexture } from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { Womb } from "@client/components/Womb";
-import { createArray, percentageToNumber, repeatArray } from "@client/Utils";
+import { percentageToNumber } from "@client/Utils";
 import { ITEMS, BFEventsEnum } from "@constants";
+import {
+	ANIMATIONS,
+	AnimationSetting,
+	AnimationSettings,
+	animationRegistry
+} from "@client/components/AnimationRegistry";
 
-/** External Identifiers of the type of animation to play. */
-export enum ANIMATIONS {
-	INTERCOURSE = "intercourse",
-	BIRTH = "birth",
-	FERTILIZATION = "fertilization"
-}
-
-/**
- * Defines the frame steps and optional loop count for a given animation.
- */
-type AnimationSetting = {
-	/** The name of the animation variant. */
-	name: string;
-	/** The sequence of frame indices for the animation. */
-	steps: number[];
-	/** The number of times the animation should loop (default is 1). */
-	loop?: number;
-	/** Indicates if the animation has separate frames for "full" vs "empty" states. */
-	fullnessSupport?: ("full" | "empty")[];
-	/** Indicates if this animation variant is for birth scenes. */
-	birth?: boolean;
-	/** Indicates if this animation variant is for fertilization scenes. */
-	fertilization?: boolean;
-	/** Indicates if this animation variant is for pregnant scenes. */
-	pregnancy?: boolean;
-	/** Indicates if this animation variant is for scenes with a condom. */
-	condom?: boolean;
-	/** The base path for the animation frames (default is "media/ui/animation"). */
-	path?: string;
-};
-
-/** Maps each animation key to its variant settings. */
-type AnimationSettings = Record<ANIMATIONS, AnimationSetting[]>;
+export { ANIMATIONS, AnimationSetting } from "@client/components/AnimationRegistry";
 
 /**
  * Payload sent when an animation event fires.
@@ -68,185 +42,10 @@ export class Animation {
 	/** The current animation settings, shared across all consumers. */
 	public static animation: AnimationSetting | undefined;
 
-	/** Default animation settings for each animation type. */
-	static readonly defaultAnimations: AnimationSettings = {
-		[ANIMATIONS.INTERCOURSE]: [
-			{
-				name: "intercourse",
-				steps: [...repeatArray([0, 1, 2, 3, 4, 3, 2, 1], 20), ...createArray(10)],
-				loop: 1,
-				fullnessSupport: ["empty", "full"]
-			},
-			{
-				name: "intercourse-v1",
-				steps: createArray(171),
-				loop: 1,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "intercourse-v2",
-				steps: createArray(13),
-				loop: 20,
-				fullnessSupport: ["full"]
-			},
-			{
-				name: "intercourse-v3",
-				steps: createArray(29),
-				loop: 20
-			},
-			{
-				name: "intercourse-v4",
-				steps: createArray(8),
-				loop: 20
-			},
-			{
-				name: "intercourse-v5",
-				steps: createArray(30),
-				loop: 20,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "intercourse-v6",
-				steps: createArray(67),
-				loop: 1,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "intercourse-v7",
-				steps: createArray(50),
-				loop: 1,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "intercourse-v8",
-				steps: createArray(82),
-				loop: 1,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "pregnant",
-				steps: [...repeatArray([0, 1, 2, 3, 2, 1], 20), ...createArray(12)],
-				loop: 1,
-				pregnancy: true
-			},
-			{
-				name: "pregnant-v1",
-				steps: createArray(15),
-				loop: 20,
-				pregnancy: true
-			},
-			{
-				name: "pregnant-v2",
-				steps: createArray(3),
-				loop: 20,
-				pregnancy: true
-			},
-			{
-				name: "condom",
-				steps: createArray(7),
-				loop: 4,
-				condom: true
-			},
-			{
-				name: "condom-v1",
-				steps: createArray(30),
-				loop: 20,
-				condom: true,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "condom-v2",
-				steps: createArray(24),
-				loop: 20,
-				condom: true,
-				fullnessSupport: ["empty"]
-			},
-			{
-				name: "condom-v3",
-				steps: createArray(9),
-				loop: 20,
-				fullnessSupport: ["empty"],
-				condom: true
-			},
-			{
-				name: "condom-v4",
-				steps: createArray(9),
-				loop: 20,
-				fullnessSupport: ["empty"],
-				condom: true
-			}
-		],
-		[ANIMATIONS.BIRTH]: [
-			{
-				name: "birth",
-				steps: createArray(12),
-				loop: 1,
-				birth: true
-			},
-			{
-				name: "birth-v1",
-				steps: createArray(20),
-				loop: 1,
-				birth: true
-			},
-			{
-				name: "birth-v2",
-				steps: createArray(29),
-				loop: 1,
-				birth: true
-			},
-			{
-				name: "birth-v3",
-				steps: createArray(76),
-				loop: 1,
-				birth: true
-			},
-			{
-				name: "birth-v4",
-				steps: createArray(76),
-				loop: 1,
-				birth: true
-			}
-		],
-		[ANIMATIONS.FERTILIZATION]: [
-			{
-				name: "fertilization",
-				steps: createArray(29),
-				loop: 1,
-				fertilization: true
-			},
-			{
-				name: "fertilization-v1",
-				steps: createArray(31),
-				loop: 1,
-				fertilization: true
-			},
-			{
-				name: "fertilization-v2",
-				steps: createArray(26),
-				loop: 1,
-				fertilization: true
-			},
-			{
-				name: "fertilization-v3",
-				steps: createArray(32),
-				loop: 1,
-				fertilization: true
-			},
-			{
-				name: "fertilization-v4",
-				steps: createArray(13),
-				loop: 1,
-				fertilization: true
-			},
-			{
-				name: "fertilization-v5",
-				steps: createArray(17),
-				loop: 1,
-				fertilization: true
-			}
-		]
-	};
+	/** Manifest-loaded animation settings currently available for each animation type. */
+	static readonly availableAnimations: AnimationSettings = animationRegistry.animations;
+	/** Compatibility alias retained for integrations that previously read the default arrays. */
+	static readonly defaultAnimations: AnimationSettings = Animation.availableAnimations;
 
 	/**
 	 * @param womb - The {@link Womb} instance used to read reproductive state (amount, capacity, pregnancy, active items).
@@ -361,13 +160,17 @@ export class Animation {
 	 */
 	onAnimationStart(animation: ANIMATIONS | AnimationSetting) {
 		if (typeof animation === "string") {
-			const animationVariants = Animation.defaultAnimations[animation];
+			const animationVariants = Animation.availableAnimations[animation];
 			if (!animationVariants || animationVariants.length === 0) {
 				Animation.animation = undefined;
 				return;
 			}
 
 			const selectableVariants = this.filterVariants(animationVariants);
+			if (selectableVariants.length === 0) {
+				Animation.animation = undefined;
+				return;
+			}
 			const variantIndex = ZombRandBetween(0, selectableVariants.length - 1);
 
 			Animation.animation = selectableVariants[variantIndex] ?? selectableVariants[0];

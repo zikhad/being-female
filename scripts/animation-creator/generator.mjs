@@ -1,45 +1,32 @@
 import { fullnessSupport } from "./config.mjs";
 
-const quoteList = values => values.map(value => `"${value}"`).join(", ");
-
-/** Generate a default Animation.ts variant object for the selected category. */
-export function generateTypeScript(config, frameCount) {
+/** Generate a BF animation manifest for data-driven registration or replacement. */
+export function generateManifest(config, frameCount, steps) {
 	const lines = [
-		`{`,
-		`\tname: "${config.name}",`,
-		`\tsteps: createArray(${frameCount}),`,
-		`\tloop: ${config.loop},`
+		"# Place this file under media/BF/animations.",
+		"# A later-loaded mod using the same relative manifest path replaces the definition.",
+		"version=1",
+		`name=${config.name}`,
+		`category=${config.category}`,
+		config.playback?.mode === "custom"
+			? `steps=${steps.join(",")}`
+			: `frameCount=${frameCount}`,
+		`loop=${config.loop}`
 	];
 	const fullness = fullnessSupport(config.category, config.layout);
-	if (fullness.length) lines.push(`\tfullnessSupport: [${quoteList(fullness)}],`);
-	if (config.category === "birth") lines.push("\tbirth: true,");
-	if (config.category === "fertilization") lines.push("\tfertilization: true,");
-	if (config.pregnancy) lines.push("\tpregnancy: true,");
-	if (config.condom) lines.push("\tcondom: true,");
-	if (config.outputPath !== "media/ui/animation") lines.push(`\tpath: "${config.outputPath}",`);
-	lines[lines.length - 1] = lines[lines.length - 1].replace(/,$/, "");
-	lines.push("}");
-	return `// Add this object to Animation.defaultAnimations[ANIMATIONS.${config.category.toUpperCase()}].\n${lines.join("\n")}`;
-}
-
-/** Generate a Lua custom-animation event example for another mod. */
-export function generateLua(config, frameCount) {
-	const fullness = fullnessSupport(config.category, config.layout);
-	const fields = [
-		`  name = "${config.name}",`,
-		`  steps = createArray(${frameCount}),`,
-		`  loop = ${config.loop},`
-	];
-	if (fullness.length) fields.push(`  fullnessSupport = { ${quoteList(fullness)} },`);
-	if (config.category === "birth") fields.push("  birth = true,");
-	if (config.category === "fertilization") fields.push("  fertilization = true,");
-	if (config.pregnancy) fields.push("  pregnancy = true,");
-	if (config.condom) fields.push("  condom = true,");
-	fields.push(`  path = "${config.outputPath}"`);
-	return `-- Example utility: BF does not provide createArray as a global Lua function.\n-- It builds the zero-based frame indexes expected by AnimationSetting.steps.\nlocal function createArray(length)\n  local steps = {}\n  for index = 0, length - 1 do\n    steps[#steps + 1] = index\n  end\n  return steps\nend\n\n-- BF applies the AnimationSetting state flags before accepting this custom animation.\ntriggerEvent("BFWombAnimationStart", {\n${fields.join("\n")}\n})\n\n-- Call during the action update and stop lifecycles:\ntriggerEvent("BFWombAnimationUpdate", { delta = action:getJobDelta(), duration = action.maxTime })\ntriggerEvent("BFWombAnimationStop")`;
+	if (fullness.length) lines.push(`fullness=${fullness.join(",")}`);
+	if (config.pregnancy) lines.push("pregnancy=true");
+	if (config.condom) lines.push("condom=true");
+	if (config.outputPath !== "media/ui/animation") lines.push(`path=${config.outputPath}`);
+	return `${lines.join("\n")}\n`;
 }
 
 /** Build the human-readable instructions bundled with an exported animation. */
-export function generateReadme(config, frameCount) {
-	return `# ${config.name}\n\nGenerated animation with ${frameCount} frame(s) at ${config.fps} FPS.\n\nCopy the \`${config.name}\` directory into your mod's \`${config.outputPath}\` directory. Use \`examples/animation.ts\` when registering a built-in BF variant, or \`examples/animation.lua\` when triggering it from another mod. BF applies the custom setting's state flags, including \`fullnessSupport\`, before starting it.\n`;
+export function generateReadme(config, frameCount, steps) {
+	const assetPath = `${config.outputPath}/${config.name}`;
+	const playbackDescription =
+		config.playback?.mode === "custom"
+			? ` Its manifest expands those images into ${steps.length} playback steps using the custom sequence configured in the creator.`
+			: " Its manifest plays every frame once in order.";
+	return `# ${config.name}\n\nThis package contains a BF animation with ${frameCount} frame(s), extracted at ${config.fps} FPS.${playbackDescription}\n\n## Install\n\n1. Open the target mod's \`42\` directory (for example, \`mod-name/42\`).\n2. Merge this package's \`media\` directory into \`mod-name/42/media\`.\n3. Keep the manifest at \`media/BF/animations/${config.name}.txt\`. BF discovers it when the game starts.\n4. Keep the PNG frames under \`${assetPath}/\`.\n5. Look for \`[BF][AnimationRegistry]\` in \`console.txt\` to confirm manifest loading.\n\n### Replacing animations\n\nA mod can replace a default BF animation. Make sure that mod loads after BF, then give its manifest the same filename as the BF animation being replaced. The replacement manifest must describe the complete animation.\n\n## Package Contents\n\n- \`media/BF/animations/${config.name}.txt\` — complete animation definition.\n- \`${assetPath}/\` — zero-based PNG frame sequence.\n- \`animation-creator.json\` — extraction settings and source filenames for reference only.\n`;
 }

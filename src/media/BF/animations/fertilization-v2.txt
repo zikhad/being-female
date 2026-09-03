@@ -1,0 +1,7 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=fertilization-v2
+category=fertilization
+frameCount=26
+loop=1
+
