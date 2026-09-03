@@ -349,6 +349,10 @@ export class Animation {
 		return Math.max(1, index);
 	}
 
+	/**
+	 * Selects and preloads a named or custom animation that matches the current womb state.
+	 * @param animation Built-in animation key or concrete custom animation settings.
+	 */
 	onAnimationStart(animation: ANIMATIONS | AnimationSetting) {
 		if (typeof animation === "string") {
 			const animationVariants = Animation.defaultAnimations[animation];
@@ -362,7 +366,7 @@ export class Animation {
 
 			Animation.animation = selectableVariants[variantIndex] ?? selectableVariants[0];
 		} else {
-			Animation.animation = animation;
+			Animation.animation = this.filterVariants([animation])[0];
 		}
 
 		if (Animation.animation !== undefined) {

@@ -180,6 +180,30 @@ describe("Animation", () => {
 			});
 		});
 
+		it("should accept a custom animation whose fullness support matches the womb", () => {
+			const animationInstance = new Animation(makeWomb({ amount: 0, capacity: 1 }));
+
+			animationInstance.onAnimationStart({
+				name: "empty-only",
+				steps: [0, 1],
+				fullnessSupport: ["empty"]
+			});
+
+			expect(Animation.animation?.name).toBe("empty-only");
+		});
+
+		it("should reject a custom animation whose fullness support does not match the womb", () => {
+			const animationInstance = new Animation(makeWomb({ amount: 1, capacity: 1 }));
+
+			animationInstance.onAnimationStart({
+				name: "empty-only",
+				steps: [0, 1],
+				fullnessSupport: ["empty"]
+			});
+
+			expect(Animation.animation).toBeUndefined();
+		});
+
 		it("should leave animation undefined when no variant matches current flags", () => {
 			const womb = makeWomb(
 				{ pregnancyData: { progress: 0.6 } as PregnancyData },
