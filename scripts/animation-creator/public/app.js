@@ -7,7 +7,6 @@ const state = {
 	frame: 0,
 	slot: "plain",
 	timer: null,
-	tab: "typescript",
 	stale: true
 };
 const slotsFor = () =>
@@ -151,7 +150,7 @@ async function generate() {
 		state.slot = state.preview.slots[0];
 		setStatus(`Preview ready: ${state.preview.frameCount} frames.`, "success");
 		renderPreview();
-		renderCode();
+		renderIntegration();
 		for (const id of ["play", "restart", "previous", "next", "copy", "download"])
 			$(id).disabled = false;
 	} catch (error) {
@@ -216,16 +215,20 @@ function resetPreview() {
 	$("previewMeta").textContent = "No preview generated.";
 	$("counter").textContent = "0 / 0";
 	$("variantSwitch").hidden = true;
+	renderIntegration();
 	for (const id of ["play", "restart", "previous", "next", "copy", "download"])
 		$(id).disabled = true;
 }
 
-function renderCode() {
-	const source =
-		state.preview?.[state.tab === "typescript" ? "typeScript" : "lua"] ||
-		"Generate a preview to create integration examples.";
-	const language = state.tab === "typescript" ? "typescript" : "lua";
-	$("code").innerHTML = Prism.highlight(source, Prism.languages[language], language);
+function renderIntegration() {
+	const source = state.preview?.manifest || "Generate a preview to create the manifest.";
+	$("code").innerHTML = Prism.highlight(source, Prism.languages.ini, "ini");
+	$("installGuide").hidden = !state.preview;
+	if (!state.preview) return;
+	$("manifestPath").textContent = state.preview.manifestPath;
+	$("assetPath").textContent = `${state.preview.assetPath}/`;
+	$("packageManifestPath").textContent = state.preview.manifestPath;
+	$("packageAssetPath").textContent = `${state.preview.assetPath}/`;
 }
 
 $("generate").onclick = generate;
@@ -260,13 +263,6 @@ $("download").onclick = () => {
 	if (!state.preview || state.stale) return;
 	location.href = `/api/jobs/${state.jobId}/download?hash=${state.preview.hash}`;
 };
-for (const tab of document.querySelectorAll("[data-tab]"))
-	tab.onclick = () => {
-		state.tab = tab.dataset.tab;
-		for (const item of document.querySelectorAll("[data-tab]"))
-			item.classList.toggle("active", item === tab);
-		renderCode();
-	};
 $("category").onchange = () => {
 	const intercourse = $("category").value === "intercourse";
 	$("layoutLabel").hidden = !intercourse;

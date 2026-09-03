@@ -127,28 +127,58 @@
 			<section class="panel">
 				<div class="section-heading">
 					<div>
-						<h2>4. Integration</h2>
-						<p>Copy an example or download the complete package.</p>
+						<h2>4. Install with a manifest</h2>
+						<p>The ZIP is a copy-ready Project Zomboid mod fragment.</p>
 					</div>
 					<button id="download" class="primary" disabled>Download ZIP</button>
 				</div>
-				<div class="tabs">
-					<button data-tab="typescript" class="active">TypeScript</button
-					><button data-tab="lua">Lua</button>
-				</div>
+				<h3>Generated manifest</h3>
 				<div class="code-wrap">
 					<button id="copy" disabled>Copy</button>
-					<pre><code id="code">Generate a preview to create integration examples.</code></pre>
+					<pre><code id="code" class="language-ini">Generate a preview to create the manifest.</code></pre>
 				</div>
-				<p class="note">
-					BF applies pregnancy, condom, and fullness state filters to custom Lua animation
-					settings before starting them.
-				</p>
+				<div id="installGuide" class="install-guide" hidden>
+					<h3>Install</h3>
+					<ol>
+						<li>
+							Open the target mod's <code>42</code> directory (for example,
+							<code>mod-name/42</code>).
+						</li>
+						<li>
+							Merge the downloaded package's <code>media</code> directory into
+							<code>mod-name/42/media</code>.
+						</li>
+						<li>Keep the manifest at <code id="manifestPath"></code>.</li>
+						<li>Keep the PNG frames under <code id="assetPath"></code>.</li>
+						<li>
+							Look for <code>[BF][AnimationRegistry]</code> in
+							<code>console.txt</code> to confirm manifest loading.
+						</li>
+					</ol>
+					<h3>Replacing animations</h3>
+					<p>
+						A mod can replace a default BF animation. Make sure it loads after BF, then
+						give its manifest the same filename as the BF animation being replaced. The
+						manifest must describe the complete animation.
+					</p>
+					<h3>Package contents</h3>
+					<ul>
+						<li>
+							<code id="packageManifestPath"></code> — complete animation definition.
+						</li>
+						<li>
+							<code id="packageAssetPath"></code> — zero-based PNG frame sequence.
+						</li>
+						<li>
+							<code>animation-creator.json</code> — extraction settings and source
+							filenames for reference only.
+						</li>
+					</ul>
+				</div>
 			</section>
 		</main>
 		<script src="/vendor/prism.js"></script>
-		<script src="/vendor/prism-typescript.js"></script>
-		<script src="/vendor/prism-lua.js"></script>
+		<script src="/vendor/prism-ini.js"></script>
 		<script type="module" src="/app.js"></script>
 	</body>
 </html>

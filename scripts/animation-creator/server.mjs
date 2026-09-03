@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import archiver from "archiver";
 import { extractFrames, probeMedia, SUPPORTED_EXTENSIONS } from "./extractor.mjs";
 import { hashConfiguration, normalizeCreatorConfig, requiredSlots } from "./config.mjs";
-import { generateLua, generateReadme, generateTypeScript } from "./generator.mjs";
+import { generateManifest, generateReadme } from "./generator.mjs";
 
 const HOST = "127.0.0.1";
 const START_PORT = Number(process.env.ANIMATION_CREATOR_PORT ?? 4173);
@@ -17,8 +17,7 @@ const PUBLIC_DIR = path.join(import.meta.dirname, "public");
 const PRISM_DIR = path.join(import.meta.dirname, "..", "..", "node_modules", "prismjs");
 const VENDOR_FILES = {
 	"/vendor/prism.js": path.join(PRISM_DIR, "prism.js"),
-	"/vendor/prism-typescript.js": path.join(PRISM_DIR, "components/prism-typescript.min.js"),
-	"/vendor/prism-lua.js": path.join(PRISM_DIR, "components/prism-lua.min.js")
+	"/vendor/prism-ini.js": path.join(PRISM_DIR, "components/prism-ini.min.js")
 };
 const JOBS_ROOT = await fs.mkdtemp(path.join(os.tmpdir(), "bf-animation-creator-"));
 const jobs = new Map();
@@ -158,8 +157,10 @@ async function generatePreview(response, job, rawConfig) {
 			width: results[slots[0]].width,
 			height: results[slots[0]].height,
 			fps: results[slots[0]].fps,
-			typeScript: generateTypeScript(job.preview.config, frameCount),
-			lua: generateLua(job.preview.config, frameCount)
+			manifest: generateManifest(job.preview.config, frameCount),
+			manifestPath: `media/BF/animations/${job.preview.config.name}.txt`,
+			assetPath: `${job.preview.config.outputPath}/${job.preview.config.name}`,
+			layout: job.preview.config.layout
 		});
 	} catch (error) {
 		await fs.remove(previewRoot);
@@ -200,11 +201,13 @@ async function downloadZip(response, job, requestedHash) {
 	archive.on("error", error => response.destroy(error));
 	archive.pipe(response);
 	for (const slot of slots) {
-		const destination = slot === "plain" ? config.name : `${config.name}/${slot}`;
+		const base = `${config.outputPath}/${config.name}`;
+		const destination = slot === "plain" ? base : `${base}/${slot}`;
 		archive.directory(path.join(job.directory, "preview", slot), destination);
 	}
-	archive.append(generateTypeScript(config, frameCount), { name: "examples/animation.ts" });
-	archive.append(generateLua(config, frameCount), { name: "examples/animation.lua" });
+	archive.append(generateManifest(config, frameCount), {
+		name: `media/BF/animations/${config.name}.txt`
+	});
 	archive.append(generateReadme(config, frameCount), { name: "README.md" });
 	archive.append(
 		JSON.stringify({ generatorVersion: 1, config, frameCount, sources: sourceNames }, null, 2),

@@ -34,8 +34,12 @@ export function normalizeCreatorConfig(input = {}) {
 	if (!Number.isInteger(loop) || loop < 1 || loop > 1000)
 		throw new Error("Loop count must be an integer between 1 and 1000.");
 	const outputPath = String(input.outputPath ?? "media/ui/animation").replace(/^\/+|\/+$/g, "");
-	if (!outputPath || outputPath.includes("..") || !/^[a-zA-Z0-9_./-]+$/.test(outputPath))
-		throw new Error("Output path is invalid.");
+	if (
+		!outputPath.startsWith("media/ui/") ||
+		outputPath.includes("..") ||
+		!/^[a-zA-Z0-9_./-]+$/.test(outputPath)
+	)
+		throw new Error("Output path must be a safe relative path under media/ui.");
 	const sources = {};
 	for (const slot of requiredSlots(category, layout)) {
 		const trim = input.sources?.[slot] ?? {};
