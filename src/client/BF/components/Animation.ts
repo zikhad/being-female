@@ -219,6 +219,12 @@ export class Animation {
 				steps: createArray(13),
 				loop: 1,
 				fertilization: true
+			},
+			{
+				name: "fertilization-v5",
+				steps: createArray(17),
+				loop: 1,
+				fertilization: true
 			}
 		]
 	};
