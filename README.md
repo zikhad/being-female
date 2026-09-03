@@ -252,7 +252,8 @@ Examples of animation paths:
 -   `media/ui/animation/custom-animation/empty/0.png`
 -   `media/ui/animation/custom-animation/full/0.png`
 -   `media/ui/animation/custom-animation/0.png`
-    **NOTE:** `birth` and `fertilization` animations will bypass conditions, meaning `pregnancy` and `condom` only apply for `pregnancy` or default animations. (when none of them are defined)
+
+Custom settings and predefined variants are both checked against `pregnancy`, `condom`, and `fullnessSupport` before they start. Fullness folders are intended for intercourse animations. Settings marked as `birth` or `fertilization` bypass those state conditions because those sequences are always available when explicitly triggered.
 
 #### `BFWombAnimationUpdate`: Triggers a womb animation update
 

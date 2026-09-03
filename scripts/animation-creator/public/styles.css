@@ -270,6 +270,25 @@ pre {
 	color: #f1c5da;
 	line-height: 1.55;
 }
+.token.comment {
+	color: #8f9a8c;
+	font-style: italic;
+}
+.token.keyword,
+.token.boolean {
+	color: #ff7ab2;
+	font-weight: 700;
+}
+.token.string {
+	color: #b6e88b;
+}
+.token.number {
+	color: #e9b872;
+}
+.token.punctuation,
+.token.operator {
+	color: #a9b7d0;
+}
 .note {
 	font-size: 0.82rem;
 }

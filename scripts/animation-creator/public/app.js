@@ -219,10 +219,13 @@ function resetPreview() {
 	for (const id of ["play", "restart", "previous", "next", "copy", "download"])
 		$(id).disabled = true;
 }
+
 function renderCode() {
-	$("code").textContent =
+	const source =
 		state.preview?.[state.tab === "typescript" ? "typeScript" : "lua"] ||
 		"Generate a preview to create integration examples.";
+	const language = state.tab === "typescript" ? "typescript" : "lua";
+	$("code").innerHTML = Prism.highlight(source, Prism.languages[language], language);
 }
 
 $("generate").onclick = generate;

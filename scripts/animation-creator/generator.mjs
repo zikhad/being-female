@@ -24,25 +24,22 @@ export function generateTypeScript(config, frameCount) {
 
 /** Generate a Lua custom-animation event example for another mod. */
 export function generateLua(config, frameCount) {
-	const steps = Array.from({ length: frameCount }, (_, index) => index).join(", ");
 	const fullness = fullnessSupport(config.category, config.layout);
 	const fields = [
 		`  name = "${config.name}",`,
-		`  steps = { ${steps} },`,
+		`  steps = createArray(${frameCount}),`,
 		`  loop = ${config.loop},`
 	];
 	if (fullness.length) fields.push(`  fullnessSupport = { ${quoteList(fullness)} },`);
+	if (config.category === "birth") fields.push("  birth = true,");
+	if (config.category === "fertilization") fields.push("  fertilization = true,");
+	if (config.pregnancy) fields.push("  pregnancy = true,");
+	if (config.condom) fields.push("  condom = true,");
 	fields.push(`  path = "${config.outputPath}"`);
-	const stateWarning = ["full", "empty"].includes(config.layout)
-		? `-- IMPORTANT: this package only contains ${config.layout}/ frames. Trigger it only when the womb is ${config.layout}.\n`
-		: "";
-	return `-- Custom settings are selected directly by this caller; BF default-variant filtering does not apply.\n${stateWarning}triggerEvent("BFWombAnimationStart", {\n${fields.join("\n")}\n})\n\n-- Call during the action update and stop lifecycles:\ntriggerEvent("BFWombAnimationUpdate", { delta = action:getJobDelta(), duration = action.maxTime })\ntriggerEvent("BFWombAnimationStop")`;
+	return `-- Example utility: BF does not provide createArray as a global Lua function.\n-- It builds the zero-based frame indexes expected by AnimationSetting.steps.\nlocal function createArray(length)\n  local steps = {}\n  for index = 0, length - 1 do\n    steps[#steps + 1] = index\n  end\n  return steps\nend\n\n-- BF applies the AnimationSetting state flags before accepting this custom animation.\ntriggerEvent("BFWombAnimationStart", {\n${fields.join("\n")}\n})\n\n-- Call during the action update and stop lifecycles:\ntriggerEvent("BFWombAnimationUpdate", { delta = action:getJobDelta(), duration = action.maxTime })\ntriggerEvent("BFWombAnimationStop")`;
 }
 
 /** Build the human-readable instructions bundled with an exported animation. */
 export function generateReadme(config, frameCount) {
-	const stateWarning = ["full", "empty"].includes(config.layout)
-		? `\nThis is a ${config.layout}-only intercourse package. External Lua callers must trigger it only when the womb is ${config.layout}; direct custom settings bypass BF's default variant filtering.\n`
-		: "";
-	return `# ${config.name}\n\nGenerated animation with ${frameCount} frame(s) at ${config.fps} FPS.\n\nCopy the \`${config.name}\` directory into your mod's \`${config.outputPath}\` directory. Use \`examples/animation.ts\` when registering a built-in BF variant, or \`examples/animation.lua\` when triggering it from another mod.\n${stateWarning}`;
+	return `# ${config.name}\n\nGenerated animation with ${frameCount} frame(s) at ${config.fps} FPS.\n\nCopy the \`${config.name}\` directory into your mod's \`${config.outputPath}\` directory. Use \`examples/animation.ts\` when registering a built-in BF variant, or \`examples/animation.lua\` when triggering it from another mod. BF applies the custom setting's state flags, including \`fullnessSupport\`, before starting it.\n`;
 }

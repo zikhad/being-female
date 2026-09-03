@@ -14,6 +14,12 @@ const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 const MAX_FRAMES = 2000;
 const JOB_TTL_MS = 60 * 60 * 1000;
 const PUBLIC_DIR = path.join(import.meta.dirname, "public");
+const PRISM_DIR = path.join(import.meta.dirname, "..", "..", "node_modules", "prismjs");
+const VENDOR_FILES = {
+	"/vendor/prism.js": path.join(PRISM_DIR, "prism.js"),
+	"/vendor/prism-typescript.js": path.join(PRISM_DIR, "components/prism-typescript.min.js"),
+	"/vendor/prism-lua.js": path.join(PRISM_DIR, "components/prism-lua.min.js")
+};
 const JOBS_ROOT = await fs.mkdtemp(path.join(os.tmpdir(), "bf-animation-creator-"));
 const jobs = new Map();
 
@@ -208,6 +214,14 @@ async function downloadZip(response, job, requestedHash) {
 }
 
 async function serveStatic(response, pathname) {
+	if (VENDOR_FILES[pathname]) {
+		response.writeHead(200, {
+			"content-type": "text/javascript; charset=utf-8",
+			"cache-control": "private, max-age=3600"
+		});
+		fs.createReadStream(VENDOR_FILES[pathname]).pipe(response);
+		return true;
+	}
 	const file = pathname === "/" ? "index.html" : pathname.slice(1);
 	if (!["index.html", "app.js", "styles.css"].includes(file)) return false;
 	const types = {
