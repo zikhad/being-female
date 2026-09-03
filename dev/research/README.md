@@ -38,6 +38,7 @@ This directory preserves reviewed reverse-engineering findings that affect BF de
 | [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
 | [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-24   |
 | [Build 42 dynamic Lua removal](build42-dynamic-lua-removal.md)                              | Partially verified | 42.20.4      | Shared, client, server      | 2026-08-26   |
+| [External animation manifests](external-animation-manifests.md)                             | Partially verified | 42.20.4 / 42.x | Client, SP, MP clients     | 2026-09-03   |
 
 ## Implementation Plans
 
