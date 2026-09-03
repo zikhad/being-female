@@ -362,6 +362,8 @@ npm run animation-creator
 
 Open the localhost URL printed in the terminal. Upload or drop a source, configure its trim, FPS, dimensions, fit or fill behavior, and generate a preview. Output dimensions default to 276×276. The preview plays the exact PNG frames that will be downloaded. Step 4 displays the complete BF manifest and installation paths. The resulting ZIP contains a copy-ready `media` directory, the manifest, extraction metadata, and matching installation instructions; the tool never modifies `Animation.ts` or files under `src/`.
 
+Playback defaults to every extracted frame in order. Switch to a custom sequence to combine forward, reverse, ping-pong, held-frame, or explicit frame-list segments and repeat each segment independently. The preview follows the expanded sequence and reports both the playback-step position and underlying PNG frame. Custom sequences are exported through the manifest's `steps` field; simple sequences continue using `frameCount`.
+
 Full and empty layouts apply only to intercourse animations. A single intercourse animation may be plain, full-only, empty-only, or contain paired full and empty sources. Paired sources share their output transform, may use separate trims, and must produce the same number of frames. Birth and fertilization animations always use one plain source.
 
 ### Data-Driven Animation Manifests

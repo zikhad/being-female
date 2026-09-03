@@ -3,6 +3,7 @@ const state = {
 	jobId: null,
 	uploaded: {},
 	trims: {},
+	playbackSegments: [{ pattern: "forward", start: 0, end: "", repeats: 1, steps: "" }],
 	preview: null,
 	frame: 0,
 	slot: "plain",
@@ -17,6 +18,18 @@ const slotsFor = () =>
 			: [$("layout").value];
 const title = slot =>
 	slot === "plain" ? "Animation source" : `${slot[0].toUpperCase()}${slot.slice(1)} source`;
+const patternLabels = {
+	forward: "Forward",
+	reverse: "Reverse",
+	pingpong: "Ping-pong",
+	hold: "Hold",
+	custom: "Custom steps"
+};
+const escapeHtml = value =>
+	String(value).replace(
+		/[&<>"]/g,
+		character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[character]
+	);
 
 async function api(url, options) {
 	const response = await fetch(url, options);
@@ -41,6 +54,8 @@ function markStale() {
 	if (!state.preview) return;
 	state.stale = true;
 	$("download").disabled = true;
+	$("sequenceSummary").textContent =
+		"Playback settings changed. The visible preview is stale; generate it again.";
 	setStatus("Settings changed. Generate a fresh preview before downloading.");
 }
 
@@ -81,6 +96,62 @@ function renderSources() {
 			state.trims[input.dataset.trim][input.dataset.kind] = input.value;
 			markStale();
 		});
+}
+
+function renderPlaybackEditor() {
+	const custom = $("playbackMode").value === "custom";
+	$("sequenceEditor").hidden = !custom;
+	if (!custom) {
+		$("sequenceSummary").textContent = "All extracted frames will play once in order.";
+		return;
+	}
+	$("segments").innerHTML = state.playbackSegments
+		.map((segment, index) => {
+			const customPattern = segment.pattern === "custom";
+			const hold = segment.pattern === "hold";
+			return `<div class="segment" data-segment="${index}">
+				<span class="segment-number">${index + 1}</span>
+				<label>Pattern<select data-field="pattern">
+					${["forward", "reverse", "pingpong", "hold", "custom"]
+						.map(
+							pattern =>
+								`<option value="${pattern}" ${pattern === segment.pattern ? "selected" : ""}>${patternLabels[pattern]}</option>`
+						)
+						.join("")}
+				</select></label>
+				${customPattern ? `<label class="segment-steps">Frame steps<input data-field="steps" value="${escapeHtml(segment.steps)}" placeholder="0,1,2,3,2,1"></label>` : `<label>Start<input data-field="start" type="number" min="0" step="1" value="${segment.start}"></label>${hold ? "" : `<label>End<input data-field="end" type="number" min="0" step="1" value="${segment.end}" placeholder="Last frame"></label>`}`}
+				<label>Repeats<input data-field="repeats" type="number" min="1" max="1000" step="1" value="${segment.repeats}"></label>
+				<div class="segment-actions"><button type="button" data-move="up" title="Move up">↑</button><button type="button" data-move="down" title="Move down">↓</button><button type="button" data-remove title="Remove">Remove</button></div>
+			</div>`;
+		})
+		.join("");
+	for (const row of document.querySelectorAll("[data-segment]")) {
+		const index = Number(row.dataset.segment);
+		for (const input of row.querySelectorAll("[data-field]"))
+			input.addEventListener("input", () => {
+				state.playbackSegments[index][input.dataset.field] = input.value;
+				markStale();
+				if (input.dataset.field === "pattern") renderPlaybackEditor();
+			});
+		for (const button of row.querySelectorAll("[data-move]"))
+			button.onclick = () => {
+				const target = button.dataset.move === "up" ? index - 1 : index + 1;
+				if (target < 0 || target >= state.playbackSegments.length) return;
+				[state.playbackSegments[index], state.playbackSegments[target]] = [
+					state.playbackSegments[target],
+					state.playbackSegments[index]
+				];
+				renderPlaybackEditor();
+				markStale();
+			};
+		row.querySelector("[data-remove]").onclick = () => {
+			if (state.playbackSegments.length === 1) return;
+			state.playbackSegments.splice(index, 1);
+			renderPlaybackEditor();
+			markStale();
+		};
+	}
+	$("sequenceSummary").textContent = "Generate a preview to validate and expand this sequence.";
 }
 
 async function upload(slot, file) {
@@ -129,6 +200,10 @@ function config() {
 		outputPath: $("outputPath").value,
 		pregnancy: $("pregnancy").checked,
 		condom: $("condom").checked,
+		playback: {
+			mode: $("playbackMode").value,
+			segments: state.playbackSegments
+		},
 		sources: trims
 	};
 }
@@ -139,16 +214,29 @@ async function generate() {
 		$("generate").disabled = true;
 		setStatus("Extracting frames. FFmpeg may take a moment…");
 		stop();
+		const requestedConfig = config();
 		const response = await api(`/api/jobs/${state.jobId}/preview`, {
 			method: "POST",
 			headers: { "content-type": "application/json" },
-			body: JSON.stringify(config())
+			body: JSON.stringify(requestedConfig)
 		});
 		state.preview = await response.json();
+		if (!Array.isArray(state.preview.steps)) {
+			if (requestedConfig.playback.mode === "custom")
+				throw new Error("Invalid preview response.");
+			state.preview.steps = Array.from(
+				{ length: state.preview.frameCount },
+				(_, index) => index
+			);
+		}
+		state.preview.stepCount = state.preview.steps.length;
 		state.stale = false;
 		state.frame = 0;
 		state.slot = state.preview.slots[0];
-		setStatus(`Preview ready: ${state.preview.frameCount} frames.`, "success");
+		setStatus(
+			`Preview ready: ${state.preview.frameCount} PNG frames · ${state.preview.stepCount} playback steps.`,
+			"success"
+		);
 		renderPreview();
 		renderIntegration();
 		for (const id of ["play", "restart", "previous", "next", "copy", "download"])
@@ -162,18 +250,23 @@ async function generate() {
 }
 
 function frameUrl() {
-	return `/api/jobs/${state.jobId}/frames/${state.slot}/${state.frame}?hash=${state.preview.hash}`;
+	const sourceFrame = state.preview.steps[state.frame];
+	return `/api/jobs/${state.jobId}/frames/${state.slot}/${sourceFrame}?hash=${state.preview.hash}`;
 }
 function showFrame() {
 	if (!state.preview) return;
 	$("previewImage").src = frameUrl();
 	$("previewImage").style.display = "block";
 	$("emptyPreview").hidden = true;
-	$("counter").textContent = `${state.frame + 1} / ${state.preview.frameCount}`;
+	const sourceFrame = state.preview.steps[state.frame];
+	$("counter").textContent =
+		`Step ${state.frame + 1} / ${state.preview.stepCount} · PNG ${sourceFrame} / ${state.preview.frameCount - 1}`;
 }
 function renderPreview() {
 	$("previewMeta").textContent =
-		`${state.preview.width}×${state.preview.height} · ${state.preview.frameCount} frames · ${state.preview.fps} FPS`;
+		`${state.preview.width}×${state.preview.height} · ${state.preview.frameCount} PNG frames · ${state.preview.stepCount} playback steps · ${state.preview.fps} FPS`;
+	$("sequenceSummary").textContent =
+		`${state.preview.stepCount} playback steps using ${state.preview.frameCount} extracted PNG frames.`;
 	const switcher = $("variantSwitch");
 	switcher.hidden = state.preview.slots.length < 2;
 	switcher.innerHTML = state.preview.slots
@@ -201,7 +294,7 @@ function play() {
 	$("play").textContent = "Pause";
 	state.timer = setInterval(
 		() => {
-			state.frame = (state.frame + 1) % state.preview.frameCount;
+			state.frame = (state.frame + 1) % state.preview.stepCount;
 			showFrame();
 		},
 		1000 / (state.preview.fps * speed)
@@ -215,6 +308,10 @@ function resetPreview() {
 	$("previewMeta").textContent = "No preview generated.";
 	$("counter").textContent = "0 / 0";
 	$("variantSwitch").hidden = true;
+	$("sequenceSummary").textContent =
+		$("playbackMode").value === "simple"
+			? "All extracted frames will play once in order."
+			: "Generate a preview to validate and expand this sequence.";
 	renderIntegration();
 	for (const id of ["play", "restart", "previous", "next", "copy", "download"])
 		$(id).disabled = true;
@@ -240,12 +337,12 @@ $("restart").onclick = () => {
 };
 $("previous").onclick = () => {
 	stop();
-	state.frame = (state.frame - 1 + state.preview.frameCount) % state.preview.frameCount;
+	state.frame = (state.frame - 1 + state.preview.stepCount) % state.preview.stepCount;
 	showFrame();
 };
 $("next").onclick = () => {
 	stop();
-	state.frame = (state.frame + 1) % state.preview.frameCount;
+	state.frame = (state.frame + 1) % state.preview.stepCount;
 	showFrame();
 };
 $("speed").onchange = () => {
@@ -279,9 +376,19 @@ $("layout").onchange = () => {
 	renderSources();
 	markStale();
 };
+$("playbackMode").onchange = () => {
+	renderPlaybackEditor();
+	markStale();
+};
+$("addSegment").onclick = () => {
+	state.playbackSegments.push({ pattern: "forward", start: 0, end: "", repeats: 1, steps: "" });
+	renderPlaybackEditor();
+	markStale();
+};
 for (const element of document.querySelectorAll(
 	"input:not([type=file]), select:not(#speed):not(#category):not(#layout)"
 ))
 	element.addEventListener("input", markStale);
 renderSources();
+renderPlaybackEditor();
 ensureJob().catch(error => setStatus(error.message, "error"));

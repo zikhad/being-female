@@ -5,7 +5,12 @@ import crypto from "node:crypto";
 import fs from "fs-extra";
 import archiver from "archiver";
 import { extractFrames, probeMedia, SUPPORTED_EXTENSIONS } from "./extractor.mjs";
-import { hashConfiguration, normalizeCreatorConfig, requiredSlots } from "./config.mjs";
+import {
+	expandPlayback,
+	hashConfiguration,
+	normalizeCreatorConfig,
+	requiredSlots
+} from "./config.mjs";
 import { generateManifest, generateReadme } from "./generator.mjs";
 
 const HOST = "127.0.0.1";
@@ -142,22 +147,26 @@ async function generatePreview(response, job, rawConfig) {
 				`Paired sources must have equal frame counts. Full produced ${results.full.frameCount}; empty produced ${results.empty.frameCount}.`
 			);
 		const frameCount = counts[0];
+		const steps = expandPlayback(config.playback, frameCount);
 		job.preview = {
 			hash,
 			config: { ...config, fps: results[slots[0]].fps },
 			slots,
 			results,
 			frameCount,
+			steps,
 			sourceNames
 		};
 		json(response, 200, {
 			hash,
 			frameCount,
+			stepCount: steps.length,
+			steps,
 			slots,
 			width: results[slots[0]].width,
 			height: results[slots[0]].height,
 			fps: results[slots[0]].fps,
-			manifest: generateManifest(job.preview.config, frameCount),
+			manifest: generateManifest(job.preview.config, frameCount, steps),
 			manifestPath: `media/BF/animations/${job.preview.config.name}.txt`,
 			assetPath: `${job.preview.config.outputPath}/${job.preview.config.name}`,
 			layout: job.preview.config.layout
@@ -205,10 +214,10 @@ async function downloadZip(response, job, requestedHash) {
 		const destination = slot === "plain" ? base : `${base}/${slot}`;
 		archive.directory(path.join(job.directory, "preview", slot), destination);
 	}
-	archive.append(generateManifest(config, frameCount), {
+	archive.append(generateManifest(config, frameCount, job.preview.steps), {
 		name: `media/BF/animations/${config.name}.txt`
 	});
-	archive.append(generateReadme(config, frameCount), { name: "README.md" });
+	archive.append(generateReadme(config, frameCount, job.preview.steps), { name: "README.md" });
 	archive.append(
 		JSON.stringify({ generatorVersion: 1, config, frameCount, sources: sourceNames }, null, 2),
 		{ name: "animation-creator.json" }
