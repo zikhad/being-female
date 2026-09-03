@@ -187,6 +187,12 @@ export class Animation {
 				steps: createArray(76),
 				loop: 1,
 				birth: true
+			},
+			{
+				name: "birth-v4",
+				steps: createArray(76),
+				loop: 1,
+				birth: true
 			}
 		],
 		[ANIMATIONS.FERTILIZATION]: [
