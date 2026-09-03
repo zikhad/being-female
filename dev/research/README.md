@@ -28,17 +28,17 @@ This directory preserves reviewed reverse-engineering findings that affect BF de
 
 ## Index
 
-| Topic                                                                                       | Status             | Build        | Scope                       | Last updated |
-| ------------------------------------------------------------------------------------------- | ------------------ | ------------ | --------------------------- | ------------ |
-| [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md)             | Partially verified | 42.x         | Client, server, shared      | 2026-08-04   |
-| [Build 42 multiplayer command contract](build42-multiplayer-command-contract.md)            | Partially verified | 42.x         | Shared, multiplayer         | 2026-08-22   |
-| [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Partially verified | 42.12 / 42.x | Server, multiplayer         | 2026-08-22   |
-| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Partially verified | 42.x         | Client, server, multiplayer | 2026-08-22   |
-| [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
-| [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-22   |
-| [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x         | Client, server, SP, MP      | 2026-08-24   |
-| [Build 42 dynamic Lua removal](build42-dynamic-lua-removal.md)                              | Partially verified | 42.20.4      | Shared, client, server      | 2026-08-26   |
-| [External animation manifests](external-animation-manifests.md)                             | Partially verified | 42.20.4 / 42.x | Client, SP, MP clients     | 2026-09-03   |
+| Topic                                                                                       | Status             | Build          | Scope                       | Last updated |
+| ------------------------------------------------------------------------------------------- | ------------------ | -------------- | --------------------------- | ------------ |
+| [Reference Mod multiplayer case study](reference-mod-multiplayer-case-study.md)             | Partially verified | 42.x           | Client, server, shared      | 2026-08-04   |
+| [Build 42 multiplayer command contract](build42-multiplayer-command-contract.md)            | Partially verified | 42.x           | Shared, multiplayer         | 2026-08-22   |
+| [Player ModData persistence and synchronization](player-moddata-persistence-and-sync.md)    | Partially verified | 42.12 / 42.x   | Server, multiplayer         | 2026-08-22   |
+| [Timed actions, recipes, and fluid authority](timed-actions-recipes-and-fluid-authority.md) | Partially verified | 42.x           | Client, server, multiplayer | 2026-08-22   |
+| [EveryOneMinute progression authority](every-one-minute-server-progression.md)              | Partially verified | 42.x           | Client, server, SP, MP      | 2026-08-22   |
+| [Sandbox-option multiplayer authority](sandbox-options-multiplayer-authority.md)            | Partially verified | 42.x           | Client, server, SP, MP      | 2026-08-22   |
+| [Lactation production and metabolic costs](lactation-production-and-metabolic-costs.md)     | Partially verified | 42.x           | Client, server, SP, MP      | 2026-08-24   |
+| [Build 42 dynamic Lua removal](build42-dynamic-lua-removal.md)                              | Partially verified | 42.20.4        | Shared, client, server      | 2026-08-26   |
+| [External animation manifests](external-animation-manifests.md)                             | Partially verified | 42.20.4 / 42.x | Client, SP, MP clients      | 2026-09-03   |
 
 ## Implementation Plans
 

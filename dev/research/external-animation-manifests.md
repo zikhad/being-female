@@ -29,10 +29,12 @@ The remaining uncertainty is lifecycle and integration behavior in the running g
 -   Installed Build 42.20.4 `projectzomboid.jar`, `zombie.scripting.ScriptType` — the accepted script types are a closed engine enum. Although it includes runtime animation types, those describe Project Zomboid model/runtime animations rather than BF's UI texture sequences.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `LuaManager.GlobalObject.listFilesInModDirectory` — exposed as a global Lua method. It lists direct files in a relative directory for a specified mod, covers common and version-specific mod directories, and rejects blank mod IDs, absolute paths, and traversal components.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `LuaManager.GlobalObject.getModFileReader` — exposed as a global Lua method. It reads UTF-8 text from a relative mod path, prefers the version-specific directory, falls back to the common directory, and rejects absolute paths and traversal components.
+-   Installed Build 42.20.4 `projectzomboid.jar`, `LuaManager.GlobalObject.getGameFilesTextInput` — returns `null` unless the game is running in debug mode. It must not be used for release-client manifest loading even though it resolves through the virtual filesystem.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `zombie.ZomboidFileSystem.loadMod` — stores files in `activeFileMap` using a normalized, lowercased relative path. Later loaded files replace earlier mappings with the same key; a mod's version-specific directory similarly replaces its common directory.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `zombie.ZomboidFileSystem.loadMods` — resolves required dependencies before their dependants and then loads the final active-mod list sequentially. A provider that requires BF consequently loads after BF, although competing provider order remains user-configurable.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `zombie.core.textures.Texture.getSharedTextureInternal` — resolves requested texture paths through `ZomboidFileSystem.getString`, directly placing BF frame textures under the same-relative-path overlay.
 -   Installed Build 42.20.4 `projectzomboid.jar`, `zombie.scripting.ScriptManager.Load` — identical relative script filenames participate in virtual-file replacement, but separate files defining the same named script object follow type-specific merge/reset behavior. Engine script overrides are therefore not a general contract for BF data.
+-   In-game Build 42.20.4 `console.txt` — an omitted end argument in TypeScript `String.substring(start)` transpiled through `__TS__StringSubstring` to a `string.sub` call that Kahlua rejected with `missing argument #3 to 'sub'`. Manifest parsing must use `substring(start, line.length)` so generated Lua supplies both indices.
 -   `src/client/BF/components/Animation.ts` — BF animation selection, texture loading, and display are client-side. Frame textures are loaded only for the selected animation, so registering many definitions does not by itself preload every provider image.
 
 ### Types Or Declarations
@@ -73,9 +75,9 @@ Confidence is high that Build 42 permits enumerating and reading provider-owned 
 -   Introduce an `AnimationRegistry` separate from animation rendering and state filtering.
 -   Move BF's built-in definitions into manifests so they participate in the same discovery and replacement contract as third-party definitions.
 -   Treat each normalized relative manifest path as the definition's stable identity.
--   Enumerate manifest paths across activated mods, deduplicate identical relative paths, and parse only the virtual filesystem's winning file for each path.
+-   Enumerate activated mods in their resolved order and retain the last owner for each normalized relative manifest path. Read that winning copy with `getModFileReader(ownerModId, path, false)`.
 -   Sort the final winning relative paths before registration so animation ordering is stable for a fixed set of resolved files.
--   Reset and rebuild only the external portion of the registry when the relevant client lifecycle reloads Lua.
+-   Reset and rebuild the complete registry from winning manifests when the relevant client lifecycle reloads Lua. Shipped BF manifests are the sole source of built-in definitions.
 -   Continue loading textures lazily when an animation is selected.
 
 ### Addition And Replacement Semantics
@@ -86,7 +88,7 @@ BF could provide this default definition:
 media/BF/animations/intercourse/animation-1.txt
 ```
 
-A provider adds a different animation by choosing a new relative manifest path. It replaces `animation-1` by shipping the same path with a complete new definition:
+A provider adds a different animation by choosing a new relative manifest filename. It replaces `animation-1` by shipping the same path with a complete new definition:
 
 ```ini
 version=1
@@ -125,11 +127,11 @@ The provider must load after BF, normally by declaring BF through `require=`. It
 
 Native asset and manifest overlays work together:
 
-| Need | Mechanism |
-| --- | --- |
-| Replace pixels while preserving the existing animation definition | Same-relative-path PNG overlay |
+| Need                                                                         | Mechanism                                                                             |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Replace pixels while preserving the existing animation definition            | Same-relative-path PNG overlay                                                        |
 | Change frame count, sequence, loop, category, fullness, or state constraints | Replace the complete manifest at the same relative path and provide its required PNGs |
-| Add another selectable animation | Use a new relative manifest path and matching asset directory |
+| Add another selectable animation                                             | Use a new relative manifest path and matching asset directory                         |
 
 Multiple overlays use the user's final mod order and the last loaded file wins. BF cannot reliably diagnose individual PNG conflicts because Project Zomboid resolves them before `getTexture` returns the file. Providers changing animation metadata should therefore replace the manifest and provide a complete, internally consistent frame set rather than depending on a mixture of shadowed assets.
 
@@ -152,7 +154,7 @@ media/
                 └── ...
 ```
 
-A provider replaces it by reproducing the relevant relative paths under its own `42/media` directory. A provider adding an animation uses a new manifest path and should namespace that path to avoid accidental collisions:
+A provider replaces it by reproducing the relevant relative paths under its own `42/media` directory. Build 42's exposed directory-listing API is non-recursive, so a provider adding an animation should namespace the flat filename to avoid accidental collisions:
 
 ```text
 <provider-mod>/
@@ -160,8 +162,7 @@ A provider replaces it by reproducing the relevant relative paths under its own 
     └── media/
         ├── BF/
         │   └── animations/
-        │       └── <provider-mod-id>/
-        │           └── standing-intercourse.txt
+        │       └── <provider-mod-id>--standing-intercourse.txt
         └── ui/
             └── animation/
                 └── <provider-mod-id>/
@@ -172,9 +173,9 @@ A provider replaces it by reproducing the relevant relative paths under its own 
 ```
 
 -   The provider manifest is data only. BF must never call `require`, `dofile`, `loadstring`, or a callback named by the manifest.
--   Discover candidate relative paths per activated mod, but resolve duplicate paths through Project Zomboid's virtual filesystem before parsing. Reading every mod-scoped copy would bypass the intended overlay contract.
+-   Discover candidate relative paths per activated mod, retaining the last activated owner for each duplicate path. Read only that mod-scoped winning copy; parsing every copy would bypass the intended overlay contract.
 -   Use the manifest's relative path as identity. A provider-supplied `id` must not control replacement.
--   New definitions should use provider-namespaced manifest and image paths. Overrides intentionally reuse the target's paths.
+-   New definitions should use provider-namespaced flat manifest filenames and image paths. Overrides intentionally reuse the target's paths.
 -   If custom image paths are supported, require safe relative paths under `media/ui`.
 -   Support `frameCount` for a zero-based sequential range and optional explicit `steps` for repeated, reversed, or non-linear sequences.
 -   Validate versions, names, categories, layout/fullness compatibility, frame and loop bounds, booleans, state flags, and paths.
@@ -192,7 +193,7 @@ Adding a new manifest to a category changes random-selection probabilities becau
 ## Remaining Questions
 
 -   Is `Events.OnGameStart` early enough to complete registry loading before every possible BF animation trigger while also guaranteeing that activated mods are finalized?
--   What is the safest exposed API for reading a discovered path through the final virtual filesystem overlay, and can BF identify the winning provider for diagnostics without reproducing engine resolution logic?
+-   Does `getActivatedMods()` expose the exact final order used by `ZomboidFileSystem.loadMods` in every single-player and multiplayer client lifecycle?
 -   Does `listFilesInModDirectory` return duplicate filenames when both common and `42/` directories contain the same relative file, and how should candidate paths be normalized before virtual resolution?
 -   Does `getTexture` resolve namespaced provider PNGs identically in single-player, hosted multiplayer, and dedicated-server clients?
 -   Do already cached animation textures update reliably after a live Lua reload, or must native PNG overrides be treated as startup-only?
@@ -211,7 +212,7 @@ Then run a temporary client-side probe on the proposed loading event:
 
 1. Confirm that `probe-provider` appears in `getActivatedMods()`.
 2. Enumerate `media/BF/animations` with `listFilesInModDirectory` and build the normalized union of relative manifest paths.
-3. Read and close the winning virtual `probe.txt` rather than parsing every mod-scoped copy.
+3. Retain the last activated owner for duplicate paths and read that copy with `getModFileReader`; do not use the debug-gated `getGameFilesTextInput`.
 4. Resolve and display the provider-owned PNG with `getTexture`.
 5. Load a manifest at a new path and confirm it adds one selectable variant.
 6. Place a complete provider manifest over a BF default path, change its frame count, provide the complete replacement frame set, and confirm it occupies the original selection slot.
@@ -225,3 +226,6 @@ Expected result: winning virtual manifests are discovered and parsed once on eac
 
 -   2026-09-03: Initial investigation. Established Build 42 discovery feasibility and rejected `media/scripts` as the extension boundary.
 -   2026-09-03: Replaced the proposed `replaces` field with native same-relative-path manifest replacement, matching Project Zomboid's virtual filesystem behavior.
+-   2026-09-03: Confirmed `getGameFilesTextInput` is debug-only; specified last-owner discovery plus `getModFileReader` for release clients and flattened provider manifest names because directory listing is non-recursive.
+-   2026-09-03: Made shipped manifests the sole source of built-in definitions; no compiled animation-definition fallback is retained.
+-   2026-09-03: In-game validation exposed Kahlua's required `string.sub` end argument; the manifest parser now emits an explicit line-length endpoint.
