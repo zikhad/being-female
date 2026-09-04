@@ -1,9 +1,14 @@
 import type { PregnancyData } from "@types";
-import { BodyPartType, getGameTime, IsoPlayer, ZombRand } from "@asledgehammer/pipewrench";
+import {
+	BodyPartType,
+	getGameTime,
+	IsoPlayer,
+	triggerEvent,
+	ZombRand
+} from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { ISTimedActionQueue } from "@asledgehammer/pipewrench/client";
 import { ITEMS, BFEventsEnum, BFTraitsEnum } from "@constants";
-import { emitBFNotification } from "@client/LegacyEventCompatibility";
 import { BFActionBirth } from "@actions/BFBirth";
 import { BFActionPregnancyStartAnimation } from "@actions/BFPregnancyStartAnimation";
 import { Player, TimedEvents } from "@client/components/Player";
@@ -159,7 +164,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		};
 		PregnancyState.set(this.player, presentation);
 		this.moodle?.moodle(pregnancy.progress);
-		emitBFNotification(BFEventsEnum.PREGNANCY_UPDATE, presentation);
+		triggerEvent(BFEventsEnum.PREGNANCY_UPDATE, presentation);
 		if (previousStatus === PregnancyStatus.NOT_PREGNANT) this.playStartAnimation();
 		if (pregnancy.isInLabor && !snapshot.domains.birth.pendingBirthId) {
 			this.births?.allocate();
@@ -319,7 +324,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			isInLabor: state.isInLabor
 		});
 		this.moodle?.moodle(state.progress, true);
-		emitBFNotification(BFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
+		triggerEvent(BFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 		if (state.isInLabor && !previousInLabor) {
 			this.queueLegacyBirthPresentation(false, true);
 		}
@@ -402,7 +407,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			this.queueLegacyBirthPresentation(false, true);
 		}
 		this.moodle?.moodle(this.pregnancy.progress, true);
-		emitBFNotification(BFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
+		triggerEvent(BFEventsEnum.PREGNANCY_UPDATE, this.pregnancy);
 	}
 
 	/**
