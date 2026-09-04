@@ -1,0 +1,8 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=pregnant
+category=intercourse
+steps=0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,2,1,0,1,2,3,4,5,6,7,8,9,10,11
+loop=1
+pregnancy=true
+

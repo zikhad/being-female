@@ -1,0 +1,7 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=birth-v2
+category=birth
+frameCount=29
+loop=1
+

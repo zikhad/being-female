@@ -1,0 +1,8 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=pregnant-v1
+category=intercourse
+frameCount=15
+loop=20
+pregnancy=true
+

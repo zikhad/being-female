@@ -29,6 +29,7 @@ const pipewrenchRequireMock = jest.fn().mockReturnValue({});
 export { pipewrenchRequireMock as require };
 
 export const getActivatedMods = jest.fn();
+export const getModFileReader = jest.fn();
 
 export class TraitFactory {
 	static addTrait() {

@@ -3,6 +3,7 @@ const path = require("path");
 const sharp = require("sharp");
 const { startProgressBar, stopProgressBar } = require("./progressBar");
 const { getInfo } = require("./info");
+const { PNG_COMPRESSION_OPTIONS } = require("./imageOptimization");
 
 /**
  * Remove .DS_Store files recursively
@@ -31,7 +32,7 @@ const optimizeImage = async (srcFilePath, destFilePath) => {
 		const ext = path.extname(srcFilePath).toLowerCase();
 		const image = sharp(srcFilePath);
 		if (ext === ".png") {
-			await image.png({ quality: 80, compressionLevel: 9 }).toFile(destFilePath);
+			await image.png(PNG_COMPRESSION_OPTIONS).toFile(destFilePath);
 		} else if ([".jpg", ".jpeg"].includes(ext)) {
 			await image.jpeg({ quality: 80 }).toFile(destFilePath);
 		}

@@ -77,16 +77,16 @@ The mod adds several female-specific traits that modify gameplay:
 
 BF introduces some items. check table below to check how rare they are
 
-| Item           | Intended availability | Base-game comparison                                                         |
-| -------------- | --------------------- | ---------------------------------------------------------------------------- |
-| Condom         | Uncommon              | Slightly harder to find than adhesive bandages                               |
-| Condom box     | Uncommon              | About as common as sleeping tablets                                          |
-| Contraceptive  | Uncommon              | Harder to find than painkillers                                              |
-| Lactaid        | Uncommon              | About as common as beta blockers                                             |
-| Breast pump    | Rare                  | Roughly comparable to first-aid kits                                         |
-| Vaginal douche | Rare                  | Comparable to antibiotics                                                    |
-| Used condom    | Uncommon trash loot   | Primarily found in trash or produced                                         |
-| Baby           | Not world loot        | -                                                                            |
+| Item           | Intended availability | Base-game comparison                           |
+| -------------- | --------------------- | ---------------------------------------------- |
+| Condom         | Uncommon              | Slightly harder to find than adhesive bandages |
+| Condom box     | Uncommon              | About as common as sleeping tablets            |
+| Contraceptive  | Uncommon              | Harder to find than painkillers                |
+| Lactaid        | Uncommon              | About as common as beta blockers               |
+| Breast pump    | Rare                  | Roughly comparable to first-aid kits           |
+| Vaginal douche | Rare                  | Comparable to antibiotics                      |
+| Used condom    | Uncommon trash loot   | Primarily found in trash or produced           |
+| Baby           | Not world loot        | -                                              |
 
 ### 🔧 Debug Tools
 
@@ -252,7 +252,8 @@ Examples of animation paths:
 -   `media/ui/animation/custom-animation/empty/0.png`
 -   `media/ui/animation/custom-animation/full/0.png`
 -   `media/ui/animation/custom-animation/0.png`
-    **NOTE:** `birth` and `fertilization` animations will bypass conditions, meaning `pregnancy` and `condom` only apply for `pregnancy` or default animations. (when none of them are defined)
+
+Custom settings and predefined variants are both checked against `pregnancy`, `condom`, and `fullnessSupport` before they start. Fullness folders are intended for intercourse animations. Settings marked as `birth` or `fertilization` bypass those state conditions because those sequences are always available when explicitly triggered.
 
 #### `BFWombAnimationUpdate`: Triggers a womb animation update
 
@@ -346,6 +347,56 @@ If you are not familiar with Node.js, the short version is:
 -   `npm run check`: checks formatting and lint rules
 -   `npm run lint`: rewrites formatting and runs eslint
 -   `npm run watch:build`: rebuilds on file changes and writes output to `~/Zomboid/mods` (only `.ts` files)
+-   `npm run animation-creator`: starts the local browser tool for creating animation frame packages
+-   `npm run extract-images -- <input>`: extracts numbered PNG frames from a GIF or video in the terminal
+
+### Generating Animation Frames
+
+The animation creator turns `.gif`, `.mp4`, `.mov`, or `.webm` media into the zero-based PNG sequence used by BF. Install [FFmpeg](https://ffmpeg.org/) so both `ffmpeg` and `ffprobe` are available on your `PATH`, then install the repository dependencies with `npm install`.
+
+Run the browser tool:
+
+```bash
+npm run animation-creator
+```
+
+Open the localhost URL printed in the terminal. Upload or drop a source, configure its trim, FPS, dimensions, fit or fill behavior, and generate a preview. Output dimensions default to 276×276. The preview plays the exact PNG frames that will be downloaded. Step 4 displays the complete BF manifest and installation paths. The resulting ZIP contains a copy-ready `media` directory, the manifest, extraction metadata, and matching installation instructions; the tool never modifies `Animation.ts` or files under `src/`.
+
+Playback defaults to every extracted frame in order. Switch to a custom sequence to combine forward, reverse, ping-pong, held-frame, or explicit frame-list segments and repeat each segment independently. The preview follows the expanded sequence and reports both the playback-step position and underlying PNG frame. Custom sequences are exported through the manifest's `steps` field; simple sequences continue using `frameCount`.
+
+Full and empty layouts apply only to intercourse animations. A single intercourse animation may be plain, full-only, empty-only, or contain paired full and empty sources. Paired sources share their output transform, may use separate trims, and must produce the same number of frames. Birth and fertilization animations always use one plain source.
+
+### Data-Driven Animation Manifests
+
+BF discovers complete animation definitions from `media/BF/animations/*.txt` when a game starts. A new relative manifest path adds a selectable animation. Reusing an existing BF manifest path from a later-loaded mod replaces that complete definition through Project Zomboid's normal virtual-file override behavior; there is no `replaces` field and manifest fields are never merged.
+
+```ini
+version=1
+name=custom-animation
+category=intercourse
+frameCount=30
+loop=20
+fullness=empty,full
+pregnancy=false
+condom=false
+```
+
+Use either `frameCount` for sequential frames `0..n-1` or `steps` for an explicit comma-separated sequence. Supported categories are `intercourse`, `birth`, and `fertilization`. Only intercourse manifests may specify `fullness`, `pregnancy`, or `condom`. The optional `path` must be a safe relative path under `media/ui` and defaults to `media/ui/animation`.
+
+Provider mods should declare BF through `require=` so they load after it. An override that changes its frame count or sequence must provide the complete corresponding PNG set at the paths described by the winning manifest. When multiple mods supply the same manifest or PNG path, Project Zomboid's resolved mod order determines the winner.
+
+For terminal automation, use:
+
+```bash
+npm run extract-images -- path/to/source.gif \
+  --width 256 \
+  --height 256 \
+  --fps 5 \
+  --mode fit \
+  --output path/to/frames
+```
+
+Use both `--width` and `--height`, or omit both to keep the source dimensions. Other options include `--starttime HH:MM:SS`, `--endtime HH:MM:SS`, and `--position center`. See `npm run extract-images -- --help` for the complete CLI reference.
 
 ### Important Notes
 
