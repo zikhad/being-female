@@ -11,7 +11,6 @@ import { WombOptions } from "@client/SandboxOptions";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { Player, TimedEvents } from "@client/components/Player";
 import { CyclePhaseEnum, ITEMS, BFEventsEnum, BFTraitsEnum } from "@constants";
-import { emitBFNotification } from "@client/LegacyEventCompatibility";
 import { PregnancyState } from "@client/components/PregnancyState";
 import { percentageToNumber } from "@client/Utils";
 import { WombPublisher } from "@client/components/network/WombPublisher";
@@ -301,7 +300,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 
 	onEveryMinute(): void {
 		this.fertility = this.computeFertility();
-		emitBFNotification(BFEventsEnum.WOMB_UPDATE, this.data);
+		triggerEvent(BFEventsEnum.WOMB_UPDATE, this.data);
 	}
 
 	onEveryTenMinutes(): void {

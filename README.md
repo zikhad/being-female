@@ -282,21 +282,6 @@ This will update the `Animation.wombImage` based on current womb / pregnancy sta
   triggerEvent("BFWombImage");
 ```
 
-### Legacy Event Compatibility
-
-New integrations should use the `BF*` event names above. For existing integrations, the
-legacy command aliases `ZLBFIntercourse`, `ZLBFMenstrualEffects`, `ZLBFPregnancyStart`,
-`ZLBFPregnancyStop`, `ZLBFWombAnimationStart`, `ZLBFWombAnimationUpdate`,
-`ZLBFWombAnimationStop`, and `ZLBFWombImage` continue to forward once to their BF
-equivalents. Notifications are emitted under the BF name first and then under
-`ZLBFPregnancyUpdate`, `ZLBFLactationUpdate`, `ZLBFWombUpdate`, or `ZLBFPregnancyLabor`
-with the identical payload.
-
-These event strings are the only compatibility surface retained by the rename. Old
-modules, globals, content identifiers, traits, network namespaces, and persisted data are
-not read or migrated. Triggering both a BF command and its legacy alias intentionally runs
-the command twice.
-
 ### For Mod Integration Developers
 
 For comprehensive guidance on integrating other mods with Being Female—including event patterns, trait extensions, fluid mechanics, Lua UI components, and compatibility considerations—see the **[Mod Integrator Agent Guide](.github/agents/mod-integrator.agent.md)**.

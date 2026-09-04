@@ -2,7 +2,6 @@ import { ISBaseTimedAction, triggerEvent } from "@asledgehammer/pipewrench";
 import { AnimationUpdateConfig, ANIMATIONS } from "@client/components/Animation";
 import { Pregnancy } from "@client/components/Pregnancy";
 import { BFAnimations, BFEventsEnum } from "@constants";
-import { emitBFNotification } from "@client/LegacyEventCompatibility";
 
 export class BFActionBirth extends ISBaseTimedAction {
 	private pregnancy: Pregnancy;
@@ -33,7 +32,7 @@ export class BFActionBirth extends ISBaseTimedAction {
 	update() {
 		super.update();
 		const delta = this.getJobDelta();
-		emitBFNotification(BFEventsEnum.PREGNANCY_LABOR, delta);
+		triggerEvent(BFEventsEnum.PREGNANCY_LABOR, delta);
 		triggerEvent(BFEventsEnum.ANIMATION_UPDATE, {
 			delta,
 			duration: this.maxTime
