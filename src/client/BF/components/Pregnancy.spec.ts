@@ -1169,12 +1169,10 @@ describe("Pregnancy", () => {
 				progress: 0.3,
 				isInLabor: false
 			});
-			expect(SpyPipewrench.triggerEvent).toHaveBeenCalled();
-			const eventCalls = (SpyPipewrench.triggerEvent as jest.Mock).mock.calls;
-			expect(eventCalls.slice(-2).map(call => call[0])).toEqual([
-				BFEventsEnum.PREGNANCY_UPDATE,
-				["ZL", "BFPregnancyUpdate"].join("")
-			]);
+			const updateEvents = (SpyPipewrench.triggerEvent as jest.Mock).mock.calls.filter(
+				call => call[0] === BFEventsEnum.PREGNANCY_UPDATE
+			);
+			expect(updateEvents).toHaveLength(1);
 		});
 
 		it("queues local birth presentation when a debug advance reaches labor", () => {

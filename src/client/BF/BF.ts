@@ -13,10 +13,12 @@ import { WombPublisher } from "@client/components/network/WombPublisher";
 import { RecipeSnapshotReceiver } from "@client/components/network/RecipeSnapshotReceiver";
 import { LactationPublisher } from "@client/components/network/LactationPublisher";
 import { isClient } from "@asledgehammer/pipewrench";
-import { installLegacyEventCompatibility } from "@client/LegacyEventCompatibility";
+import { installBFEvents } from "@client/BFEvents";
 import { CondomPublisher } from "@client/components/network/CondomPublisher";
+import { animationRegistry } from "@client/components/AnimationRegistry";
 
-installLegacyEventCompatibility();
+installBFEvents();
+animationRegistry.install();
 
 /** Whether this Lua context is a multiplayer client that requires command synchronization. */
 const multiplayerClient = typeof isClient === "function" && isClient();

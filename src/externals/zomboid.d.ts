@@ -12,6 +12,12 @@ import { Fluid } from "@shared/components/FluidContainerApi";
 declare type CharacterStatValue = { readonly __brand: "CharacterStatValue" };
 
 declare global {
+	/** Lists direct files in a relative directory belonging to an activated Build 42 mod. */
+	function listFilesInModDirectory(
+		modId: string,
+		directory: string
+	): { size(): number; get(index: number): string };
+
 	/**
 	 * Build 42 CharacterStat enum - global accessible from Lua.
 	 * Replaces legacy direct stat getter/setter methods on Stats.

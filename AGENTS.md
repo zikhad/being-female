@@ -32,6 +32,9 @@ These instructions apply to all AI assistants working in this repository.
 ## PipeWrench And Build 42 Guidance
 
 -   Prefer existing PipeWrench types and APIs before introducing new abstractions.
+-   Use the unofficial [Project Zomboid Lua API Javadocs](https://geromet.github.io/PZJavaDocs/) to discover Lua-exposed Java classes, methods, fields, globals, annotations, and linked source when PipeWrench typings or local research are incomplete.
+-   Treat those Javadocs as version-sensitive secondary evidence: record the documented build when available, compare signatures with PipeWrench types and vanilla game resources, and validate consequential behavior in the targeted Project Zomboid runtime.
+-   When an agent has web access, it may search or open the Javadocs directly. If network access is unavailable, do not assume the site was consulted; use local typings and research notes and report the limitation.
 -   When Build 42 behavior differs from Build 41 typings, add precise type augmentations instead of falling back to `any`.
 -   Runtime bugs in Project Zomboid often come from generated Lua shape, loader paths, or integration boundaries; inspect the built output when TypeScript looks correct but the game disagrees.
 
@@ -78,6 +81,7 @@ These instructions apply to all AI assistants working in this repository.
 ## Persistent Research
 
 -   Persistent reverse-engineering findings live under `dev/research/`.
+-   Cite the unofficial Project Zomboid Lua API Javadocs in research notes when they materially support a claim, including the relevant class or member URL and the apparent game build; classify the evidence as unofficial documentation or source-derived evidence, not direct runtime observation.
 -   Delegate undocumented, version-sensitive, loader, lifecycle, Java exposure, or multiplayer behavior to the read-only `zomboid_researcher` when focused research would materially reduce uncertainty.
 -   The researcher must remain read-only and return structured evidence to the primary agent; the primary agent reviews that evidence before creating or updating research notes.
 -   Check `dev/research/README.md` and relevant topic notes before starting new research or implementing version-sensitive behavior.

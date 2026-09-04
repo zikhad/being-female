@@ -1,9 +1,14 @@
-import { BodyPartType, getGameTime, IsoPlayer, ZombRandFloat } from "@asledgehammer/pipewrench";
+import {
+	BodyPartType,
+	getGameTime,
+	IsoPlayer,
+	triggerEvent,
+	ZombRandFloat
+} from "@asledgehammer/pipewrench";
 import * as Events from "@asledgehammer/pipewrench-events";
 import { LactationData, LactationImages, PregnancyData } from "@types";
 import { percentageToNumber } from "@utils";
 import { BFEventsEnum, BFTraitsEnum } from "@constants";
-import { emitBFNotification } from "@client/LegacyEventCompatibility";
 import { LactationOptions } from "@client/SandboxOptions";
 import { Player, TimedEvents } from "@client/components/Player";
 import { Moodle } from "@client/components/Moodles";
@@ -169,7 +174,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		this.lastMinuteStamp = minuteStamp;
 		if (this.isLactating && elapsed > 0) this.produce(elapsed);
 		this.moodle?.moodle(this.percentage, true);
-		emitBFNotification(BFEventsEnum.LACTATION_UPDATE, this.data);
+		triggerEvent(BFEventsEnum.LACTATION_UPDATE, this.data);
 	}
 
 	/**

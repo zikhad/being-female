@@ -1,0 +1,8 @@
+# BF animation manifest. Reusing this relative path in a later-loaded mod replaces it.
+version=1
+name=condom
+category=intercourse
+frameCount=7
+loop=4
+condom=true
+

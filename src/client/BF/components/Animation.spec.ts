@@ -6,6 +6,9 @@ import { Womb } from "@client/components/Womb";
 import { ITEMS, BFEventsEnum } from "@constants";
 import { mock } from "jest-mock-extended";
 import { PregnancyData } from "@types";
+import { animationRegistry } from "@client/components/AnimationRegistry";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 jest.mock("@asledgehammer/pipewrench-events");
 jest.mock("@asledgehammer/pipewrench");
@@ -34,6 +37,35 @@ const updateAnimation = (
 	...overrides
 });
 
+/** Creates the zero-based Java-list surface used by manifest discovery. */
+const javaList = <T>(values: T[]) => ({
+	size: () => values.length,
+	get: (index: number) => values[index]
+});
+
+/** Creates a buffered-reader surface over a shipped manifest. */
+const manifestReader = (contents: string) => {
+	const lines = contents.trim().split("\n");
+	let index = 0;
+	return {
+		readLine: jest.fn(() => lines[index++] ?? null),
+		close: jest.fn()
+	};
+};
+
+/** Loads the canonical shipped manifests into the shared animation registry. */
+const loadShippedManifests = () => {
+	const directory = path.join(process.cwd(), "src/media/BF/animations");
+	const filenames = fs.readdirSync(directory).filter(filename => filename.endsWith(".txt"));
+	(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["BF"]));
+	(globalThis as any).listFilesInModDirectory = jest.fn().mockReturnValue(javaList(filenames));
+	(SpyPipewrench.getModFileReader as jest.Mock).mockImplementation(
+		(_modId: string, manifestPath: string) =>
+			manifestReader(fs.readFileSync(path.join(process.cwd(), "src", manifestPath), "utf8"))
+	);
+	animationRegistry.reload();
+};
+
 // ─── Test Suite ───────────────────────────────────────────────────────────────
 
 describe("Animation", () => {
@@ -50,6 +82,7 @@ describe("Animation", () => {
 		Animation.wombImage = "media/ui/womb/normal/womb_normal_0.png";
 		Animation.animation = undefined;
 		(Animation as any).isAnimationActive = false;
+		loadShippedManifests();
 	});
 
 	// ─── Constructor ───────────────────────────────────────────────────────
@@ -178,6 +211,30 @@ describe("Animation", () => {
 				steps: [0, 2, 4],
 				path: "media/custom"
 			});
+		});
+
+		it("should accept a custom animation whose fullness support matches the womb", () => {
+			const animationInstance = new Animation(makeWomb({ amount: 0, capacity: 1 }));
+
+			animationInstance.onAnimationStart({
+				name: "empty-only",
+				steps: [0, 1],
+				fullnessSupport: ["empty"]
+			});
+
+			expect(Animation.animation?.name).toBe("empty-only");
+		});
+
+		it("should reject a custom animation whose fullness support does not match the womb", () => {
+			const animationInstance = new Animation(makeWomb({ amount: 1, capacity: 1 }));
+
+			animationInstance.onAnimationStart({
+				name: "empty-only",
+				steps: [0, 1],
+				fullnessSupport: ["empty"]
+			});
+
+			expect(Animation.animation).toBeUndefined();
 		});
 
 		it("should leave animation undefined when no variant matches current flags", () => {
