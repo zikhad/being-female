@@ -38,7 +38,8 @@ type CyclePhase =
 
 type WombData = {
 	amount: number;
-	capacity: number;
+	/** @deprecated Capacity is configured live through SandboxVars and is ignored when persisted. */
+	capacity?: number;
 	total: number;
 	cycleDay: number;
 	fertility: number;

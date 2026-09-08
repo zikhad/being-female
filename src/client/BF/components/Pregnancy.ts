@@ -52,7 +52,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 	 * Get current pregnancy duration from sandbox options.
 	 * This reads the value dynamically to respect runtime sandbox changes.
 	 */
-	private get duration(): number {
+	private get pregnancyDuration(): number {
 		return PregnancyOptions.duration;
 	}
 
@@ -83,7 +83,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
 
 			const { current } = pregnancy;
-			const duration = this.duration;
+			const duration = this.pregnancyDuration;
 			const updated = Math.min(duration, current + minutes);
 			const next = {
 				status: PregnancyStatus.PREGNANT,
@@ -102,7 +102,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 			const pregnancy = this.authoritativePregnancy;
 			if (pregnancy.status !== PregnancyStatus.PREGNANT) return;
 			const { current } = pregnancy;
-			const duration = this.duration;
+			const duration = this.pregnancyDuration;
 			this.Debug.advance(duration - current - 1);
 		}
 	};
@@ -386,7 +386,7 @@ export class Pregnancy extends Player<PregnancyData> implements TimedEvents {
 		else if (this.birthPresentation.phase === "interrupted")
 			this.queueLegacyBirthPresentation(true, pregnancy.isInLabor ?? false);
 		if (elapsed === 0) return;
-		const duration = this.duration;
+		const duration = this.pregnancyDuration;
 		const { current } = pregnancy;
 		const previousInLabor = pregnancy.isInLabor ?? false;
 		if (current >= duration && previousInLabor) return;
