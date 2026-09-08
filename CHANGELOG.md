@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.1.0](https://github.com/zikhad/being-female/compare/v2.0.2...v2.1.0) (2026-09-04)
+
+
+### Features
+
+* **animation:** adding a new intercourse animation ([310db39](https://github.com/zikhad/being-female/commit/310db3918037ae66e69d57d6c4d0da57f0766c2a))
+* **animation:** adding condom-v3 animation ([895efb7](https://github.com/zikhad/being-female/commit/895efb750294dfbafeb7a881b778143f8460546f))
+* **animation:** adding intercourse-v7 animation ([9c87d2f](https://github.com/zikhad/being-female/commit/9c87d2f33ad6cef7451fd5ea20b3d9ac845d7322))
+* **animation:** adding manifests for existing animations ([dfe8a75](https://github.com/zikhad/being-female/commit/dfe8a75d58f4c14b3936ef6aada03fc15fa092de))
+* **animation:** adding new fertilization animation ([8b32ae3](https://github.com/zikhad/being-female/commit/8b32ae3484abb4f9e1a5c7bfdc6a1cc7006371dc))
+* **animation:** adding new intercourse animation ([175c7d2](https://github.com/zikhad/being-female/commit/175c7d228880db97d98628afe81887c935234c04))
+* **animation:** adding one more birth animation ([073e072](https://github.com/zikhad/being-female/commit/073e0721e87e544afe6c6b31c9ac93bec1a090bd))
+* **animation:** adding one more condom animation ([2190329](https://github.com/zikhad/being-female/commit/219032931eb698ab1f5026723e3e9421cc394983))
+* **animation:** apply filer rules to external animations ([64943f7](https://github.com/zikhad/being-female/commit/64943f7579c5541eaa32ea375481d8714c525a31))
+* **animation:** implementing animation by manifest mechanism ([2b1748d](https://github.com/zikhad/being-female/commit/2b1748d717f7ff88e01473239452f32b71769a01))
+* **tooling:** adding custom steps creation ([6e09f3a](https://github.com/zikhad/being-female/commit/6e09f3ae65f625ce789c6b6b328612eae11953cc))
+* **tooling:** adding syntax highlight to the generator app ([57d955c](https://github.com/zikhad/being-female/commit/57d955c6b7cc5aee27fd2113be4f9eaa84e79ad0))
+* **tooling:** creating animation creator web app ([cd8c475](https://github.com/zikhad/being-female/commit/cd8c475f9a286b1cb8b273010d230089e6d012ce))
+* **tooling:** improve image extraction workflow ([744f683](https://github.com/zikhad/being-female/commit/744f68339f3a47b7dc884d891ef8f3ded8eb7136))
+* **tooling:** updating the image creator webapp ([7e8a22d](https://github.com/zikhad/being-female/commit/7e8a22de7fe334e7b07264b7caccfcc5e5995f54))
+
+
+### Bug Fixes
+
+* **animation:** adding missing animation for intercourse v4 ([c89a41a](https://github.com/zikhad/being-female/commit/c89a41ae53f7029f012955760caad6d9355d8cee))
+* **animation:** fixed empty condom animations ([67a769e](https://github.com/zikhad/being-female/commit/67a769e764bce95c02c4d13b755a7982b396d125))
+* **trait:** fixing mutually exclusive traits ([951af07](https://github.com/zikhad/being-female/commit/951af0764ae7f2455bc8c979a10c8e8c49e7a3c3))
+
 ### [2.0.2](https://github.com/zikhad/being-female/compare/v2.0.1...v2.0.2) (2026-08-27)
 
 ### [2.0.1](https://github.com/zikhad/being-female/compare/v2.0.0...v2.0.1) (2026-08-27)
