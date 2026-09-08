@@ -26,11 +26,6 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	private readonly CONSTANTS = {
 		fertilityLevel: 5
 	};
-	private readonly options = {
-		recovery: WombOptions.recovery,
-		capacity: WombOptions.capacity
-	};
-
 	set amount(value: number) {
 		this.data!.amount = value;
 	}
@@ -39,14 +34,15 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		return this.data?.amount ?? 0;
 	}
 
-	get capacity() {
-		return this.data?.capacity ?? this.options.capacity;
+	/** Returns the live configured womb capacity without consulting legacy persisted values. */
+	get capacity(): number {
+		return WombOptions.wombCapacity;
 	}
 
 	public Debug = {
 		sperm: {
 			add: (amount: number) => {
-				this.amount = Math.min(this.options.capacity, this.amount + amount);
+				this.amount = Math.min(this.capacity, this.amount + amount);
 				this.total += amount;
 				this.publishState();
 			},
@@ -55,7 +51,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 				this.publishState();
 			},
 			set: (amount: number) => {
-				this.amount = Math.max(0, Math.min(this.options.capacity, amount));
+				this.amount = Math.max(0, Math.min(this.capacity, amount));
 				this.publishState();
 			},
 			setTotal: (amount: number) => {
@@ -92,7 +88,6 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	};
 
 	defaultData = {
-		capacity: this.options.capacity,
 		amount: 0,
 		total: 0,
 		cycleDay: ZombRand(1, 28),
@@ -189,12 +184,12 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
 	}
 
-	/** Applies concrete server-persisted fields while preserving uninitialized legacy values. */
+	/** Applies concrete server-persisted fields while clamping volume to the live configured capacity. */
 	private applyAuthoritativeSnapshot(snapshot: BFSnapshot): void {
 		const { cycleDay, amount, total, onContraceptive } =
 			this.commands?.latestDesiredState ?? snapshot.domains.womb;
 		if (cycleDay !== undefined) this.cycleDay = cycleDay;
-		if (amount !== undefined) this.amount = amount;
+		if (amount !== undefined) this.amount = Math.max(0, Math.min(this.capacity, amount));
 		if (total !== undefined) this.total = total;
 		if (onContraceptive !== undefined) this.contraceptive = onContraceptive;
 	}
@@ -202,7 +197,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	/** Publishes the complete reversible Womb state after a local gameplay mutation. */
 	public publishState(): void {
 		const boundedAmount = Number.isFinite(this.amount)
-			? Math.max(0, Math.min(this.options.capacity, this.amount))
+			? Math.max(0, Math.min(this.capacity, this.amount))
 			: 0;
 		const boundedTotal = Number.isFinite(this.total) ? Math.max(0, this.total) : 0;
 		if (boundedAmount !== this.amount) this.amount = boundedAmount;
@@ -221,7 +216,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	}
 
 	/**
-	 * Initializes data when the player is created.
+	 * Initializes data, clamps legacy persisted volume to live capacity, and registers gameplay events.
 	 * @param player - The IsoPlayer instance.
 	 */
 	onCreatePlayer(player: IsoPlayer) {
@@ -229,6 +224,7 @@ export class Womb extends Player<WombData> implements TimedEvents {
 		this.amount = this.data?.amount ?? 0;
 		const snapshot = this.snapshots?.snapshot;
 		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
+		this.amount = Math.max(0, Math.min(this.capacity, this.amount));
 
 		Events.everyOneMinute.addListener(() => this.onEveryMinute());
 		Events.everyTenMinutes.addListener(() => this.onEveryTenMinutes());
@@ -291,16 +287,20 @@ export class Womb extends Player<WombData> implements TimedEvents {
 	onPregnancyUpdate(data: PregnancyData) {
 		if (!this.pregnancyData) return;
 
-		this.cycleDay = -this.options.recovery;
+		this.cycleDay = -WombOptions.wombRecovery;
 		if (data.progress > 0.5 && this.amount > 0) {
 			this.amount = 0;
 			this.publishState();
 		}
 	}
 
+	/** Recomputes fertility and emits the public Womb view with live configured capacity. */
 	onEveryMinute(): void {
 		this.fertility = this.computeFertility();
-		triggerEvent(BFEventsEnum.WOMB_UPDATE, this.data);
+		triggerEvent(BFEventsEnum.WOMB_UPDATE, {
+			...this.data!,
+			capacity: this.capacity
+		});
 	}
 
 	onEveryTenMinutes(): void {

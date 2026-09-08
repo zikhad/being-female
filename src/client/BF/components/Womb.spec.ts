@@ -45,6 +45,7 @@ describe("Womb", () => {
 		jest.clearAllMocks();
 		jest.resetAllMocks();
 		jest.restoreAllMocks();
+		delete (globalThis as { SandboxVars?: unknown }).SandboxVars;
 
 		// Setup default EventEmitter mock
 		const mockAddListener = jest.fn();
@@ -447,8 +448,12 @@ describe("Womb", () => {
 			);
 		});
 		describe("onEveryMinute", () => {
-			it("should update minute data and trigger WOMB_UPDATE with full data including capacity", () => {
+			it("emits live capacity without requiring it in persisted data", () => {
+				(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+					BF: { WombMaxCapacity: 2.5 }
+				};
 				const data = mockedModData({ cycleDay: 15, onContraceptive: false });
+				delete data.capacity;
 				jest.spyOn(Player.prototype, "data", "get").mockReturnValue(data);
 				const womb = new Womb();
 				womb.onCreatePlayer(mockedPlayer());
@@ -456,7 +461,7 @@ describe("Womb", () => {
 				expect(SpyPipeWrench.triggerEvent).toHaveBeenCalledWith(
 					BFEventsEnum.WOMB_UPDATE,
 					expect.objectContaining({
-						capacity: expect.any(Number),
+						capacity: 2.5,
 						amount: expect.any(Number),
 						total: expect.any(Number)
 					})
@@ -524,21 +529,37 @@ describe("Womb", () => {
 
 	// === Capacity Tests ===
 	describe("Capacity", () => {
-		it("should return data.capacity if it exists", () => {
-			const customCapacity = 5;
+		it("ignores stale persisted capacity and reads the live sandbox value", () => {
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { WombMaxCapacity: 2.5 }
+			};
 			jest.spyOn(Player.prototype, "data", "get").mockReturnValue(
-				mockedModData({ capacity: customCapacity })
+				mockedModData({ capacity: 1 })
 			);
 			const womb = new Womb();
 			womb.onCreatePlayer(mockedPlayer());
-			expect(womb.capacity).toBe(customCapacity);
+			expect(womb.capacity).toBe(2.5);
 		});
 
-		it("should return options.capacity as fallback when data is null", () => {
-			jest.spyOn(Player.prototype, "data", "get").mockReturnValue(null);
+		it("reflects sandbox changes made after construction", () => {
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { WombMaxCapacity: 1 }
+			};
 			const womb = new Womb();
-			// capacity should fall back to options.capacity since data is null
-			expect(womb.capacity).toBeGreaterThan(0);
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { WombMaxCapacity: 3 }
+			};
+			expect(womb.capacity).toBe(3);
+		});
+
+		it("clamps loaded volume to the live configured capacity", () => {
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { WombMaxCapacity: 0.1 }
+			};
+			jest.spyOn(Player.prototype, "data", "get").mockReturnValue(mockedModData());
+			const womb = new Womb();
+			womb.onCreatePlayer(mockedPlayer());
+			expect(womb.amount).toBe(0.1);
 		});
 	});
 
@@ -616,7 +637,7 @@ describe("Womb", () => {
 
 			womb.onPregnancyUpdate({ progress: 0.3, current: 0 });
 
-			expect(womb.cycleDay).toBe(-WombOptions.recovery);
+			expect(womb.cycleDay).toBe(-WombOptions.wombRecovery);
 			expect(womb.amount).toBe(initialAmount); // amount should NOT be reset when progress <= 0.5
 		});
 
