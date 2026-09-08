@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.12.2](https://github.com/zikhad/zwbf-pipewrench/compare/v1.12.1...v1.12.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **build:** replace removed Lua compilation calls ([7ecfa29](https://github.com/zikhad/zwbf-pipewrench/commit/7ecfa29d98ca76c7cf4adafc5166ec658fd33dba))
+
 ### [1.12.1](https://github.com/zikhad/zwbf-pipewrench/compare/v1.12.0...v1.12.1) (2026-08-04)
 
 
