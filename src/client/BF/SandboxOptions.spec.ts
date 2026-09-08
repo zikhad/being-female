@@ -7,11 +7,11 @@ describe("SandboxOptions", () => {
 
 	it("falls back to defaults when SandboxVars.BF is unavailable", () => {
 		expect(PregnancyOptions.duration).toBe(14 * 24 * 60);
-		expect(PregnancyOptions.recovery).toBe(7);
-		expect(WombOptions.capacity).toBe(1);
-		expect(WombOptions.recovery).toBe(7);
-		expect(LactationOptions.capacity).toBe(1);
-		expect(LactationOptions.expiration).toBe(168);
+		expect(PregnancyOptions.pregnancyRecovery).toBe(7);
+		expect(WombOptions.wombCapacity).toBe(1);
+		expect(WombOptions.wombRecovery).toBe(7);
+		expect(LactationOptions.milkCapacity).toBe(1);
+		expect(LactationOptions.milkExpiration).toBe(168);
 	});
 
 	it("reads nested values from SandboxVars.BF", () => {
@@ -26,10 +26,10 @@ describe("SandboxOptions", () => {
 		};
 
 		expect(PregnancyOptions.duration).toBe(21 * 24 * 60);
-		expect(PregnancyOptions.recovery).toBe(10);
-		expect(WombOptions.capacity).toBe(1.75);
-		expect(WombOptions.recovery).toBe(10);
-		expect(LactationOptions.capacity).toBe(2.4);
-		expect(LactationOptions.expiration).toBe(288);
+		expect(PregnancyOptions.pregnancyRecovery).toBe(10);
+		expect(WombOptions.wombCapacity).toBe(1.75);
+		expect(WombOptions.wombRecovery).toBe(10);
+		expect(LactationOptions.milkCapacity).toBe(2.4);
+		expect(LactationOptions.milkExpiration).toBe(288);
 	});
 });

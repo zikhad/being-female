@@ -59,7 +59,7 @@ class PregnancyOptionsClass extends SandboxOptions {
 	 * Recovery time after pregnancy in days.
 	 * Default: 7 days
 	 */
-	get recovery(): number {
+	get pregnancyRecovery(): number {
 		return this.getOption<number>(
 			options => options.PregnancyRecovery,
 			DEFAULT_OPTIONS.pregnancy.recovery
@@ -75,7 +75,7 @@ class WombOptionsClass extends SandboxOptions {
 	 * Maximum capacity of the womb in liters.
 	 * Default: 1 L
 	 */
-	get capacity(): number {
+	get wombCapacity(): number {
 		return this.getOption<number>(
 			options => options.WombMaxCapacity,
 			DEFAULT_OPTIONS.womb.capacity
@@ -86,7 +86,7 @@ class WombOptionsClass extends SandboxOptions {
 	 * Recovery time after pregnancy in days.
 	 * Default: 7 days
 	 */
-	get recovery(): number {
+	get wombRecovery(): number {
 		return this.getOption<number>(
 			options => options.PregnancyRecovery,
 			DEFAULT_OPTIONS.pregnancy.recovery
@@ -102,7 +102,7 @@ class LactationOptionsClass extends SandboxOptions {
 	 * Maximum capacity for milk storage in liters.
 	 * Default: 1 L
 	 */
-	get capacity(): number {
+	get milkCapacity(): number {
 		return this.getOption<number>(
 			options => options.MilkCapacity,
 			DEFAULT_OPTIONS.milk.capacity
@@ -113,7 +113,7 @@ class LactationOptionsClass extends SandboxOptions {
 	 * Days before milk expires.
 	 * Default: 7 days
 	 */
-	get expiration(): number {
+	get milkExpiration(): number {
 		return configuredLactationDurationHours();
 	}
 }

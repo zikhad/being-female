@@ -1,7 +1,7 @@
 # Sandbox-Option Multiplayer Authority
 
 Status: partially verified  
-Last updated: 2026-08-22
+Last updated: 2026-09-08
 Project Zomboid build: 42.x  
 Scope: client, server, single-player, multiplayer
 
@@ -15,6 +15,8 @@ Build 42 registers enabled mods' `sandbox-options.txt` declarations in `SandboxO
 
 Multiplayer clients receive a serialized copy of the server options and populate their own `SandboxVars`. The client accessor normally observes the server-selected value, but its table is still local client state and is not an authority boundary. BF birth completion now reads and validates Pregnancy recovery duration in the authoritative server transition; SP reads its local game configuration. User testing confirmed recovery persistence in SP and hosted/co-op MP. Live changes and dedicated-server behavior remain unverified.
 
+Client components retained from module load must also read sandbox values at the point of use. Copying `MilkCapacity`, `MilkExpiration`, `WombMaxCapacity`, or `PregnancyRecovery` into an instance field during construction can capture schema defaults before the selected save settings reach `SandboxVars`. Configuration-derived capacity must not be persisted as character state because that stale copy can then override the live setting on later loads.
+
 ## Evidence
 
 ### Direct observations
@@ -26,6 +28,7 @@ Multiplayer clients receive a serialized copy of the server options and populate
 -   `GameServer.receiveSandboxOptions` applies accepted administrative updates, calls `toLua()`, saves the server configuration, and broadcasts it to clients.
 -   Vanilla server Lua reads `SandboxVars` directly in `media/lua/server/Vehicles/Vehicles.lua`, `media/lua/server/Seasons/season.lua`, and `media/lua/server/Farming/SFarmingSystem.lua`.
 -   Vanilla server Lua also uses `getSandboxOptions():getOptionByName(...):getValue()` in farming and camping code.
+-   The TypeScript-to-Lua output built on 2026-09-08 showed `Lactation` and `Womb` constructors copying option getters into `self.options`, and the Womb default data copying that capacity again into `BFWomb` ModData. The corrected source reads the option accessors at use time and no longer creates a default persisted capacity.
 
 ### Types or declarations
 
@@ -56,11 +59,14 @@ Registration, startup ordering, Lua-table publication, client propagation, and v
 -   Never accept recovery duration from a client command payload.
 -   Persist Womb recovery in the same authoritative transition that completes birth and resets Pregnancy.
 -   Client simulation may continue using its synchronized copy, but authoritative snapshots must restore the persisted server result after reconnect.
+-   Treat legacy `BFWomb.capacity` values as obsolete compatibility data: do not read or republish them as configuration authority.
+-   Avoid same-named TypeScript accessors on sibling gameplay classes while the Project Zomboid build uses the current TSTL/PipeWrench Lua prototype integration. The reported shared-descriptor behavior is covered by unique component accessor names, but its VM-specific root cause still requires in-game confirmation.
 
 ## Remaining Questions
 
 -   Does a live administrative change become visible to the very next BF command in every hosted and dedicated-server lifecycle?
 -   How should BF surface a client/server mod-version mismatch that changes the custom option schema?
+-   Does Kahlua share sibling `_descriptors` tables in the emitted inheritance shape, or was the reported collision caused by another loader/runtime interaction?
 
 ## In-Game Validation
 
@@ -70,3 +76,4 @@ Set Pregnancy recovery to 11. In single-player, hosted multiplayer, and dedicate
 
 -   2026-08-14: Established the Build 42 server-owned custom sandbox-option loading and multiplayer propagation contract from installed bytecode and vanilla server usage; runtime mode and live-update probes remain pending.
 -   2026-08-22: Recorded successful SP and hosted/co-op birth-recovery validation using the configured authoritative duration. Dedicated-server and live-option-change probes remain pending.
+-   2026-09-08: Recorded construction-time option caching and persisted Womb capacity from generated Lua; client components now read live values and use collision-resistant accessor names. Kahlua descriptor-table behavior remains pending in-game validation.

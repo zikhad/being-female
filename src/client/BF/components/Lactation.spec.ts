@@ -29,6 +29,7 @@ describe("Lactation", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		jest.resetModules();
+		delete (globalThis as { SandboxVars?: unknown }).SandboxVars;
 		SpyHasTrait.mockReset().mockReturnValue(false);
 		(PregnancyState.get as jest.Mock).mockReturnValue(null);
 		let minuteStamp = 0;
@@ -72,6 +73,35 @@ describe("Lactation", () => {
 			lactation.onCreatePlayer(mockedPlayer());
 			expect(lactation.isLactating).toBe(true);
 			expect(lactation.milkAmount).toBe(0.4);
+		});
+
+		it("reflects milk capacity changes made after construction", () => {
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { MilkCapacity: 1 }
+			};
+			const lactation = new Lactation();
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { MilkCapacity: 2 }
+			};
+			expect(lactation.percentage).toBe(20);
+		});
+
+		it("clamps loaded milk to the live configured capacity", () => {
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { MilkCapacity: 0.25 }
+			};
+			const lactation = new Lactation();
+			lactation.onCreatePlayer(mockedPlayer());
+			expect(lactation.milkAmount).toBe(0.25);
+		});
+
+		it("uses milk expiration loaded after construction when lactation starts", () => {
+			const lactation = new Lactation();
+			(globalThis as { SandboxVars?: { BF?: BFSandboxOptions } }).SandboxVars = {
+				BF: { MilkExpiration: 12 }
+			};
+			lactation.Debug.toggle(true);
+			expect((lactation as any).expiration).toBe(12 * 24);
 		});
 
 		it("useMilk updates milkAmount and checks trait", () => {

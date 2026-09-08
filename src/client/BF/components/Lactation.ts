@@ -49,11 +49,6 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		}
 	};
 
-	private readonly options = {
-		expiration: LactationOptions.expiration,
-		capacity: LactationOptions.capacity
-	};
-
 	/**
 	 * Debug utilities to modify internal milk data
 	 */
@@ -76,7 +71,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	defaultData = {
 		isActive: false,
 		milkAmount: 0,
-		expiration: this.options.expiration,
+		expiration: LactationOptions.milkExpiration,
 		multiplier: 0
 	};
 
@@ -94,10 +89,14 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		this.snapshots?.subscribe(snapshot => this.applyAuthoritativeSnapshot(snapshot));
 	}
 
-	/** Replaces local Lactation compatibility data after an authoritative acknowledgement. */
+	/** Replaces local Lactation compatibility data and clamps milk to the live configured capacity. */
 	private applyAuthoritativeSnapshot(snapshot: BFSnapshot): void {
 		const lactation = this.commands?.latestDesiredState ?? snapshot.domains.lactation;
-		this.data = { ...lactation, multiplier: clampStimulation(lactation.multiplier) };
+		this.data = {
+			...lactation,
+			milkAmount: Math.max(0, Math.min(this.lactationCapacity, lactation.milkAmount)),
+			multiplier: clampStimulation(lactation.multiplier)
+		};
 	}
 
 	/** Publishes the complete current Lactation state after a local simulation mutation. */
@@ -120,14 +119,16 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	}
 
 	/**
-	 * Initialize lactation component for the given player and register timed events.
+	 * Initializes lactation, refreshes configuration-derived defaults, clamps loaded milk, and registers timed events.
 	 * @param player The created IsoPlayer instance
 	 */
 	onCreatePlayer(player: IsoPlayer): void {
+		this.defaultData.expiration = LactationOptions.milkExpiration;
 		super.onCreatePlayer(player);
 		this.lastMinuteStamp = getGameTime().getMinutesStamp();
 		const snapshot = this.snapshots?.snapshot;
 		if (snapshot) this.applyAuthoritativeSnapshot(snapshot);
+		this.milkAmount = Math.max(0, Math.min(this.lactationCapacity, this.milkAmount));
 		this.moodle = new Moodle({
 			player,
 			name: "Engorgement",
@@ -146,12 +147,12 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	}
 
 	/** Returns stored pregnancy data under a descriptor name unique to this component family. */
-	private get pregnancyData(): PregnancyData | null {
+	private get lactationPregnancyData(): PregnancyData | null {
 		return PregnancyState.get(this.player);
 	}
 
 	onPregnancyUpdate(data: PregnancyData) {
-		if (!this.pregnancyData) return;
+		if (!this.lactationPregnancyData) return;
 
 		const { progress } = data;
 		if (progress < 0.5) return;
@@ -199,7 +200,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 			thirst: this.getStatValue("THIRST"),
 			hunger: this.getStatValue("HUNGER")
 		});
-		this.milkAmount = Math.min(this.capacity, previousMilk + requested);
+		this.milkAmount = Math.min(this.lactationCapacity, previousMilk + requested);
 		const produced = this.milkAmount - previousMilk;
 		this.multiplier = decayStimulation(previousMultiplier, activeMinutes);
 		this.expiration = Math.max(0, previousExpiration - elapsedMinutes / 60);
@@ -295,13 +296,16 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	private resetInactiveState(): void {
 		this.isLactating = false;
 		this.milkAmount = 0;
-		this.expiration = this.options.expiration;
+		this.expiration = LactationOptions.milkExpiration;
 		this.multiplier = 0;
 	}
 
 	/** Returns the configured duration with Dairy Cow applied exactly once. */
 	private get refreshedDuration(): number {
-		return lactationDuration(this.options.expiration, this.hasTrait(BFTraitsEnum.DAIRY_COW));
+		return lactationDuration(
+			LactationOptions.milkExpiration,
+			this.hasTrait(BFTraitsEnum.DAIRY_COW)
+		);
 	}
 
 	/**
@@ -309,13 +313,13 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 	 */
 	get images(): LactationImages {
 		const getState = () => {
-			const progress = this.pregnancyData?.progress ?? 0;
+			const progress = this.lactationPregnancyData?.progress ?? 0;
 			if (progress < 0.4) return "normal";
 			return `pregnant_${progress < 0.7 ? "early" : "late"}`;
 		};
 
 		const state = getState();
-		const fullness = this.milkAmount > this.capacity / 2 ? "full" : "empty";
+		const fullness = this.milkAmount > this.lactationCapacity / 2 ? "full" : "empty";
 		const level = percentageToNumber(this.percentage, this.CONSTANTS.MAX_LEVEL);
 
 		return {
@@ -326,7 +330,7 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 
 	/** Milk percentage relative to capacity */
 	get percentage() {
-		return (this.milkAmount / this.capacity) * 100;
+		return (this.milkAmount / this.lactationCapacity) * 100;
 	}
 
 	set isLactating(value: boolean) {
@@ -337,9 +341,9 @@ export class Lactation extends Player<LactationData> implements TimedEvents {
 		return this.data?.isActive ?? false;
 	}
 
-	/** Maximum milk capacity */
-	private get capacity() {
-		return this.options.capacity;
+	/** Returns the live configured milk capacity under a component-unique descriptor name. */
+	private get lactationCapacity(): number {
+		return LactationOptions.milkCapacity;
 	}
 
 	/** Bottleable milk amount */
