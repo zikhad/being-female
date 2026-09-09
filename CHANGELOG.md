@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.3](https://github.com/zikhad/being-female/compare/v2.1.2...v2.1.3) (2026-09-09)
+
+
+### Bug Fixes
+
+* **fluids:** fixing fluid typo ([3a5243e](https://github.com/zikhad/being-female/commit/3a5243e893703647f3ec8a3e8338a410bec8c05e))
+
 ### [2.1.2](https://github.com/zikhad/being-female/compare/v2.1.1...v2.1.2) (2026-09-09)
 
 ### [2.1.1](https://github.com/zikhad/being-female/compare/v2.1.0...v2.1.1) (2026-09-08)
