@@ -1,6 +1,6 @@
 {
 	"name": "being-female",
-	"version": "2.1.2",
+	"version": "2.1.3",
 	"scripts": {
 		"prebuild": "npm run clean",
 		"build": "tstl -p ./tsconfig.build.json",
