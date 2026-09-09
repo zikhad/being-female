@@ -41,7 +41,7 @@ module BF {
         Properties
         {
             HungerChange = -50.0,
-            ThirstChange = -3,.0,
+            ThirstChange = -3.0,
             Calories = 25.0,
             Proteins = 5.0,
         }
