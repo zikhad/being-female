@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.2](https://github.com/zikhad/being-female/compare/v2.1.1...v2.1.2) (2026-09-09)
+
+### [2.1.1](https://github.com/zikhad/being-female/compare/v2.1.0...v2.1.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **sandbox-vars:** fixing descriptor tables ([8f328a3](https://github.com/zikhad/being-female/commit/8f328a32a337c05c4c8df5df92f5cd07b6b31c9e)), closes [#61](https://github.com/zikhad/being-female/issues/61)
+* **tests:** fixed animation manifest load tests ([6a0814e](https://github.com/zikhad/being-female/commit/6a0814e5e00405c7b3151e88cc1ded951060e3bb))
+
 ## [2.1.0](https://github.com/zikhad/being-female/compare/v2.0.2...v2.1.0) (2026-09-04)
 
 

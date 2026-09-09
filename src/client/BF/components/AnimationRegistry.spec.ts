@@ -115,6 +115,13 @@ describe("AnimationRegistry", () => {
 	it("loads every shipped manifest as the sole built-in definition source", () => {
 		const directory = path.join(process.cwd(), "src/media/BF/animations");
 		const filenames = fs.readdirSync(directory).filter(filename => filename.endsWith(".txt"));
+		const expectedNames = filenames
+			.map(filename => {
+				const manifest = fs.readFileSync(path.join(directory, filename), "utf8");
+				return manifest.match(/^name=(.+)$/m)?.[1];
+			})
+			.filter((name): name is string => name !== undefined)
+			.sort();
 		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["BF"]));
 		(globalThis as any).listFilesInModDirectory = jest
 			.fn()
@@ -130,9 +137,14 @@ describe("AnimationRegistry", () => {
 		expect(registry.get(ANIMATIONS.INTERCOURSE)).toHaveLength(0);
 		registry.reload();
 
-		expect(registry.get(ANIMATIONS.INTERCOURSE)).toHaveLength(17);
-		expect(registry.get(ANIMATIONS.BIRTH)).toHaveLength(5);
-		expect(registry.get(ANIMATIONS.FERTILIZATION)).toHaveLength(6);
+		const loadedNames = [
+			...registry.get(ANIMATIONS.INTERCOURSE),
+			...registry.get(ANIMATIONS.BIRTH),
+			...registry.get(ANIMATIONS.FERTILIZATION)
+		]
+			.map(animation => animation.name)
+			.sort();
+		expect(loadedNames).toEqual(expectedNames);
 		expect(registry.get(ANIMATIONS.INTERCOURSE)[0].name).toBe("condom");
 		expect(
 			registry.get(ANIMATIONS.INTERCOURSE).find(item => item.name === "intercourse")?.steps
