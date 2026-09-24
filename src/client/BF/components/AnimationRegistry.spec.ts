@@ -89,6 +89,32 @@ describe("AnimationRegistry", () => {
 		);
 	});
 
+	it("continues discovery when an activated mod has no manifest directory", () => {
+		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(
+			javaList(["WithoutManifests", "BF"])
+		);
+		(globalThis as any).listFilesInModDirectory = jest
+			.fn()
+			.mockReturnValueOnce(null)
+			.mockReturnValueOnce(javaList(["birth.txt"]));
+		(SpyPipewrench.getModFileReader as jest.Mock).mockReturnValue(
+			manifestReader(`
+				version=1
+				name=birth
+				category=birth
+				frameCount=2
+			`)
+		);
+
+		const registry = new AnimationRegistry();
+		registry.reload();
+
+		expect(globalThis.listFilesInModDirectory).toHaveBeenCalledTimes(2);
+		expect(registry.get(ANIMATIONS.BIRTH)).toContainEqual(
+			expect.objectContaining({ name: "birth", steps: [0, 1] })
+		);
+	});
+
 	it("rejects fullness metadata outside intercourse animations", () => {
 		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["Provider"]));
 		(globalThis as any).listFilesInModDirectory = jest

@@ -127,6 +127,7 @@ export class AnimationRegistry {
 			const mods = getActivatedMods();
 			for (let modIndex = 0; modIndex < mods.size(); modIndex++) {
 				const filenames = listFilesInModDirectory(mods.get(modIndex), MANIFEST_DIRECTORY);
+				if (!filenames) continue;
 				for (let fileIndex = 0; fileIndex < filenames.size(); fileIndex++) {
 					const filename = String(filenames.get(fileIndex));
 					if (!filename.toLowerCase().endsWith(".txt")) continue;
