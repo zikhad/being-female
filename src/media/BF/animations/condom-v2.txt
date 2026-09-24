@@ -6,4 +6,3 @@ frameCount=24
 loop=20
 fullness=empty
 condom=true
-

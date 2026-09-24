@@ -177,6 +177,43 @@ describe("AnimationRegistry", () => {
 		).toHaveLength(170);
 	});
 
+	it("provides every texture referenced by the shipped manifests", () => {
+		const directory = path.join(process.cwd(), "src/media/BF/animations");
+		const filenames = fs.readdirSync(directory).filter(filename => filename.endsWith(".txt"));
+		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["BF"]));
+		(globalThis as any).listFilesInModDirectory = jest
+			.fn()
+			.mockReturnValue(javaList(filenames));
+		(SpyPipewrench.getModFileReader as jest.Mock).mockImplementation(
+			(_modId: string, manifestPath: string) =>
+				manifestReader(
+					fs.readFileSync(path.join(process.cwd(), "src", manifestPath), "utf8")
+				)
+		);
+
+		const registry = new AnimationRegistry();
+		registry.reload();
+
+		for (const animations of Object.values(registry.animations)) {
+			for (const animation of animations) {
+				const variants = animation.fullnessSupport ?? [null];
+				for (const variant of variants) {
+					for (const step of new Set(animation.steps)) {
+						const texturePath = [
+							animation.path ?? "media/ui/animation",
+							animation.name,
+							variant,
+							`${step}.png`
+						]
+							.filter(part => part !== null)
+							.join("/");
+						expect(fs.existsSync(path.join(process.cwd(), "src", texturePath))).toBe(true);
+					}
+				}
+			}
+		}
+	});
+
 	it("rejects unknown keys instead of silently ignoring provider typos", () => {
 		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["Provider"]));
 		(globalThis as any).listFilesInModDirectory = jest
