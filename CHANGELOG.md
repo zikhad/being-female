@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.4](https://github.com/zikhad/being-female/compare/v2.1.3...v2.1.4) (2026-09-29)
+
+
+### Bug Fixes
+
+* **animation:** fixed missing path for condom v2 anim ([f49853f](https://github.com/zikhad/being-female/commit/f49853ff0021947dc3a3a217e0f9e386c4f8187a))
+* **animations:** fix registry handle on edge scenarios ([1c414ad](https://github.com/zikhad/being-female/commit/1c414ad753127c249f7bdd97a5f1308eec9b5284))
+
 ### [2.1.3](https://github.com/zikhad/being-female/compare/v2.1.2...v2.1.3) (2026-09-09)
 
 
