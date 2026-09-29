@@ -16,7 +16,7 @@ declare global {
 	function listFilesInModDirectory(
 		modId: string,
 		directory: string
-	): { size(): number; get(index: number): string };
+	): { size(): number; get(index: number): string } | null;
 
 	/**
 	 * Build 42 CharacterStat enum - global accessible from Lua.

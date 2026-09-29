@@ -89,6 +89,32 @@ describe("AnimationRegistry", () => {
 		);
 	});
 
+	it("continues discovery when an activated mod has no manifest directory", () => {
+		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(
+			javaList(["WithoutManifests", "BF"])
+		);
+		(globalThis as any).listFilesInModDirectory = jest
+			.fn()
+			.mockReturnValueOnce(null)
+			.mockReturnValueOnce(javaList(["birth.txt"]));
+		(SpyPipewrench.getModFileReader as jest.Mock).mockReturnValue(
+			manifestReader(`
+				version=1
+				name=birth
+				category=birth
+				frameCount=2
+			`)
+		);
+
+		const registry = new AnimationRegistry();
+		registry.reload();
+
+		expect(globalThis.listFilesInModDirectory).toHaveBeenCalledTimes(2);
+		expect(registry.get(ANIMATIONS.BIRTH)).toContainEqual(
+			expect.objectContaining({ name: "birth", steps: [0, 1] })
+		);
+	});
+
 	it("rejects fullness metadata outside intercourse animations", () => {
 		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["Provider"]));
 		(globalThis as any).listFilesInModDirectory = jest
@@ -149,6 +175,43 @@ describe("AnimationRegistry", () => {
 		expect(
 			registry.get(ANIMATIONS.INTERCOURSE).find(item => item.name === "intercourse")?.steps
 		).toHaveLength(170);
+	});
+
+	it("provides every texture referenced by the shipped manifests", () => {
+		const directory = path.join(process.cwd(), "src/media/BF/animations");
+		const filenames = fs.readdirSync(directory).filter(filename => filename.endsWith(".txt"));
+		(SpyPipewrench.getActivatedMods as jest.Mock).mockReturnValue(javaList(["BF"]));
+		(globalThis as any).listFilesInModDirectory = jest
+			.fn()
+			.mockReturnValue(javaList(filenames));
+		(SpyPipewrench.getModFileReader as jest.Mock).mockImplementation(
+			(_modId: string, manifestPath: string) =>
+				manifestReader(
+					fs.readFileSync(path.join(process.cwd(), "src", manifestPath), "utf8")
+				)
+		);
+
+		const registry = new AnimationRegistry();
+		registry.reload();
+
+		for (const animations of Object.values(registry.animations)) {
+			for (const animation of animations) {
+				const variants = animation.fullnessSupport ?? [null];
+				for (const variant of variants) {
+					for (const step of new Set(animation.steps)) {
+						const texturePath = [
+							animation.path ?? "media/ui/animation",
+							animation.name,
+							variant,
+							`${step}.png`
+						]
+							.filter(part => part !== null)
+							.join("/");
+						expect(fs.existsSync(path.join(process.cwd(), "src", texturePath))).toBe(true);
+					}
+				}
+			}
+		}
 	});
 
 	it("rejects unknown keys instead of silently ignoring provider typos", () => {
