@@ -1,6 +1,14 @@
 const path = require("path");
 const fs = require("fs-extra");
-const { srcPath, distPath, copyFolder, moveFolder, getInfo, patchPipeWrenchLua } = require("./utils");
+const {
+	srcPath,
+	distPath,
+	copyFolder,
+	moveFolder,
+	getInfo,
+	patchPipeWrenchLua,
+	namespaceGeneratedLuaModules
+} = require("./utils");
 
 /**
  * Copy EN translations from src/translations-json/LOCALE to the Build 42 output folder, ensuring the directory structure is correct.
@@ -50,6 +58,10 @@ const run = async () => {
 
 		// Copy EN translations to dist/Name/42/media/lua/shared/Translate/EN - these are the only translations shipped with the base mod
 		await translations(distPath("42/media/lua/shared/Translate"));
+
+		// Keep compiler-generated helpers isolated from generic paths owned by other mods.
+		await namespaceGeneratedLuaModules(distPath("42/media/lua"), "BF");
+		console.log("Generated Lua helpers namespaced.");
 
 		// Patch PipeWrench-generated Lua files to avoid spurious WARNs in PZ's console
 		await patchPipeWrenchLua(distPath("42"));

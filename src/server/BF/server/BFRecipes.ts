@@ -7,7 +7,7 @@ import {
 	BFSyncStatus,
 	BFTraitsEnum
 } from "@constants";
-import { Recipe } from "server/types";
+import { Recipe } from "@server/types";
 import { FluidContainerApi } from "@shared/components/FluidContainerApi";
 import { readRecipeActorState, resolveRecipeLactation } from "@shared/components/RecipeActorState";
 import { StateRepository } from "@server/components/state/StateRepository";

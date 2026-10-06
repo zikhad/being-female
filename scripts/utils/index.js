@@ -3,6 +3,7 @@ const { getInfo } = require("./info");
 const { getLocale } = require("./locale");
 const { createProgressBar, startProgressBar, stopProgressBar } = require("./progressBar");
 const { patchPipeWrenchLua } = require("./patches");
+const { namespaceGeneratedLuaModules } = require("./luaNamespace");
 
 module.exports = {
 	copyFolder,
@@ -14,5 +15,6 @@ module.exports = {
 	getLocale,
 	startProgressBar,
 	stopProgressBar,
-	patchPipeWrenchLua
+	patchPipeWrenchLua,
+	namespaceGeneratedLuaModules
 };
