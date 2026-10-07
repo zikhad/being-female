@@ -72,5 +72,6 @@ module BF
         Cost = 1,
         UIName = UI_Trait_NoMenstrualCramps,
         UIDescription = UI_Trait_NoMenstrualCramps_Description,
+        MutuallyExclusiveTraits = bf:strongmenstrualcramps,
     }
 }
