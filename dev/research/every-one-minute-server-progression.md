@@ -25,9 +25,9 @@ BF uses client-simulated, server-persisted progression for reversible multiplaye
 
 -   `src/client/BF/components/Pregnancy.ts` registers a client minute listener that calculates elapsed online minutes, updates presentation, publishes Pregnancy progress, and begins labor/birth presentation locally.
 -   `src/client/BF/components/network/PregnancyPublisher.ts` keeps one request in flight, coalesces intervening ticks to the latest desired state, and applies correlated server snapshots without rolling presentation behind queued progress.
--   `src/server/components/CommandHandler.ts` accepts the normal progression route without debug mode, validates and reconciles desired Pregnancy state, persists changes, and returns the canonical snapshot.
+-   `src/server/BF/server/components/CommandHandler.ts` accepts the normal progression route without debug mode, validates and reconciles desired Pregnancy state, persists changes, and returns the canonical snapshot.
 -   `src/client/BF/components/network/SyncCoordinator.ts` registers a separate client listener for the one-time snapshot request.
--   `src/server/BF.ts` registers only `OnClientCommand`; it has no minute listener.
+-   `src/server/BF/server/BF.ts` registers only `OnClientCommand`; it has no minute listener.
 -   Installed Build 42 `zombie.GameTime.update(boolean)` updates the minute stamp, compares it with the previous stamp, emits one `EveryOneMinute` event when different, and then stores the new stamp. There is no client/server guard around the trigger.
 -   Paused game time does not change the minute stamp. Hour and ten-minute processing precede the minute event when boundaries coincide.
 -   Vanilla server `media/lua/server/Camping/SCampfireSystem.lua` registers an `EveryOneMinute` listener.

@@ -17,17 +17,17 @@
 			"jest"
 		],
 		"paths": {
-			"@shared/*": ["shared/*"],
-			"@shared/components/*": ["shared/components/*"],
-			"@server/components/*": ["server/components/*"],
-			"@server/*": ["server/*"],
+			"@shared/*": ["shared/BF/shared/*"],
+			"@shared/components/*": ["shared/BF/shared/components/*"],
+			"@server/components/*": ["server/BF/server/components/*"],
+			"@server/*": ["server/BF/server/*"],
 			"@client/components/*": ["client/BF/components/*"],
 			"@client/*": ["client/BF/*"],
 			"@actions/*": ["client/BF/Actions/*"],
 			"@test/*": ["test/*"],
 			"@types": ["types.d.ts"],
 			"@utils": ["client/BF/Utils.ts"],
-			"@constants": ["shared/constants.ts"]
+			"@constants": ["shared/BF/shared/constants.ts"]
 		}
 	}
 }
