@@ -37,7 +37,7 @@ Hosted Build 42 multiplayer reproduction confirmed that recipes must treat the c
 -   `src/client/BF/components/Pregnancy.ts` advances Pregnancy presentation and labor locally while publishing reversible progress for server persistence.
 -   `src/client/BF/components/Womb.ts` listens for `BFIntercourse`, computes conception, and emits `BFPregnancyStart`; `Pregnancy.ts` publishes that successful lifecycle transition instead of directly mutating local state.
 -   See [EveryOneMinute server progression](every-one-minute-server-progression.md): collapsed minute jumps require timestamp-delta reconciliation, but BF selected client publication instead of server player iteration for reversible progression.
--   Current `src/server/BFRecipes.ts` is independent of client singleton state and uses the callback actor. `FluidContainerApi.clear(amount)` returns after removing only the requested amount.
+-   Current `src/server/BF/server/BFRecipes.ts` is independent of client singleton state and uses the callback actor. `FluidContainerApi.clear(amount)` returns after removing only the requested amount.
 -   Reference Mod `src/shared/components/PlushieReconciler.ts` calculates deterministic desired-state deltas without game mutation.
 -   Reference Mod `src/server/components/domain command handler.ts` validates live attachments and persists only traits actually added/suppressed by the mod.
 

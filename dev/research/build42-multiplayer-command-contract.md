@@ -57,13 +57,13 @@ The five `Cannot reference code from src/server from src/client` warnings produc
 
 The warnings correspond exactly to these server-to-server value imports:
 
-1. `src/server/BF.ts` to `CommandHandler`.
-2. `src/server/BFRecipes.ts` to `StateRepository`.
-3. `src/server/components/CommandHandler.ts` to `StateRepository`.
-4. `src/server/components/CommandHandler.ts` to `BirthOperationAllocator`.
-5. `src/server/components/state/StateRepository.ts` to `StateMigrator`.
+1. `src/server/BF/server/BF.ts` to `CommandHandler`.
+2. `src/server/BF/server/BFRecipes.ts` to `StateRepository`.
+3. `src/server/BF/server/components/CommandHandler.ts` to `StateRepository`.
+4. `src/server/BF/server/components/CommandHandler.ts` to `BirthOperationAllocator`.
+5. `src/server/BF/server/components/state/StateRepository.ts` to `StateMigrator`.
 
-Generated Lua places every caller and target beneath `media/lua/server` and emits side-relative paths such as `require('components/CommandHandler')`. No generated client file requires these server modules. Type-only server imports are erased and do not contribute warnings.
+Generated Lua places every caller and target beneath `media/lua/server/BF/server` and emits side-relative namespaced paths such as `require('BF/server/components/CommandHandler')`. The `BF/server/` prefix derives from the corresponding source placement beneath `src/server/BF/server`. No generated client file requires these server modules. Type-only server imports are erased and do not contribute warnings.
 
 The present source placement is therefore correct. Server-only modules must remain in `src/server`; moving them into `src/shared` merely to silence a faulty diagnostic would weaken the runtime boundary. A project-local tooling update or patch may remove the noise later, but permanent edits inside `node_modules` are not appropriate.
 
